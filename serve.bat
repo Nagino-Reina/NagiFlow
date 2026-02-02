@@ -1,2 +1,2 @@
 @echo off
-fastapi run backend/app.py
+fastapi run backend/main.py
