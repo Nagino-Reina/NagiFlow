@@ -5,6 +5,7 @@ from models import Character
 
 engine = create_engine(f"sqlite:///{db_path}")
 
+
 def get_characters():
     with Session(engine) as session:
         statement = select(Character)

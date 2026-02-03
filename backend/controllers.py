@@ -7,6 +7,7 @@ from tools import default_tools
 
 model = ChatOllama(model=settings.AI_MODEL)
 
+
 def load_character(char_id: str, tools=default_tools):
     character = get_character(char_id)
     agent = create_deep_agent(

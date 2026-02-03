@@ -5,8 +5,10 @@ from controllers import load_character
 
 router = APIRouter(prefix="/ai", tags=["AI"])
 
+
 class ChatData(BaseModel):
     content: str
+
 
 @router.post("/chat")
 def chat(request_data: ChatData, char_id: str = 'nagino'):

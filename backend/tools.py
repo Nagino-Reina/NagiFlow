@@ -1,9 +1,11 @@
 from typing import Literal
+
 from tavily import TavilyClient
 
 from config import settings
 
 tavily_client = TavilyClient(api_key=settings.TAVILY_API_KEY)
+
 
 def web_search(
         query: str,
@@ -18,5 +20,6 @@ def web_search(
         include_raw_content=include_raw_content,
         topic=topic
     )
+
 
 default_tools = [web_search]
