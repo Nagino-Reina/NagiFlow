@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 
-from routers import ai, character
+from routers import thread, character
 
 app = FastAPI()
 
-app.include_router(ai.router)
+app.include_router(thread.router)
 app.include_router(character.router)
