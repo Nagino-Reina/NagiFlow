@@ -28,3 +28,6 @@ Once the installation is complete, start the application using:
 
 ```shell
 serve.bat
+```
+
+After the service starts, open your browser and access: [http://127.0.0.1:8000](http://127.0.0.1:8000)
