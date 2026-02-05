@@ -4,8 +4,8 @@ from tavily import TavilyClient
 
 from config import settings
 
-tavily_client = TavilyClient(api_key=settings.TAVILY_API_KEY)
-
+tavily_client = None
+default_tools = []
 
 def web_search(
         query: str,
@@ -21,5 +21,6 @@ def web_search(
         topic=topic
     )
 
-
-default_tools = [web_search]
+if (settings.TAVILY_API_KEY or "").strip():
+    tavily_client = TavilyClient(api_key=settings.TAVILY_API_KEY)
+    default_tools.append(web_search)
