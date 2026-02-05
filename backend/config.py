@@ -3,6 +3,7 @@ from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 workspace_path: Path = Path.home() / "NagiFlow"
+web_path: Path = workspace_path / "web"
 env_file_path: Path = workspace_path / ".env"
 db_path: Path = workspace_path / "db.sqlite"
 

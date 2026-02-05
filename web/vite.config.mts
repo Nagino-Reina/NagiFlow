@@ -1,3 +1,5 @@
+import os from 'node:os'
+import path from 'node:path'
 import { fileURLToPath, URL } from 'node:url'
 import Vue from '@vitejs/plugin-vue'
 // Plugins
@@ -84,5 +86,8 @@ export default defineConfig({
   },
   server: {
     port: 3000,
+  },
+  build: {
+    outDir: path.resolve(os.homedir(), 'NagiFlow/web'),
   },
 })
