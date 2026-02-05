@@ -1,11 +1,19 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from sqlmodel import SQLModel
 from starlette.responses import FileResponse
 
 from config import web_path
+from db import engine
 from routers import thread, character
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    SQLModel.metadata.create_all(engine)
+    yield
 
 app = FastAPI(lifespan=lifespan)
 
