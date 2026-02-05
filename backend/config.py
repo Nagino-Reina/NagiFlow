@@ -9,7 +9,7 @@ db_path: Path = workspace_path / "db.sqlite"
 
 
 class NagiFlowSettings(BaseSettings):
-    AI_MODEL: str = ""
+    AI_MODEL: str = "gpt-oss:20b"
     TAVILY_API_KEY: str = ""
 
     model_config = SettingsConfigDict(env_file=env_file_path)
