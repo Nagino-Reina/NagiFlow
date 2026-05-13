@@ -6,3 +6,5 @@ gen
 
 # Environments
 .env
+
+workspace
