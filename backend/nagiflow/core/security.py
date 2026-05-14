@@ -9,7 +9,7 @@ from typing import Any
 from uuid import UUID
 
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+from pwdlib import PasswordHash
 
 from nagiflow.config import settings
 from nagiflow.core.exceptions import AuthenticationError, PermissionDeniedError, TokenExpiredError
@@ -18,15 +18,14 @@ from nagiflow.core.exceptions import AuthenticationError, PermissionDeniedError,
 # Password
 # ---------------------------------------------------------------------------
 
-_pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
+_pwd_hasher = PasswordHash.recommended()
 
 def hash_password(plain: str) -> str:
-    return _pwd_ctx.hash(plain)
+    return _pwd_hasher.hash(plain)
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return _pwd_ctx.verify(plain, hashed)
+    return _pwd_hasher.verify(plain, hashed)
 
 
 # ---------------------------------------------------------------------------
