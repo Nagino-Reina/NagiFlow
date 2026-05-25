@@ -82,9 +82,18 @@ class Settings(BaseSettings):
     # -------------------------------------------------------------------------
     # TTS
     # -------------------------------------------------------------------------
-    DEFAULT_TTS_PROVIDER: str = "voicevox"
+    DEFAULT_TTS_PROVIDER: str = "voxcpm2"
     VOICEVOX_BASE_URL: str = "http://localhost:50021"
     DEFAULT_VOICEVOX_SPEAKER: int = 1
+
+    # -------------------------------------------------------------------------
+    # VoxCPM2 TTS (local inference)
+    # -------------------------------------------------------------------------
+    VOXCPM2_MODEL_ID: str = "openbmb/VoxCPM2"
+    VOXCPM2_DEVICE: str = "auto"          # "auto" | "cpu" | "cuda" | "cuda:0"
+    VOXCPM2_CFG_VALUE: float = 2.0        # classifier-free guidance strength
+    VOXCPM2_INFERENCE_TIMESTEPS: int = 10  # diffusion steps
+    VOXCPM2_LOAD_DENOISER: bool = False
 
     # -------------------------------------------------------------------------
     # Embedding

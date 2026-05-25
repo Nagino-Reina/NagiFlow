@@ -5,9 +5,11 @@ from loguru import logger
 from nagiflow.config import settings
 from nagiflow.tts.base import BaseTTSProvider, TTSConfig, TTSResult
 from nagiflow.tts.providers.voicevox import VoicevoxProvider
+from nagiflow.tts.providers.voxcpm2 import VoxCPM2Provider
 
 _TTS_PROVIDER_MAP: dict[str, type[BaseTTSProvider]] = {
     "voicevox": VoicevoxProvider,
+    "voxcpm2": VoxCPM2Provider,
 }
 
 
@@ -33,6 +35,7 @@ __all__ = [
     "TTSConfig",
     "TTSResult",
     "VoicevoxProvider",
+    "VoxCPM2Provider",
     "register_tts_provider",
     "get_tts_provider",
 ]
