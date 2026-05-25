@@ -7,11 +7,29 @@ Plugin authors import from this module to implement new providers or skills.
 
 from __future__ import annotations
 
+import asyncio
 import re
 from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass, field
 from typing import Any
+
+# Shared expression-tag utilities used by streaming and avatar providers.
+_EXPRESSION_RE = re.compile(r"\[(\w+)\]")
+_KNOWN_EXPRESSIONS = frozenset({"default", "happy", "sad", "angry", "surprised"})
+
+
+def extract_expression(text: str) -> str:
+    """Return the last recognised emotion tag in *text*, or ``'default'``."""
+    for m in reversed(_EXPRESSION_RE.findall(text)):
+        if m.lower() in _KNOWN_EXPRESSIONS:
+            return m.lower()
+    return "default"
+
+
+def strip_expression_tags(text: str) -> str:
+    """Remove all ``[emotion]`` tags from *text*."""
+    return _EXPRESSION_RE.sub("", text).strip()
 
 
 # ---------------------------------------------------------------------------
@@ -81,6 +99,7 @@ class TTSResult:
     sample_rate: int = 24000
     channels: int = 1
     format: str = "wav"
+    duration_ms: int = 0
 
 
 class BaseTTSProvider(ABC):
@@ -129,16 +148,11 @@ class BaseAvatarProvider(ABC):
 
     def parse_expression_tag(self, text: str) -> tuple[str, str]:
         """
-        Extract the first [expression] tag from text.
-        Returns (cleaned_text, expression_name).
+        Extract the last recognised [expression] tag from *text*.
+        Returns ``(text_with_tags_stripped, expression_name)``.
         """
-        match = re.search(r"\[(\w+)\]", text)
-        if match:
-            expr = match.group(1).lower()
-            if expr in self.get_expressions():
-                cleaned = re.sub(r"\[" + expr + r"\]", "", text, flags=re.IGNORECASE).strip()
-                return cleaned, expr
-        return text, "default"
+        expr = extract_expression(text)
+        return strip_expression_tags(text), expr
 
     async def health_check(self) -> bool:
         return True
@@ -156,7 +170,8 @@ class BaseEmbeddingProvider(ABC):
     async def embed(self, text: str) -> list[float]: ...
 
     async def embed_batch(self, texts: list[str]) -> list[list[float]]:
-        return [await self.embed(t) for t in texts]
+        import asyncio
+        return list(await asyncio.gather(*[self.embed(t) for t in texts]))
 
     async def health_check(self) -> bool:
         return True

@@ -19,15 +19,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.orm import DeclarativeBase
-
 from nagiflow.config import settings
-
-
-class Base(DeclarativeBase):
-    """Shared declarative base for all ORM models."""
-
-    pass
 
 
 # ---------------------------------------------------------------------------

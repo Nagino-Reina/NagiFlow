@@ -21,10 +21,15 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+import re
+
 from nagiflow.core.exceptions import NotFoundError, PermissionDeniedError
 from nagiflow.core.workspace import workspace
+from nagiflow.services._tts import resolve_tts
+
+_SENTENCE_END = re.compile(r"[.!?。！？]\s*")
 from nagiflow.models.conversation import Conversation, Message
-from nagiflow.plugin.base import LLMMessage, TTSConfig
+from nagiflow.plugin.base import LLMMessage
 from nagiflow.plugin.registry import registry
 from nagiflow.schemas.conversation import ConversationCreate
 from nagiflow.services.agent import CharacterAgent
@@ -274,14 +279,9 @@ class ConversationService:
         self, text: str, character: object
     ) -> tuple[str, str]:
         """Synthesise audio for *text* and return (workspace_rel_path, url_path)."""
-        from nagiflow.config import settings
-
-        tts_provider_name = getattr(character, "tts_provider", None) or settings.DEFAULT_TTS_PROVIDER
-        speaker_id = getattr(character, "tts_speaker_id", None) or settings.DEFAULT_VOICEVOX_SPEAKER
         char_id = getattr(character, "id", "unknown")
 
-        provider = registry.get_tts(tts_provider_name)
-        config = TTSConfig(speaker_id=speaker_id)
+        provider, config = resolve_tts(character)
         result = await provider.synthesize(text, config)
 
         filename = f"{uuid.uuid4()}.wav"
@@ -304,8 +304,6 @@ class ConversationService:
         Yields raw WAV audio chunks as each sentence is completed by the LLM
         and immediately synthesised.  Designed for WebSocket delivery.
         """
-        from nagiflow.config import settings
-
         if conversation_id is None:
             conv = await self.create(user_id, ConversationCreate(character_id=character_id))
         else:
@@ -321,16 +319,10 @@ class ConversationService:
 
         agent = await self._build_agent(conv.character_id, user_id)
         character = agent.character
-        tts_provider_name = character.tts_provider or settings.DEFAULT_TTS_PROVIDER
-        speaker_id = character.tts_speaker_id or settings.DEFAULT_VOICEVOX_SPEAKER
-
-        tts = registry.get_tts(tts_provider_name)
-        tts_config = TTSConfig(speaker_id=speaker_id)
+        tts, tts_config = resolve_tts(character)
 
         sentence_buffer = ""
         full_text = ""
-        import re
-        sentence_end = re.compile(r"[.!?。！？]\s*")
 
         async for chunk in agent.stream(
             history=llm_history,
@@ -342,8 +334,8 @@ class ConversationService:
             sentence_buffer += chunk
 
             # When a sentence boundary is detected, synthesise and yield
-            while sentence_end.search(sentence_buffer):
-                match = sentence_end.search(sentence_buffer)
+            while _SENTENCE_END.search(sentence_buffer):
+                match = _SENTENCE_END.search(sentence_buffer)
                 if match is None:
                     break
                 sentence = sentence_buffer[: match.end()].strip()

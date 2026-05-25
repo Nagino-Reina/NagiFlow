@@ -9,6 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from nagiflow.api.deps import get_current_active_user
 from nagiflow.core.database import get_session
+from nagiflow.core.exceptions import ValidationError
+from nagiflow.core.workspace import MAX_UPLOAD_BYTES
 from nagiflow.models.user import User
 from nagiflow.schemas.training import (
     TrainingDatasetCreate,
@@ -102,7 +104,13 @@ async def add_item(
     db: AsyncSession = Depends(get_session),
 ) -> TrainingItemRead:
     svc = TrainingService(db)
-    audio_bytes = await audio.read() if audio else None
+    audio_bytes: bytes | None = None
+    if audio:
+        audio_bytes = await audio.read()
+        if len(audio_bytes) > MAX_UPLOAD_BYTES:
+            raise ValidationError(
+                f"Audio file exceeds maximum size of {MAX_UPLOAD_BYTES // 1_048_576} MB."
+            )
     data = TrainingItemCreate(text=text, speaker_id=speaker_id, source=source)
     item = await svc.add_item(dataset_id, current_user.id, data, audio_bytes)
     await db.commit()

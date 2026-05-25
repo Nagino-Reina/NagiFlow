@@ -28,6 +28,8 @@ export function useWebSocket() {
 
   function _dispatch(list, ...args) { list.forEach(fn => fn(...args)) }
 
+  const CONNECT_TIMEOUT_MS = 10_000
+
   function connect({ characterId, conversationId, message, mode = 'text', token }) {
     disconnect()
 
@@ -38,7 +40,17 @@ export function useWebSocket() {
     status.value = 'connecting'
     ws = new WebSocket(url)
 
+    // Abort if the socket never opens within the timeout
+    const connectTimer = setTimeout(() => {
+      if (status.value === 'connecting') {
+        ws?.close()
+        status.value = 'error'
+        _dispatch(_errorHandlers, 'WebSocket connection timed out.')
+      }
+    }, CONNECT_TIMEOUT_MS)
+
     ws.onopen = () => {
+      clearTimeout(connectTimer)
       status.value = 'open'
       ws.send(JSON.stringify({
         token,
@@ -50,13 +62,17 @@ export function useWebSocket() {
 
     ws.onmessage = (evt) => {
       if (typeof evt.data === 'string') {
+        let frame: Record<string, unknown>
         try {
-          const frame = JSON.parse(evt.data)
-          if (frame.type === 'delta')      _dispatch(_deltaHandlers,     frame.content)
-          if (frame.type === 'done')       _dispatch(_doneHandlers,      frame.conversation_id)
-          if (frame.type === 'error')      _dispatch(_errorHandlers,     frame.detail)
-          if (frame.type === 'anim_state') _dispatch(_animStateHandlers, frame.state, frame.expression)
-        } catch { /**/ }
+          frame = JSON.parse(evt.data)
+        } catch {
+          _dispatch(_errorHandlers, 'Received malformed frame from server.')
+          return
+        }
+        if (frame.type === 'delta')      _dispatch(_deltaHandlers,     frame.content)
+        if (frame.type === 'done')       _dispatch(_doneHandlers,      frame.conversation_id)
+        if (frame.type === 'error')      _dispatch(_errorHandlers,     frame.detail)
+        if (frame.type === 'anim_state') _dispatch(_animStateHandlers, frame.state, frame.expression)
       } else {
         // Binary: audio chunk (ArrayBuffer or Blob)
         _dispatch(_audioHandlers, evt.data)
@@ -64,11 +80,13 @@ export function useWebSocket() {
     }
 
     ws.onerror = () => {
+      clearTimeout(connectTimer)
       status.value = 'error'
       _dispatch(_errorHandlers, 'WebSocket connection error.')
     }
 
     ws.onclose = () => {
+      clearTimeout(connectTimer)
       status.value = 'closed'
     }
   }

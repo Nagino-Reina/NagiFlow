@@ -16,6 +16,7 @@ from sqlalchemy.orm import selectinload
 from nagiflow.core.exceptions import NotFoundError, PermissionDeniedError
 from nagiflow.core.workspace import workspace
 from nagiflow.models.training import TrainingDataset, TrainingItem
+from nagiflow.services._tts import resolve_tts
 from nagiflow.schemas.training import (
     TrainingDatasetCreate,
     TrainingDatasetUpdate,
@@ -172,27 +173,19 @@ class TrainingService:
         speaker_id: int | None = None,
     ) -> TrainingItem:
         """Generate TTS audio for *text* and add as a new item."""
-        from nagiflow.config import settings
-        from nagiflow.plugin.base import TTSConfig
-        from nagiflow.plugin.registry import registry
-
         dataset = await self.get_dataset(dataset_id, user_id)
 
-        tts_provider_name = settings.DEFAULT_TTS_PROVIDER
-        spk = speaker_id or settings.DEFAULT_VOICEVOX_SPEAKER
-
+        char = None
         if dataset.character_id:
             from nagiflow.models.character import Character
             result = await self.db.execute(
                 select(Character).where(Character.id == dataset.character_id)
             )
             char = result.scalar_one_or_none()
-            if char:
-                tts_provider_name = char.tts_provider or tts_provider_name
-                spk = char.tts_speaker_id or spk
 
-        tts = registry.get_tts(tts_provider_name)
-        tts_result = await tts.synthesize(text, TTSConfig(speaker_id=spk))
+        tts, tts_config = resolve_tts(char, speaker_id_override=speaker_id)
+        tts_result = await tts.synthesize(text, tts_config)
+        spk = tts_config.speaker_id
 
         create_data = TrainingItemCreate(
             text=text, speaker_id=spk, source="generated"

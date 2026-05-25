@@ -22,6 +22,14 @@ from collections.abc import AsyncGenerator
 from typing import Any
 
 
+class _Stop:
+    """Unique sentinel used to signal EventBus subscriber shutdown."""
+    __slots__ = ()
+
+
+_STOP = _Stop()
+
+
 class EventBus:
     def __init__(self) -> None:
         self._queues: dict[str, list[asyncio.Queue[Any]]] = defaultdict(list)
@@ -37,7 +45,7 @@ class EventBus:
         """
         Yield payloads published to *channel*.
 
-        The generator exits when a ``None`` sentinel is received or when
+        The generator exits when the channel is closed or when
         *timeout* seconds elapse without a new event.
         """
         q: asyncio.Queue[Any] = asyncio.Queue()
@@ -48,7 +56,7 @@ class EventBus:
                     item = await asyncio.wait_for(q.get(), timeout=timeout)
                 except TimeoutError:
                     break
-                if item is None:
+                if isinstance(item, _Stop):
                     break
                 yield item
         finally:
@@ -58,9 +66,9 @@ class EventBus:
                 pass
 
     async def close_channel(self, channel: str) -> None:
-        """Send the None sentinel to all subscribers of *channel*."""
+        """Signal all subscribers of *channel* to stop."""
         for q in list(self._queues.get(channel, [])):
-            await q.put(None)
+            await q.put(_STOP)
 
 
 # Module-level singleton

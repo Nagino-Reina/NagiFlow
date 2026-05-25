@@ -4,7 +4,7 @@
  */
 
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, onScopeDispose } from 'vue'
 import { authApi } from '@/api'
 import router from '@/router'
 
@@ -29,6 +29,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function register(payload) {
+    if (loading.value) return
     loading.value = true
     try {
       const { data } = await authApi.register(payload)
@@ -37,6 +38,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function login(payload) {
+    if (loading.value) return
     loading.value = true
     try {
       const { data } = await authApi.login(payload)
@@ -69,6 +71,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   // Listen for forced logout from Axios interceptor
   window.addEventListener('auth:logout', logout)
+  onScopeDispose(() => window.removeEventListener('auth:logout', logout))
 
   return {
     user, accessToken, refreshToken, loading,

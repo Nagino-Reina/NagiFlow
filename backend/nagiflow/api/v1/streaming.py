@@ -31,20 +31,7 @@ Protocol (server → client, audio stream):
 """
 
 import json
-import re
 from uuid import UUID
-
-_EMOTION_RE = re.compile(r"\[(\w+)\]")
-_KNOWN_EXPRESSIONS = {"happy", "sad", "angry", "surprised", "default"}
-
-
-def _extract_expression(text: str) -> str:
-    """Return the last emotion tag found in *text*, or 'default'."""
-    matches = _EMOTION_RE.findall(text)
-    for m in reversed(matches):
-        if m.lower() in _KNOWN_EXPRESSIONS:
-            return m.lower()
-    return "default"
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from loguru import logger
@@ -53,6 +40,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from nagiflow.core.database import get_session
 from nagiflow.core.exceptions import NagiFlowError
 from nagiflow.core.security import decode_access_token
+from nagiflow.plugin.base import extract_expression
 from nagiflow.services.auth import AuthService
 from nagiflow.services.conversation import ConversationService
 
@@ -99,6 +87,14 @@ async def _authenticate_ws(
     return user_id, payload
 
 
+async def _ws_session():
+    """Async context manager that owns a DB session for a WebSocket lifetime."""
+    from contextlib import asynccontextmanager
+    factory = __import__("nagiflow.core.database", fromlist=["_get_session_factory"])._get_session_factory()
+    async with factory() as session:
+        yield session
+
+
 @router.websocket("/stream/text")
 async def stream_text(websocket: WebSocket) -> None:
     """
@@ -109,76 +105,77 @@ async def stream_text(websocket: WebSocket) -> None:
     """
     await websocket.accept()
 
-    # Obtain a dedicated DB session for this WS connection lifetime
-    session_gen = get_session()
-    db: AsyncSession = await session_gen.__anext__()
+    from nagiflow.core.database import _get_session_factory
+    factory = _get_session_factory()
 
-    try:
-        user_id, payload = await _authenticate_ws(websocket, db)
-    except Exception:
-        return
-
-    character_id_str = payload.get("character_id")
-    conversation_id_str = payload.get("conversation_id")
-    message = payload.get("message", "").strip()
-
-    if not character_id_str or not message:
-        await websocket.send_text(
-            json.dumps({"type": "error", "detail": "character_id and message are required."})
-        )
-        await websocket.close(code=1003)
-        return
-
-    try:
-        character_id = UUID(character_id_str)
-        conversation_id = UUID(conversation_id_str) if conversation_id_str else None
-    except ValueError:
-        await websocket.send_text(json.dumps({"type": "error", "detail": "Invalid UUID."}))
-        await websocket.close(code=1003)
-        return
-
-    svc = ConversationService(db)
-    last_conv_id: UUID | None = None
-    current_expression = "default"
-
-    try:
-        async for chunk, conv_id in svc.stream_chat(
-            conversation_id=conversation_id,
-            user_id=user_id,
-            character_id=character_id,
-            user_message=message,
-        ):
-            if conv_id is not None:
-                last_conv_id = conv_id
-            await websocket.send_text(json.dumps({"type": "delta", "content": chunk}))
-            # Detect emotion tags and emit anim_state
-            expr = _extract_expression(chunk)
-            if expr != "default" and expr != current_expression:
-                current_expression = expr
-                await websocket.send_text(
-                    json.dumps({"type": "anim_state", "state": "talking", "expression": expr})
-                )
-
-        await db.commit()
-        await websocket.send_text(
-            json.dumps({"type": "done", "conversation_id": str(last_conv_id)})
-        )
-    except NagiFlowError as exc:
-        await db.rollback()
-        await websocket.send_text(json.dumps({"type": "error", "detail": exc.detail}))
-    except WebSocketDisconnect:
-        await db.rollback()
-        logger.info(f"WS text stream disconnected (user={user_id})")
-    except Exception as exc:
-        await db.rollback()
-        logger.error(f"WS text stream error: {exc}", exc_info=True)
-        await websocket.send_text(json.dumps({"type": "error", "detail": "Internal error."}))
-    finally:
-        await db.close()
+    async with factory() as db:
         try:
-            await websocket.close()
+            user_id, payload = await _authenticate_ws(websocket, db)
         except Exception:
-            pass
+            return
+
+        character_id_str = payload.get("character_id")
+        conversation_id_str = payload.get("conversation_id")
+        message = payload.get("message", "").strip()
+
+        if not character_id_str or not message:
+            await websocket.send_text(
+                json.dumps({"type": "error", "detail": "character_id and message are required."})
+            )
+            await websocket.close(code=1003)
+            return
+
+        try:
+            character_id = UUID(character_id_str)
+            conversation_id = UUID(conversation_id_str) if conversation_id_str else None
+        except ValueError:
+            await websocket.send_text(json.dumps({"type": "error", "detail": "Invalid UUID."}))
+            await websocket.close(code=1003)
+            return
+
+        svc = ConversationService(db)
+        last_conv_id: UUID | None = None
+        current_expression = "default"
+
+        try:
+            async for chunk, conv_id in svc.stream_chat(
+                conversation_id=conversation_id,
+                user_id=user_id,
+                character_id=character_id,
+                user_message=message,
+            ):
+                if conv_id is not None:
+                    last_conv_id = conv_id
+                await websocket.send_text(json.dumps({"type": "delta", "content": chunk}))
+                expr = extract_expression(chunk)
+                if expr != "default" and expr != current_expression:
+                    current_expression = expr
+                    await websocket.send_text(
+                        json.dumps({"type": "anim_state", "state": "talking", "expression": expr})
+                    )
+
+            await db.commit()
+            await websocket.send_text(
+                json.dumps({"type": "done", "conversation_id": str(last_conv_id)})
+            )
+        except NagiFlowError as exc:
+            await db.rollback()
+            await websocket.send_text(json.dumps({"type": "error", "detail": exc.detail}))
+        except WebSocketDisconnect:
+            await db.rollback()
+            logger.info(f"WS text stream disconnected (user={user_id})")
+        except Exception as exc:
+            await db.rollback()
+            logger.error(f"WS text stream error: {exc}", exc_info=True)
+            try:
+                await websocket.send_text(json.dumps({"type": "error", "detail": "Internal error."}))
+            except Exception:
+                pass
+        finally:
+            try:
+                await websocket.close()
+            except Exception:
+                pass
 
 
 @router.websocket("/stream/audio")
@@ -191,68 +188,71 @@ async def stream_audio(websocket: WebSocket) -> None:
     """
     await websocket.accept()
 
-    session_gen = get_session()
-    db: AsyncSession = await session_gen.__anext__()
+    from nagiflow.core.database import _get_session_factory
+    factory = _get_session_factory()
 
-    try:
-        user_id, payload = await _authenticate_ws(websocket, db)
-    except Exception:
-        return
-
-    character_id_str = payload.get("character_id")
-    conversation_id_str = payload.get("conversation_id")
-    message = payload.get("message", "").strip()
-
-    if not character_id_str or not message:
-        await websocket.send_text(
-            json.dumps({"type": "error", "detail": "character_id and message are required."})
-        )
-        await websocket.close(code=1003)
-        return
-
-    try:
-        character_id = UUID(character_id_str)
-        conversation_id = UUID(conversation_id_str) if conversation_id_str else None
-    except ValueError:
-        await websocket.send_text(json.dumps({"type": "error", "detail": "Invalid UUID."}))
-        await websocket.close(code=1003)
-        return
-
-    svc = ConversationService(db)
-
-    try:
-        first_audio = True
-        async for audio_chunk in svc.stream_tts_with_llm(
-            conversation_id=conversation_id,
-            user_id=user_id,
-            character_id=character_id,
-            user_message=message,
-        ):
-            if first_audio:
-                await websocket.send_text(
-                    json.dumps({"type": "anim_state", "state": "talking", "expression": "default"})
-                )
-                first_audio = False
-            await websocket.send_bytes(audio_chunk)
-
-        await websocket.send_text(
-            json.dumps({"type": "anim_state", "state": "idle", "expression": "default"})
-        )
-        await db.commit()
-        await websocket.send_text(json.dumps({"type": "done"}))
-    except NagiFlowError as exc:
-        await db.rollback()
-        await websocket.send_text(json.dumps({"type": "error", "detail": exc.detail}))
-    except WebSocketDisconnect:
-        await db.rollback()
-        logger.info(f"WS audio stream disconnected (user={user_id})")
-    except Exception as exc:
-        await db.rollback()
-        logger.error(f"WS audio stream error: {exc}", exc_info=True)
-        await websocket.send_text(json.dumps({"type": "error", "detail": "Internal error."}))
-    finally:
-        await db.close()
+    async with factory() as db:
         try:
-            await websocket.close()
+            user_id, payload = await _authenticate_ws(websocket, db)
         except Exception:
-            pass
+            return
+
+        character_id_str = payload.get("character_id")
+        conversation_id_str = payload.get("conversation_id")
+        message = payload.get("message", "").strip()
+
+        if not character_id_str or not message:
+            await websocket.send_text(
+                json.dumps({"type": "error", "detail": "character_id and message are required."})
+            )
+            await websocket.close(code=1003)
+            return
+
+        try:
+            character_id = UUID(character_id_str)
+            conversation_id = UUID(conversation_id_str) if conversation_id_str else None
+        except ValueError:
+            await websocket.send_text(json.dumps({"type": "error", "detail": "Invalid UUID."}))
+            await websocket.close(code=1003)
+            return
+
+        svc = ConversationService(db)
+
+        try:
+            first_audio = True
+            async for audio_chunk in svc.stream_tts_with_llm(
+                conversation_id=conversation_id,
+                user_id=user_id,
+                character_id=character_id,
+                user_message=message,
+            ):
+                if first_audio:
+                    await websocket.send_text(
+                        json.dumps({"type": "anim_state", "state": "talking", "expression": "default"})
+                    )
+                    first_audio = False
+                await websocket.send_bytes(audio_chunk)
+
+            await websocket.send_text(
+                json.dumps({"type": "anim_state", "state": "idle", "expression": "default"})
+            )
+            await db.commit()
+            await websocket.send_text(json.dumps({"type": "done"}))
+        except NagiFlowError as exc:
+            await db.rollback()
+            await websocket.send_text(json.dumps({"type": "error", "detail": exc.detail}))
+        except WebSocketDisconnect:
+            await db.rollback()
+            logger.info(f"WS audio stream disconnected (user={user_id})")
+        except Exception as exc:
+            await db.rollback()
+            logger.error(f"WS audio stream error: {exc}", exc_info=True)
+            try:
+                await websocket.send_text(json.dumps({"type": "error", "detail": "Internal error."}))
+            except Exception:
+                pass
+        finally:
+            try:
+                await websocket.close()
+            except Exception:
+                pass

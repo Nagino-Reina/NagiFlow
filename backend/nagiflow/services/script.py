@@ -15,6 +15,7 @@ from sqlalchemy.orm import selectinload
 from nagiflow.core.exceptions import NotFoundError, PermissionDeniedError
 from nagiflow.core.workspace import workspace
 from nagiflow.models.script import Script, ScriptLine, ScriptScene
+from nagiflow.services._tts import resolve_tts
 from nagiflow.schemas.script import (
     ScriptCreate,
     ScriptLineCreate,
@@ -179,30 +180,19 @@ class ScriptService:
         self, script_id: UUID, scene_id: UUID, line_id: UUID, user_id: UUID
     ) -> ScriptLine:
         """Synthesise TTS for a single script line."""
-        from nagiflow.config import settings
-        from nagiflow.plugin.base import TTSConfig
-        from nagiflow.plugin.registry import registry
-
         line = await self.get_line(script_id, scene_id, line_id, user_id)
         if not line.text.strip():
             return line
 
-        tts_provider_name = settings.DEFAULT_TTS_PROVIDER
-        speaker_id = settings.DEFAULT_VOICEVOX_SPEAKER
-
-        # If line has a character, use its overrides
+        char = None
         if line.character_id:
             from nagiflow.models.character import Character
             result = await self.db.execute(
                 select(Character).where(Character.id == line.character_id)
             )
             char = result.scalar_one_or_none()
-            if char:
-                tts_provider_name = char.tts_provider or tts_provider_name
-                speaker_id = char.tts_speaker_id or speaker_id
 
-        tts = registry.get_tts(tts_provider_name)
-        config = TTSConfig(speaker_id=speaker_id)
+        tts, config = resolve_tts(char)
         tts_result = await tts.synthesize(line.text, config)
 
         filename = f"{uuid.uuid4()}.wav"
