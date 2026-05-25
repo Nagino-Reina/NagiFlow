@@ -3,11 +3,13 @@
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Query, Response, UploadFile
+from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from nagiflow.api.deps import PaginationParams, get_current_active_user
 from nagiflow.core.database import get_session
+from nagiflow.core.workspace import workspace
 from nagiflow.models.user import User
 from nagiflow.schemas.character import CharacterBrief, CharacterCreate, CharacterResponse, CharacterUpdate
 from nagiflow.schemas.common import MessageResponse
@@ -101,6 +103,81 @@ async def upload_avatar(
     data = await file.read()
     path = await svc.save_avatar(character_id, current_user.id, data, file.filename or "avatar")
     return MessageResponse(message=f"Avatar saved to '{path}'.")
+
+
+# ---------------------------------------------------------------------------
+# PNGTuber avatar asset endpoints
+# ---------------------------------------------------------------------------
+
+_VALID_STATES = {"idle", "talking", "blinking"}
+_VALID_EXPRESSIONS = {"default", "happy", "sad", "angry", "surprised"}
+
+
+@router.post("/{character_id}/avatar/pngtuber/{state}/{expression}", response_model=MessageResponse)
+async def upload_pngtuber_asset(
+    character_id: UUID,
+    state: str,
+    expression: str,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_session),
+) -> MessageResponse:
+    """Upload a PNGTuber state PNG (e.g. state=idle, expression=happy)."""
+    from nagiflow.core.exceptions import ValidationError
+
+    if state not in _VALID_STATES:
+        raise ValidationError(f"Invalid state '{state}'. Valid: {sorted(_VALID_STATES)}")
+    if expression not in _VALID_EXPRESSIONS:
+        raise ValidationError(f"Invalid expression '{expression}'. Valid: {sorted(_VALID_EXPRESSIONS)}")
+
+    svc = CharacterService(db)
+    await svc.get(character_id, current_user.id)  # ownership check
+
+    dest = workspace.character_avatar_dir(character_id) / f"{state}_{expression}.png"
+    data = await file.read()
+    await workspace.save_file(dest, data)
+    return MessageResponse(message=f"PNGTuber asset saved: {state}_{expression}.png")
+
+
+@router.get("/{character_id}/avatar/pngtuber/config")
+async def get_pngtuber_config(
+    character_id: UUID,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_session),
+) -> dict:
+    """Return which state/expression PNG files have been uploaded."""
+    svc = CharacterService(db)
+    await svc.get(character_id, current_user.id)
+
+    avatar_dir = workspace.character_avatar_dir(character_id)
+    uploaded: list[dict] = []
+    if avatar_dir.exists():
+        for png in sorted(avatar_dir.glob("*.png")):
+            parts = png.stem.split("_", 1)
+            if len(parts) == 2:
+                state, expression = parts
+                if state in _VALID_STATES and expression in _VALID_EXPRESSIONS:
+                    uploaded.append({"state": state, "expression": expression, "filename": png.name})
+    return {"character_id": str(character_id), "assets": uploaded}
+
+
+@router.get("/{character_id}/avatar/pngtuber/{filename}")
+async def serve_pngtuber_asset(
+    character_id: UUID,
+    filename: str,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_session),
+) -> FileResponse:
+    """Serve a specific PNGTuber PNG by filename."""
+    from nagiflow.core.exceptions import NotFoundError
+
+    svc = CharacterService(db)
+    await svc.get(character_id, current_user.id)
+
+    path = workspace.character_avatar_dir(character_id) / filename
+    if not path.exists() or path.suffix.lower() != ".png":
+        raise NotFoundError(f"Asset '{filename}' not found.")
+    return FileResponse(path, media_type="image/png")
 
 
 @router.post("/{character_id}/voice-sample", response_model=MessageResponse)

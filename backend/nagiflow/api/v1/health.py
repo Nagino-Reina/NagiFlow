@@ -9,10 +9,8 @@ from nagiflow.api.deps import require_minimum_role
 from nagiflow.config import settings
 from nagiflow.core.database import get_session
 from nagiflow.core.security import UserRole
-from nagiflow.llm.agent import get_llm_provider
-from nagiflow.plugins.loader import plugin_registry
-from nagiflow.skills.registry import skill_registry
-from nagiflow.tts import get_tts_provider
+from nagiflow.plugin.loader import plugin_loader
+from nagiflow.plugin.registry import registry
 
 router = APIRouter(prefix="/health", tags=["Health"])
 
@@ -58,7 +56,7 @@ async def system_info(db: AsyncSession = Depends(get_session)) -> SystemInfoResp
     # LLM health
     llm_healthy = True
     try:
-        provider = get_llm_provider()
+        provider = registry.get_llm()
         llm_healthy = await provider.health_check()
     except Exception:
         llm_healthy = False
@@ -66,7 +64,7 @@ async def system_info(db: AsyncSession = Depends(get_session)) -> SystemInfoResp
     # TTS health
     tts_healthy = True
     try:
-        tts = get_tts_provider()
+        tts = registry.get_tts()
         tts_healthy = await tts.health_check()
     except Exception:
         tts_healthy = False
@@ -77,8 +75,8 @@ async def system_info(db: AsyncSession = Depends(get_session)) -> SystemInfoResp
         default_llm_provider=settings.DEFAULT_LLM_PROVIDER,
         default_llm_model=settings.DEFAULT_LLM_MODEL,
         default_tts_provider=settings.DEFAULT_TTS_PROVIDER,
-        loaded_plugins=plugin_registry.names(),
-        registered_skills=[s.meta.name for s in skill_registry.all()],
+        loaded_plugins=plugin_loader.loaded_names(),
+        registered_skills=[cls.meta.name for cls in registry.list_skills()],
         llm_healthy=llm_healthy,
         tts_healthy=tts_healthy,
         db_healthy=db_healthy,

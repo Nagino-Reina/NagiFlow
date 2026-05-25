@@ -23,14 +23,14 @@ from sqlalchemy.orm import selectinload
 
 from nagiflow.core.exceptions import NotFoundError, PermissionDeniedError
 from nagiflow.core.workspace import workspace
-from nagiflow.llm.agent import CharacterAgent
-from nagiflow.llm.base import LLMMessage
 from nagiflow.models.conversation import Conversation, Message
+from nagiflow.plugin.base import LLMMessage, TTSConfig
+from nagiflow.plugin.registry import registry
 from nagiflow.schemas.conversation import ConversationCreate
+from nagiflow.services.agent import CharacterAgent
 from nagiflow.services.character import CharacterService
 from nagiflow.services.knowledge import KnowledgeService
 from nagiflow.services.memory import MemoryService
-from nagiflow.tts import TTSConfig, get_tts_provider
 
 _HISTORY_WINDOW = 20  # number of recent messages to include in LLM context
 
@@ -125,11 +125,9 @@ class ConversationService:
     # ------------------------------------------------------------------
 
     async def _build_agent(self, character_id: UUID, user_id: UUID) -> CharacterAgent:
-        from nagiflow.skills.registry import skill_registry
-
         character = await self._character_svc.get(character_id, user_id)
         char_skills = await self._character_svc.get_skills(character_id, user_id)
-        skill_instances = skill_registry.instantiate_for_character(
+        skill_instances = registry.instantiate_skills_for_character(
             skill_names=[cs.skill.name for cs in char_skills],
             configs={cs.skill.name: cs.config for cs in char_skills if cs.config},
         )
@@ -282,7 +280,7 @@ class ConversationService:
         speaker_id = getattr(character, "tts_speaker_id", None) or settings.DEFAULT_VOICEVOX_SPEAKER
         char_id = getattr(character, "id", "unknown")
 
-        provider = get_tts_provider(tts_provider_name)
+        provider = registry.get_tts(tts_provider_name)
         config = TTSConfig(speaker_id=speaker_id)
         result = await provider.synthesize(text, config)
 
@@ -326,7 +324,7 @@ class ConversationService:
         tts_provider_name = character.tts_provider or settings.DEFAULT_TTS_PROVIDER
         speaker_id = character.tts_speaker_id or settings.DEFAULT_VOICEVOX_SPEAKER
 
-        tts = get_tts_provider(tts_provider_name)
+        tts = registry.get_tts(tts_provider_name)
         tts_config = TTSConfig(speaker_id=speaker_id)
 
         sentence_buffer = ""

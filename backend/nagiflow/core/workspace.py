@@ -41,6 +41,7 @@ class WorkspaceManager:
             "knowledge",
             "plugins",
             "audio_cache",
+            "training",
             "temp",
         ]
 

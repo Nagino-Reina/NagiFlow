@@ -14,15 +14,17 @@ export function useWebSocket() {
   const status = ref('idle')   // 'idle' | 'connecting' | 'open' | 'closed' | 'error'
   let ws = null
 
-  const _deltaHandlers = []
-  const _doneHandlers  = []
-  const _errorHandlers = []
-  const _audioHandlers = []
+  const _deltaHandlers    = []
+  const _doneHandlers     = []
+  const _errorHandlers    = []
+  const _audioHandlers    = []
+  const _animStateHandlers = []
 
-  function onDelta(fn) { _deltaHandlers.push(fn) }
-  function onDone(fn)  { _doneHandlers.push(fn)  }
-  function onError(fn) { _errorHandlers.push(fn) }
-  function onAudio(fn) { _audioHandlers.push(fn) }
+  function onDelta(fn)     { _deltaHandlers.push(fn)     }
+  function onDone(fn)      { _doneHandlers.push(fn)      }
+  function onError(fn)     { _errorHandlers.push(fn)     }
+  function onAudio(fn)     { _audioHandlers.push(fn)     }
+  function onAnimState(fn) { _animStateHandlers.push(fn) }
 
   function _dispatch(list, ...args) { list.forEach(fn => fn(...args)) }
 
@@ -50,9 +52,10 @@ export function useWebSocket() {
       if (typeof evt.data === 'string') {
         try {
           const frame = JSON.parse(evt.data)
-          if (frame.type === 'delta') _dispatch(_deltaHandlers, frame.content)
-          if (frame.type === 'done')  _dispatch(_doneHandlers,  frame.conversation_id)
-          if (frame.type === 'error') _dispatch(_errorHandlers, frame.detail)
+          if (frame.type === 'delta')      _dispatch(_deltaHandlers,     frame.content)
+          if (frame.type === 'done')       _dispatch(_doneHandlers,      frame.conversation_id)
+          if (frame.type === 'error')      _dispatch(_errorHandlers,     frame.detail)
+          if (frame.type === 'anim_state') _dispatch(_animStateHandlers, frame.state, frame.expression)
         } catch { /**/ }
       } else {
         // Binary: audio chunk (ArrayBuffer or Blob)
@@ -77,5 +80,5 @@ export function useWebSocket() {
 
   onUnmounted(disconnect)
 
-  return { status, connect, disconnect, onDelta, onDone, onError, onAudio }
+  return { status, connect, disconnect, onDelta, onDone, onError, onAudio, onAnimState }
 }

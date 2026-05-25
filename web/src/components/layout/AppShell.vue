@@ -190,11 +190,13 @@ const userInitial = computed(() =>
 )
 
 const navItems = [
-  { name: 'dashboard',   icon: 'mdi-view-dashboard-outline', label: 'Dashboard' },
-  { name: 'characters',  icon: 'mdi-account-star-outline',   label: 'Characters' },
-  { name: 'conversations', icon: 'mdi-chat-outline',         label: 'Conversations' },
-  { name: 'knowledge',   icon: 'mdi-book-open-outline',      label: 'Knowledge' },
-  { name: 'skills',      icon: 'mdi-lightning-bolt-outline',  label: 'Skills' },
+  { name: 'dashboard',     icon: 'mdi-view-dashboard-outline',   label: 'Dashboard' },
+  { name: 'characters',    icon: 'mdi-account-star-outline',     label: 'Characters' },
+  { name: 'conversations', icon: 'mdi-chat-outline',             label: 'Conversations' },
+  { name: 'scripts',       icon: 'mdi-script-text-outline',      label: 'Scripts' },
+  { name: 'training',      icon: 'mdi-database-outline',         label: 'Training' },
+  { name: 'knowledge',     icon: 'mdi-book-open-outline',        label: 'Knowledge' },
+  { name: 'skills',        icon: 'mdi-lightning-bolt-outline',   label: 'Skills' },
 ]
 
 function isActive(item) {
@@ -210,6 +212,9 @@ const pageMeta = {
   'character-edit':  { title: 'Edit Character',  sub: '' },
   'character-chat':  { title: 'Live Chat',       sub: 'Stream conversation' },
   conversations:     { title: 'Conversations',   sub: 'Your chat history' },
+  scripts:           { title: 'Scripts',         sub: 'Screenplay editor and TTS generation' },
+  'script-editor':   { title: 'Script Editor',   sub: 'Edit scenes and generate audio' },
+  training:          { title: 'Training Data',   sub: 'Manage TTS training datasets' },
   knowledge:         { title: 'Knowledge Base',  sub: 'Documents and RAG sources' },
   skills:            { title: 'Skills Library',  sub: 'Agent tools and capabilities' },
   settings:          { title: 'Settings',        sub: 'Account & preferences' },

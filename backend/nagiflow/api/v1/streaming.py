@@ -18,17 +18,33 @@ Protocol (client → server):
 
 Protocol (server → client, text stream):
     Each server message is a JSON text frame:
-    { "type": "delta",       "content": "..." }   — LLM text chunk
-    { "type": "done",        "conversation_id": "..." }
-    { "type": "error",       "detail": "..." }
+    { "type": "delta",      "content": "..." }
+    { "type": "anim_state", "state": "talking"|"idle"|"blinking", "expression": "..." }
+    { "type": "done",       "conversation_id": "..." }
+    { "type": "error",      "detail": "..." }
 
 Protocol (server → client, audio stream):
-    Binary frames containing raw WAV audio data, followed by a single
-    text frame: { "type": "done", "conversation_id": "..." }
+    { "type": "anim_state", "state": "talking", "expression": "..." }  — before audio
+    Binary frames containing raw WAV audio data
+    { "type": "anim_state", "state": "idle", "expression": "default" } — after audio
+    { "type": "done" }
 """
 
 import json
+import re
 from uuid import UUID
+
+_EMOTION_RE = re.compile(r"\[(\w+)\]")
+_KNOWN_EXPRESSIONS = {"happy", "sad", "angry", "surprised", "default"}
+
+
+def _extract_expression(text: str) -> str:
+    """Return the last emotion tag found in *text*, or 'default'."""
+    matches = _EMOTION_RE.findall(text)
+    for m in reversed(matches):
+        if m.lower() in _KNOWN_EXPRESSIONS:
+            return m.lower()
+    return "default"
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from loguru import logger
@@ -123,6 +139,7 @@ async def stream_text(websocket: WebSocket) -> None:
 
     svc = ConversationService(db)
     last_conv_id: UUID | None = None
+    current_expression = "default"
 
     try:
         async for chunk, conv_id in svc.stream_chat(
@@ -134,6 +151,13 @@ async def stream_text(websocket: WebSocket) -> None:
             if conv_id is not None:
                 last_conv_id = conv_id
             await websocket.send_text(json.dumps({"type": "delta", "content": chunk}))
+            # Detect emotion tags and emit anim_state
+            expr = _extract_expression(chunk)
+            if expr != "default" and expr != current_expression:
+                current_expression = expr
+                await websocket.send_text(
+                    json.dumps({"type": "anim_state", "state": "talking", "expression": expr})
+                )
 
         await db.commit()
         await websocket.send_text(
@@ -197,14 +221,23 @@ async def stream_audio(websocket: WebSocket) -> None:
     svc = ConversationService(db)
 
     try:
+        first_audio = True
         async for audio_chunk in svc.stream_tts_with_llm(
             conversation_id=conversation_id,
             user_id=user_id,
             character_id=character_id,
             user_message=message,
         ):
+            if first_audio:
+                await websocket.send_text(
+                    json.dumps({"type": "anim_state", "state": "talking", "expression": "default"})
+                )
+                first_audio = False
             await websocket.send_bytes(audio_chunk)
 
+        await websocket.send_text(
+            json.dumps({"type": "anim_state", "state": "idle", "expression": "default"})
+        )
         await db.commit()
         await websocket.send_text(json.dumps({"type": "done"}))
     except NagiFlowError as exc:

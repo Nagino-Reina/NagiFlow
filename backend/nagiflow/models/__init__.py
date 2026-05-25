@@ -10,7 +10,9 @@ from nagiflow.models.character import Character
 from nagiflow.models.conversation import Conversation, Message
 from nagiflow.models.knowledge import KnowledgeChunk, KnowledgeDocument
 from nagiflow.models.memory import LongTermMemory
+from nagiflow.models.script import Script, ScriptLine, ScriptScene
 from nagiflow.models.skill import CharacterSkill, Skill
+from nagiflow.models.training import TrainingDataset, TrainingItem
 from nagiflow.models.user import User
 
 __all__ = [
@@ -26,4 +28,9 @@ __all__ = [
     "KnowledgeChunk",
     "Skill",
     "CharacterSkill",
+    "Script",
+    "ScriptScene",
+    "ScriptLine",
+    "TrainingDataset",
+    "TrainingItem",
 ]

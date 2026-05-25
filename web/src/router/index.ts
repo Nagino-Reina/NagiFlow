@@ -107,6 +107,25 @@ const router = createRouter({
           component: () => import('@/pages/dashboard/Settings.vue'),
         },
 
+        // Scripts
+        {
+          path: 'scripts',
+          name: 'scripts',
+          component: () => import('@/pages/scripts/Scripts.vue'),
+        },
+        {
+          path: 'scripts/:id',
+          name: 'script-editor',
+          component: () => import('@/pages/scripts/ScriptEditor.vue'),
+        },
+
+        // Training
+        {
+          path: 'training',
+          name: 'training',
+          component: () => import('@/pages/training/Training.vue'),
+        },
+
         // Admin
         {
           path: 'admin',

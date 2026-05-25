@@ -32,11 +32,12 @@ class CharacterCreate(OrmBase):
     system_prompt: str | None = None
     personality: PersonalityConfig | None = None
 
-    # LLM / TTS overrides
+    # LLM / TTS / Avatar overrides
     llm_provider: str | None = None
     llm_model: str | None = None
     tts_provider: str | None = None
     tts_speaker_id: int | None = None
+    avatar_provider: str = "pngtuber"
 
     # Model type: live2d or 3d
     model_type: Literal["live2d", "3d"] | None = None
@@ -52,6 +53,7 @@ class CharacterUpdate(OrmBase):
     llm_model: str | None = None
     tts_provider: str | None = None
     tts_speaker_id: int | None = None
+    avatar_provider: str | None = None
     model_type: Literal["live2d", "3d"] | None = None
     is_public: bool | None = None
 
@@ -67,6 +69,7 @@ class CharacterResponse(TimestampSchema):
     llm_model: str | None
     tts_provider: str | None
     tts_speaker_id: int | None
+    avatar_provider: str
     avatar_path: str | None
     voice_sample_path: str | None
     model_path: str | None

@@ -1,8 +1,17 @@
 <template>
   <div class="chat-layout d-flex ga-0" style="height:calc(100vh - 128px);">
 
-    <!-- ── Left: conversation list sidebar ── -->
+    <!-- ── Left: PNGTuber + conversation list ── -->
     <div class="conv-sidebar d-none d-md-flex flex-column mr-4" style="width:240px;flex-shrink:0;">
+      <!-- PNGTuber viewer -->
+      <PNGTuberViewer
+        v-if="char"
+        :character-id="char.id"
+        :current-state="avatarState"
+        :current-expression="avatarExpression"
+        :size="220"
+        class="mb-4 align-self-center"
+      />
       <div class="d-flex align-center justify-space-between mb-3">
         <span class="text-caption text-medium-emphasis font-weight-medium">CONVERSATIONS</span>
         <v-btn icon="mdi-plus" size="x-small" variant="text" color="primary" @click="newConversation" />
@@ -178,6 +187,7 @@ import { conversationsApi } from '@/api'
 import { useWebSocket } from '@/composables/useWebSocket'
 import { useAudioPlayer } from '@/composables/useAudioPlayer'
 import MessageBubble from '@/components/chat/MessageBubble.vue'
+import PNGTuberViewer from '@/components/character/PNGTuberViewer.vue'
 
 const route     = useRoute()
 const auth      = useAuthStore()
@@ -191,9 +201,11 @@ const currentConvId = ref(null)
 const inputText     = ref('')
 const thinking      = ref(false)
 const streamBuffer  = ref('')
-const streamMode    = ref(true)
-const audioMode     = ref(false)
-const messagesRef   = ref(null)
+const streamMode       = ref(true)
+const audioMode        = ref(false)
+const messagesRef      = ref(null)
+const avatarState      = ref('idle')
+const avatarExpression = ref('default')
 
 const starters = ['Hello! Who are you?', 'Tell me something interesting!', 'What can you help me with?']
 
@@ -203,7 +215,12 @@ const audioPlayer = useAudioPlayer()
 
 ws.onDelta((chunk) => { streamBuffer.value += chunk })
 ws.onAudio((blob)  => audioPlayer.enqueue(blob))
+ws.onAnimState((state, expression) => {
+  avatarState.value      = state      || 'idle'
+  avatarExpression.value = expression || 'default'
+})
 ws.onDone(async (convId) => {
+  avatarState.value = 'idle'
   if (convId && !currentConvId.value) currentConvId.value = convId
   // Flush stream buffer into messages list
   if (streamBuffer.value) {

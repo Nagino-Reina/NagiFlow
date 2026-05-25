@@ -57,11 +57,12 @@ class Character(Base, TimestampMixin):
     # --- Personality ---
     personality: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
-    # --- LLM / TTS overrides (if null, global defaults are used) ---
+    # --- LLM / TTS / Avatar overrides (if null, global defaults are used) ---
     llm_provider: Mapped[str | None] = mapped_column(String(64), nullable=True)
     llm_model: Mapped[str | None] = mapped_column(String(128), nullable=True)
     tts_provider: Mapped[str | None] = mapped_column(String(64), nullable=True)
     tts_speaker_id: Mapped[int | None] = mapped_column(nullable=True)
+    avatar_provider: Mapped[str] = mapped_column(String(64), nullable=False, default="pngtuber")
 
     # --- Asset paths (workspace-relative) ---
     avatar_path: Mapped[str | None] = mapped_column(Text, nullable=True)

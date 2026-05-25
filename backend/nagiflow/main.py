@@ -27,9 +27,9 @@ from nagiflow.api.exception_handlers import register_exception_handlers
 from nagiflow.config import settings
 from nagiflow.core.database import create_all_tables, dispose_engine, session_context
 from nagiflow.core.workspace import workspace
-from nagiflow.plugins.loader import plugin_loader
+from nagiflow.plugin.loader import plugin_loader
+from nagiflow.plugin.registry import registry
 from nagiflow.services.auth import AuthService
-from nagiflow.skills import skill_registry  # noqa: F401 – triggers built-in registration
 
 
 # ---------------------------------------------------------------------------
@@ -48,19 +48,19 @@ async def lifespan(app: FastAPI):
     # 2. Create / migrate database tables
     await create_all_tables()
 
-    # 3. Sync built-in skills to DB
-    async with session_context() as db:
-        await skill_registry.sync_to_db(db)
+    # 3. Load all plugins (built-in + user workspace)
+    await plugin_loader.load_all(workspace.plugins_dir())
 
-    # 4. Bootstrap first admin account (no-op if users already exist)
+    # 4. Sync registered skills to DB
+    async with session_context() as db:
+        await registry.sync_skills_to_db(db)
+
+    # 5. Bootstrap first admin account (no-op if users already exist)
     async with session_context() as db:
         auth_svc = AuthService(db)
         await auth_svc.ensure_admin(
             settings.FIRST_ADMIN_EMAIL, settings.FIRST_ADMIN_PASSWORD
         )
-
-    # 5. Discover and load workspace plugins
-    await plugin_loader.load_from_directory(workspace.plugins_dir())
 
     logger.info("NagiFlow is ready.")
     yield
@@ -112,8 +112,11 @@ def create_app() -> FastAPI:
     from nagiflow.api.v1.health import router as health_router
     from nagiflow.api.v1.knowledge import router as knowledge_router
     from nagiflow.api.v1.memory import router as memory_router
+    from nagiflow.api.v1.providers import router as providers_router
+    from nagiflow.api.v1.scripts import router as scripts_router
     from nagiflow.api.v1.skills import router as skills_router
     from nagiflow.api.v1.streaming import router as streaming_router
+    from nagiflow.api.v1.training import router as training_router
     from nagiflow.api.v1.users import router as users_router
 
     prefix = "/api/v1"
@@ -127,6 +130,9 @@ def create_app() -> FastAPI:
     app.include_router(skills_router, prefix=prefix)
     app.include_router(audio_router, prefix=prefix)
     app.include_router(streaming_router, prefix=prefix)
+    app.include_router(scripts_router, prefix=prefix)
+    app.include_router(training_router, prefix=prefix)
+    app.include_router(providers_router, prefix=prefix)
 
     return app
 

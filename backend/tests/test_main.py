@@ -266,7 +266,7 @@ def test_chunk_text_long():
 
 def test_calculator_skill_safe():
     import asyncio
-    from nagiflow.skills.builtin.calculator import CalculatorSkill
+    from plugins.skill_calculator import CalculatorSkill
     skill = CalculatorSkill()
     result = asyncio.run(skill.execute(expression="sqrt(16) + 2 * pi"))
     assert "10" in result or "10." in result
@@ -274,7 +274,7 @@ def test_calculator_skill_safe():
 
 def test_calculator_skill_invalid():
     import asyncio
-    from nagiflow.skills.builtin.calculator import CalculatorSkill
+    from plugins.skill_calculator import CalculatorSkill
     skill = CalculatorSkill()
     result = asyncio.run(skill.execute(expression="import os"))
     assert "error" in result.lower()

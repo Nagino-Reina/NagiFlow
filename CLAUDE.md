@@ -63,45 +63,68 @@ The dev server proxies `/api/*` to `http://localhost:8000`, so both HTTP and Web
 
 ## Backend Architecture
 
-### Layer summary
+### Plugin-first design
+
+The core `nagiflow/` package is a **pure framework** — no LLM/TTS/avatar logic lives there. All service providers are **plugins** in `backend/plugins/` (built-in, auto-loaded) or `workspace/plugins/` (user-installed).
 
 | Layer | Location | Purpose |
 |---|---|---|
-| Config | `nagiflow/config.py` | Single `Settings` (pydantic-settings) singleton; reads `.env` |
-| Models | `nagiflow/models/` | SQLAlchemy async ORM — User, Character, Conversation, Message, Memory, Knowledge, Skill |
-| Schemas | `nagiflow/schemas/` | Pydantic v2 request/response DTOs |
-| Services | `nagiflow/services/` | Business logic (auth, character, conversation, memory, knowledge, embedding) |
-| API routes | `nagiflow/api/v1/` | FastAPI routers, one file per domain |
-| LLM | `nagiflow/llm/` | Provider abstraction + `CharacterAgent` |
-| TTS | `nagiflow/tts/` | Provider abstraction; VoicevoxProvider built-in |
-| Skills | `nagiflow/skills/` | Skill registry + built-in skills (web_search, calculator) |
-| Plugins | `nagiflow/plugins/` | Dynamic loader from `workspace/plugins/` |
-| Core | `nagiflow/core/` | DB engine, security (JWT), workspace paths, exceptions |
+| Config | `nagiflow/config.py` | `Settings` singleton (pydantic-settings); reads `.env` |
+| Plugin base | `nagiflow/plugin/base.py` | All abstract base classes: `BaseLLMProvider`, `BaseTTSProvider`, `BaseAvatarProvider`, `BaseEmbeddingProvider`, `BaseSkill`, `BasePlugin` |
+| Plugin registry | `nagiflow/plugin/registry.py` | `ProviderRegistry` singleton — `register_*/get_*/list_*` for each provider type; `sync_skills_to_db()` |
+| Plugin loader | `nagiflow/plugin/loader.py` | Scans `backend/plugins/` (built-in) then `workspace/plugins/` (user); calls `plugin.setup()` |
+| Models | `nagiflow/models/` | SQLAlchemy async ORM — User, Character, Conversation, Message, Memory, Knowledge, Skill, Script, ScriptScene, ScriptLine, TrainingDataset, TrainingItem |
+| Schemas | `nagiflow/schemas/` | Pydantic v2 DTOs matching the models |
+| Services | `nagiflow/services/` | Business logic; use `registry.get_llm/tts()` not direct imports |
+| API routes | `nagiflow/api/v1/` | FastAPI routers — one file per domain |
+| Core | `nagiflow/core/` | DB engine, security (JWT), workspace paths, exceptions, EventBus |
+
+### Built-in plugins (`backend/plugins/`)
+
+| Directory | Provider name | Type |
+|---|---|---|
+| `llm_ollama/` | `"ollama"` | LLM |
+| `llm_openai_compat/` | `"openai_compat"` | LLM |
+| `tts_voxcpm2/` | `"voxcpm2"` | TTS (default) |
+| `tts_voicevox/` | `"voicevox"` | TTS |
+| `avatar_pngtuber/` | `"pngtuber"` | Avatar (default) |
+| `skill_calculator/` | `"calculator"` | Skill |
+| `skill_web_search/` | `"web_search"` | Skill |
 
 ### Startup sequence (`main.py` lifespan)
 
 1. `workspace.ensure_structure()` — create workspace directories
 2. `create_all_tables()` — SQLAlchemy create-all (dev); use Alembic for migrations
-3. `skill_registry.sync_to_db()` — upsert built-in skills
-4. `AuthService.ensure_admin()` — bootstrap first admin if `FIRST_ADMIN_EMAIL` set
-5. `plugin_loader.load_from_directory()` — import plugins from `workspace/plugins/`
+3. `plugin_loader.load_all(workspace.plugins_dir())` — load built-in then user plugins
+4. `registry.sync_skills_to_db(db)` — upsert registered skills to DB
+5. `AuthService.ensure_admin()` — bootstrap first admin if `FIRST_ADMIN_EMAIL` set
 
-### CharacterAgent (`nagiflow/llm/agent.py`)
+### CharacterAgent (`nagiflow/services/agent.py`)
 
-The central AI object. Stateless per-request; accepts conversation history + user message, injects memory/knowledge context into the system prompt, then calls the configured LLM provider. Supports both one-shot (`generate`) and streaming (`stream`) modes.
+Stateless per-request. Accepts conversation history + user message, injects memory/knowledge context into the system prompt, calls `registry.get_llm(character.llm_provider)`. Supports `generate()` (one-shot) and `stream()` (async generator).
 
-System prompt is built from: character name/description → Big Five personality scores → custom fields → `system_prompt` field → retrieved memories → retrieved knowledge.
+System prompt order: character name/description → Big Five personality scores → custom fields → `system_prompt` → retrieved memories → retrieved knowledge.
 
-### WebSocket streaming
+### WebSocket streaming (`nagiflow/api/v1/streaming.py`)
 
-- **Text stream**: `WS /api/v1/ws/stream/text` — sends `{ "type": "delta", "content": "..." }` frames, ends with `{ "type": "done" }`
-- **Audio stream**: `WS /api/v1/ws/stream/audio` — sends binary WAV frames (one per synthesised sentence) then a `{ "type": "done" }` text frame
+- **Text stream**: `WS /api/v1/ws/stream/text` — frames: `{ "type": "delta", "content": "..." }`, `{ "type": "anim_state", "state": "talking"|"idle", "expression": "..." }`, `{ "type": "done" }`
+- **Audio stream**: `WS /api/v1/ws/stream/audio` — binary WAV frames (one per synthesised sentence), wrapped by `anim_state` frames, ends with `{ "type": "done" }`
 
-Auth for WebSocket: pass `token` field in the initial JSON message (not HTTP header).
+Auth: pass `token` in the initial JSON message.
 
-### Plugin system
+### PNGTuber avatar system
 
-Drop a Python package into `workspace/plugins/`. Implement `BasePlugin` with `async setup()` / `async teardown()` methods. Use `setup()` to register custom LLM providers (`register_llm_provider`), TTS providers (`register_tts_provider`), and skills (`skill_registry.register`).
+States: `idle`, `talking`, `blinking` × Expressions: `default`, `happy`, `sad`, `angry`, `surprised`
+
+PNGs stored at `workspace/characters/{id}/avatar/{state}_{expression}.png`. The `PNGTuberProvider` (`plugins/avatar_pngtuber/`) computes state from audio activity. The frontend `PNGTuberViewer.vue` component adds an autonomous blink timer and CSS animation.
+
+### Script editor
+
+`Script → ScriptScene (ordered) → ScriptLine (ordered)` — each line can have an associated character + text + TTS audio. `ScriptService` handles CRUD, per-line/all-line TTS synthesis, and ZIP export (WAVs + SRT subtitles).
+
+### Training data management
+
+`TrainingDataset → TrainingItem` (text + audio + quality rating). `TrainingService` handles item add/generate/delete, ZIP export (WAVs + metadata.json). Denormalized `item_count` and `total_duration_ms` counters on the dataset.
 
 ---
 
@@ -115,38 +138,45 @@ Drop a Python package into `workspace/plugins/`. Implement `BasePlugin` with `as
 - Vue Router 5
 - Axios (`web/src/api/client.ts`) with automatic JWT refresh interceptor
 
-### Routing
+### Key pages
 
-`AppShell.vue` wraps all authenticated routes as a layout parent. Navigation guards in `router/index.ts` handle: redirect to `/login` if unauthenticated, redirect away from guest routes if already authenticated, block `/admin` unless `isAdmin`.
-
-### Pinia stores
-
-| Store | File | Responsibility |
+| Route | Component | Purpose |
 |---|---|---|
-| `useAuthStore` | `stores/auth.ts` | Tokens (localStorage), user profile, login/logout/refresh |
-| `useAppStore` | `stores/app.ts` | Global UI state (drawer, theme, snackbar) |
-| `useCharactersStore` | `stores/characters.ts` | Character list cache |
-
-### API layer
-
-`web/src/api/index.ts` exports typed API modules (`authApi`, `charactersApi`, etc.) that all use the shared `client` Axios instance. The client auto-attaches `Authorization: Bearer <token>` and silently retries with a fresh token on 401. If refresh fails it dispatches an `auth:logout` DOM event, which `useAuthStore` listens for.
+| `/` | `Dashboard.vue` | Overview |
+| `/characters` | `CharacterList.vue` | Character management |
+| `/characters/:id/chat` | `Chat.vue` | Live chat with PNGTuberViewer |
+| `/scripts` | `Scripts.vue` | Script list |
+| `/scripts/:id` | `ScriptEditor.vue` | Scene + line editor, TTS, export |
+| `/training` | `Training.vue` | Dataset management |
+| `/knowledge` | `Knowledge.vue` | RAG knowledge base |
+| `/admin` | `Admin.vue` | Admin panel |
 
 ### Key composables
 
-- `useWebSocket.ts` — wraps WebSocket with connect/disconnect lifecycle, message queue
-- `useAudioPlayer.ts` — plays streaming WAV chunks from the audio WebSocket
+- `useWebSocket.ts` — wraps WebSocket; callbacks: `onDelta`, `onDone`, `onError`, `onAudio`, `onAnimState`
+- `useAudioPlayer.ts` — plays streaming WAV chunks
+
+### PNGTuberViewer (`components/character/PNGTuberViewer.vue`)
+
+Props: `characterId`, `currentState` (`'idle'|'talking'`), `currentExpression`, `size`. Has autonomous blink timer (3–7 s random). Receives `anim_state` WebSocket frames via `Chat.vue` → `onAnimState`.
+
+### API modules (`web/src/api/index.ts`)
+
+`authApi`, `usersApi`, `charactersApi`, `conversationsApi`, `memoryApi`, `knowledgeApi`, `skillsApi`, `scriptsApi`, `trainingApi`, `providersApi`, `healthApi`
 
 ---
 
 ## Workspace directory
 
-All runtime files live under `workspace/` (configurable via `WORKSPACE_DIR`):
-
 ```
 workspace/
-├── characters/{id}/   avatar, voice samples, Live2D/3D models
-├── knowledge/         uploaded text/markdown files
-├── plugins/           custom plugin packages
-├── audio_cache/       synthesised WAV files
-└── nagiflow.db        SQLite database (default)
+├── characters/{id}/
+│   ├── avatar/         PNGTuber PNGs: {state}_{expression}.png
+│   ├── voice_samples/
+│   └── models/
+├── knowledge/
+├── plugins/            user-installed plugin packages
+├── audio_cache/        synthesised TTS WAV files
+├── training/           training dataset WAV files
+└── nagiflow.db         SQLite database (default)
 ```

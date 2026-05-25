@@ -83,6 +83,44 @@ export const skillsApi = {
   toggle: (id) => client.patch(`/skills/${id}/toggle`),
 }
 
+// ── Scripts ───────────────────────────────────────────────────────────────
+export const scriptsApi = {
+  list:            ()                     => client.get('/scripts'),
+  create:          (data)                 => client.post('/scripts', data),
+  get:             (id)                   => client.get(`/scripts/${id}`),
+  update:          (id, data)             => client.patch(`/scripts/${id}`, data),
+  delete:          (id)                   => client.delete(`/scripts/${id}`),
+  exportZip:       (id)                   => client.get(`/scripts/${id}/export`, { responseType: 'blob' }),
+  synthesizeAll:   (id)                   => client.post(`/scripts/${id}/synthesize_all`),
+  createScene:     (id, data)             => client.post(`/scripts/${id}/scenes`, data),
+  updateScene:     (id, sid, data)        => client.patch(`/scripts/${id}/scenes/${sid}`, data),
+  deleteScene:     (id, sid)              => client.delete(`/scripts/${id}/scenes/${sid}`),
+  createLine:      (id, sid, data)        => client.post(`/scripts/${id}/scenes/${sid}/lines`, data),
+  updateLine:      (id, sid, lid, data)   => client.patch(`/scripts/${id}/scenes/${sid}/lines/${lid}`, data),
+  deleteLine:      (id, sid, lid)         => client.delete(`/scripts/${id}/scenes/${sid}/lines/${lid}`),
+  synthesizeLine:  (id, sid, lid)         => client.post(`/scripts/${id}/scenes/${sid}/lines/${lid}/synthesize`),
+}
+
+// ── Training ─────────────────────────────────────────────────────────────
+export const trainingApi = {
+  listDatasets:    ()              => client.get('/training/datasets'),
+  createDataset:   (data)          => client.post('/training/datasets', data),
+  getDataset:      (id)            => client.get(`/training/datasets/${id}`),
+  updateDataset:   (id, data)      => client.patch(`/training/datasets/${id}`, data),
+  deleteDataset:   (id)            => client.delete(`/training/datasets/${id}`),
+  exportDataset:   (id)            => client.get(`/training/datasets/${id}/export`, { responseType: 'blob' }),
+  addItem:         (id, form)      => client.post(`/training/datasets/${id}/items`, form, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  generateItem:    (id, form)      => client.post(`/training/datasets/${id}/items/generate`, form, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  updateItem:      (id, iid, data) => client.patch(`/training/datasets/${id}/items/${iid}`, data),
+  deleteItem:      (id, iid)       => client.delete(`/training/datasets/${id}/items/${iid}`),
+}
+
+// ── Providers ─────────────────────────────────────────────────────────────
+export const providersApi = {
+  list:   ()           => client.get('/providers'),
+  health: (type, name) => client.get(`/providers/${type}/health`, { params: name ? { name } : {} }),
+}
+
 // ── Health ────────────────────────────────────────────────────────────────
 export const healthApi = {
   ping:   () => client.get('/health'),
