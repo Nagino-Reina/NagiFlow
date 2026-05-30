@@ -29,7 +29,7 @@ Mode A is "make a finished clip from a written script." Mode B is "the character
 - **Providers** — LLM (default Ollama), TTS (default VoxCPM2, 48 kHz), ASR (default SenseVoice for inbound voice). All pluggable ([06 §5.1](06-module-and-extension-system.md), FR-MOD-5).
 - **Character context** — persona + Big Five mapping ([08 §3](08-feature-character-management.md)) + scoped memory retrieval ([09 §4](09-feature-multiuser-memory-and-privacy.md)).
 - **Audio format** — internal working audio is PCM/WAV at the provider's native rate (48 kHz for VoxCPM2); assembly/transcode via ffmpeg.
-- **Avatar/video** — NagiFlow core emits **lightweight viseme/timing events**; actual avatar rendering is delegated to external engines via Connectors (§5, §7). The core does not bundle a 3D/Live2D renderer.
+- **Avatar/video** — NagiFlow ships a **default Live2D renderer** behind an `AvatarRenderProvider` capability ([06 §5.1](06-module-and-extension-system.md)): the core emits **viseme/timing/expression events**, and the renderer drives a character's **Live2D model** to produce video (Mode A) or a live animated avatar (Mode B). The renderer is **pluggable** — **3D-model renderers** and **external engines** (OBS, VTube Studio) plug in through the same capability and via Connectors (§5, §7). Heavy 3D rendering is therefore an extension, not a core dependency.
 
 ---
 
@@ -43,7 +43,7 @@ flowchart LR
     B --> C[Assemble track<br/>order, timestamps, pauses]
     C --> D{Video requested?}
     D -- no --> E[Audio MediaAsset]
-    D -- yes --> F[Compose video<br/>avatar/visuals via connector or stills]
+    D -- yes --> F[Compose video<br/>default Live2D renderer<br/>3D/external pluggable]
     E --> G[Subtitles SRT/VTT]
     F --> G
     G --> H[Persist MediaAsset + link to script]
@@ -54,7 +54,7 @@ flowchart LR
 1. **Per-line synthesis** — for each line, synthesize with the speaker's **active voice** and the line's `style` / `speech_rate` / `reference_audio` ([07 §2.2](07-feature-script-management.md)). Lines are independent → synthesis can be parallelized within resource limits.
 2. **Assembly** — concatenate in `order_index`, honoring `start_ms`/`end_ms` where present and inserting `pause_after_ms` silences; normalize levels. If lines lacked timing, derive it from synthesized durations and **write back** so the timeline view becomes usable (FR-SM-7).
 3. **Subtitles** — emit **SRT/VTT** from line text + timing (FR-RT-5, FR-SM-9).
-4. **Video (optional)** — if requested, compose a video track: either a static/portrait visual, or frames driven by an avatar engine via a Connector (§7). Mux audio+video with ffmpeg. Full real-time avatar puppeteering is a streaming concern (Mode B); batch video here is for finished clips.
+4. **Video (optional)** — if requested, compose a video track. By **default** this uses the built-in **Live2D renderer**: the character's **Live2D model** is animated from the turn's viseme/timing/expression stream and rendered to frames, then muxed with the assembled audio via ffmpeg. A **3D-model renderer** or an **external engine** can be selected instead via the `AvatarRenderProvider` capability (§5). If a character has no avatar model, NagiFlow falls back to a static/portrait visual.
 5. **Persist** — store output under `media/<id>/` and record a `MediaAsset` linked to the script, with format/duration metadata.
 
 ### 3.2 Controls & outputs
@@ -137,11 +137,12 @@ Targets degrade gracefully on weaker hardware; NagiFlow surfaces latency in obse
 
 ---
 
-## 5. Avatar, viseme & timing
+## 5. Avatar rendering (default Live2D), viseme & timing
 
-- The core computes/forwards **viseme** (mouth-shape) and word/segment **timing** events alongside audio (FR-RT-4). These are engine-agnostic.
-- **External avatar engines** (e.g. OBS, VTube Studio, Live2D) consume these via a **Connector** ([06 §7](06-module-and-extension-system.md)) — NagiFlow sends visemes/timing/audio out; the engine animates and renders. This keeps the core lightweight while supporting rich avatars (FR-RT-8).
-- For Mode A video without an external engine, a simple visual (portrait/stills) can be composed directly.
+- The core computes/forwards **viseme** (mouth-shape), **timing**, and lightweight **expression** events alongside audio (FR-RT-4). These are renderer-agnostic.
+- **Default renderer — Live2D.** NagiFlow ships an official **Live2D `AvatarRenderProvider`** ([06 §5.1, §12](06-module-and-extension-system.md)) that animates a character's **Live2D model** from those events to produce video (Mode A) or a live animated avatar surface (Mode B). This is the out-of-the-box path: a character with a Live2D model needs no external software to appear on screen.
+- **Pluggable — 3D and external engines.** The same `AvatarRenderProvider` capability accepts alternative renderers: a **3D-model renderer** (e.g. glTF/VRM-class, as a module) for spatial/3D avatars, or a thin adapter that forwards events to an **external engine** (OBS, VTube Studio) via a **Connector** ([06 §7](06-module-and-extension-system.md), FR-RT-8). NagiFlow emits the same visemes/timing/expression regardless of renderer, so characters are portable across them.
+- **Selection & fallback** — the active renderer is chosen per character/conversation by configuration; if a character has no avatar model, NagiFlow falls back to a static/portrait visual (Mode A) or audio-only (Mode B).
 
 ---
 
@@ -170,7 +171,7 @@ flowchart LR
 | No GPU / limited hardware | Smaller local models; non-streaming TTS if the provider lacks streaming; longer latency, clearly indicated. |
 | TTS lacks streaming | Synthesize per utterance then play; UI shows "buffering". |
 | ASR module absent | Voice input disabled; text input still works. |
-| Avatar engine absent | Audio-only live, or stills for batch video. |
+| No avatar model / renderer disabled | Default **Live2D** renderer used when a model is present; otherwise stills for batch video, audio-only live. 3D/external renderers used if selected. |
 | Provider outage mid-turn | Typed error event; turn ends; conversation continues. |
 
 Graceful degradation across hardware tiers supports the local-first, broad-portability goals (NFR-PORT-*).
@@ -196,7 +197,7 @@ Graceful degradation across hardware tiers supports the local-first, broad-porta
 | FR-RT-5 (subtitles on render) | §3.1 |
 | FR-RT-6 (barge-in + live-chat ingestion) | §4.2, §6 |
 | FR-RT-7 (reconnection/resilience) | §4.4 |
-| FR-RT-8 (external avatar via connector) | §5 |
+| FR-RT-8 (default Live2D avatar render; 3D & external engines pluggable) | §5 |
 | FR-SM-7 (script → media) | §3 |
 | FR-MOD-2 (connectors as event sources/sinks) | §6 |
 | FR-MOD-5 (pluggable LLM/TTS/ASR) | §2 |

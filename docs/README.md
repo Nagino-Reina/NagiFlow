@@ -17,7 +17,7 @@ NagiFlow is a tool for creators of **AI VTubers**. It unifies the full content l
 
 1. **Authoring** — write and manage scripts (dialogue, characters, timing, voice direction), or import existing audio/video and turn it into a script via speech recognition.
 2. **Embodiment** — create and manage characters: identity, personality (Big Five), a fine-tunable voice, and a personal memory bank.
-3. **Production** — generate multimedia content (voice and video) from scripts.
+3. **Production** — generate multimedia content (voice and video) from scripts; video is rendered by a built-in **Live2D** avatar renderer (pluggable to 3D/external engines).
 4. **Interaction** — run live, streaming conversations between characters and users for VTubing and real-time engagement.
 
 NagiFlow is built to run on a creator's own machine by default, with everything extensible through modules so it can grow into cloud and third-party services without changing its core.

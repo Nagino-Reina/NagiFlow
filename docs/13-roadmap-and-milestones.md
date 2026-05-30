@@ -55,8 +55,9 @@ flowchart LR
 - **ASR import** (default **SenseVoice**): audio/video → timed draft → review → commit ([07 §4](07-feature-script-management.md)).
 - **Batch media render**: script → assembled audio + **subtitles (SRT/VTT)** ([10 §3](10-feature-realtime-and-media-generation.md)).
 - **Token/cost accounting** broadened (per character/conversation) ([11 §3](11-feature-observability.md)).
+- **Default Live2D avatar renderer** for **batch video**: render a script to video by animating the character's Live2D model from emitted events ([10 §3/§5](10-feature-realtime-and-media-generation.md)).
 
-**Exit:** import a recording into a script, correct it, render narrated audio with subtitles; export script as JSON/SRT.
+**Exit:** import a recording into a script, correct it, render narrated audio with subtitles **and a Live2D video**; export script as JSON/SRT.
 
 ### P3 — Multi-user, memory scoping & privacy
 **Goal:** safe many-user operation.
@@ -81,9 +82,10 @@ flowchart LR
 - **WebSocket turn pipeline**: streaming LLM + **streaming TTS** + **viseme/timing** ([10 §4–5](10-feature-realtime-and-media-generation.md)).
 - **Barge-in**, reconnection ([10 §4.2/4.4](10-feature-realtime-and-media-generation.md)).
 - **Live-chat connectors** (Twitch/YouTube/Discord) routed as inputs with **sensitive mode default-on** ([10 §6](10-feature-realtime-and-media-generation.md)).
-- **External avatar** integration (OBS/VTube Studio/Live2D) via connector + emitted visemes.
+- **Live avatar via default Live2D renderer**: real-time Live2D animation driven by the streaming viseme/timing/expression events ([10 §5](10-feature-realtime-and-media-generation.md)).
+- **Pluggable renderers**: **3D-model renderer** and **external-engine** adapters (OBS/VTube Studio) via the `AvatarRenderProvider` capability + connectors.
 
-**Exit:** a live session where viewer chat drives the character, audio streams in near-real-time, an external avatar lip-syncs, and no viewer's info leaks to another.
+**Exit:** a live session where viewer chat drives the character, audio streams in near-real-time, the **default Live2D avatar** lip-syncs (with a 3D/external renderer selectable), and no viewer's info leaks to another.
 
 ### P6 — Fine-tune, advanced observability, cloud seams & polish
 **Goal:** depth, scale-out seams, and release quality.
@@ -132,6 +134,7 @@ This sequencing front-loads the riskiest *integration* (Ollama + VoxCPM2 + memor
 | **VoxCPM2 integration/training complexity** | Voice features slip | Wrap behind the TTS provider contract; ship zero-shot first, fine-tune later; pin versions; isolate in a module |
 | **ASR diarization accuracy** | Messy script imports | Treat diarization as optional; always allow manual speaker mapping ([07 §4.1](07-feature-script-management.md)) |
 | **Frontend module-federation / UI-extension complexity** | P4 slip | Start with backend skills/connectors; UI extensions can land incrementally |
+| **Live2D rendering integration** (model formats, runtime, lip-sync mapping) | Avatar video/live slips | Wrap behind `AvatarRenderProvider`; ship Live2D default first, keep 3D/external as later modules; portrait/audio-only fallback always available ([10 §5/§7](10-feature-realtime-and-media-generation.md)) |
 | **Cross-user privacy bugs** | Serious trust failure | Enforce at **data layer** (namespaces + retrieval filter), test explicitly in P3 ([09](09-feature-multiuser-memory-and-privacy.md)) |
 | **Solo-dev bandwidth** | Everything slows | Strict phase gating; ship vertical slices; avoid premature breadth |
 | **Scope creep** | Never-ship | This roadmap + cut-lines (§4) as the contract; defer to later phases by default |

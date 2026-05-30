@@ -49,7 +49,7 @@ NagiFlow treats a **character** as a first-class, portable asset and gives creat
 - NagiFlow does **not** ship its own foundation LLM or train one; it integrates existing LLM runtimes.
 - NagiFlow is **not** a hosted SaaS in its initial form; it is a locally-run application (cloud deployment is a later, optional path).
 - NagiFlow does **not** provide a real-money marketplace, billing, or content-distribution network.
-- NagiFlow does **not** attempt full 3D avatar rendering in core; avatar rendering is delegated to external engines via Connectors, with only lightweight viseme/timing output produced by core.
+- NagiFlow ships a **default Live2D avatar renderer** in core, but is **not** itself a full 3D engine or animation suite; advanced **3D-model rendering** and rich external avatar engines are supported through the pluggable `AvatarRenderProvider` capability and Connectors rather than built into core.
 
 ## 5. Target users & personas
 
@@ -118,6 +118,6 @@ Lands on a running instance (e.g. a creator's local or shared instance) and just
 
 ## 11. Scope summary
 
-**In scope (v0.x → v1.0):** script management with ASR import; character management with Big Five, voice (zero-shot + fine-tune) and memory; multi-user/multi-character with scoped memory, sensitive mode, and guest access; module system (providers, Agent Skills, Connectors, UI extensions); offline media generation and a real-time streaming interaction pipeline; observability; local-first runtime with a one-click launcher.
+**In scope (v0.x → v1.0):** script management with ASR import; character management with Big Five, voice (zero-shot + fine-tune) and memory; multi-user/multi-character with scoped memory, sensitive mode, and guest access; module system (providers, Agent Skills, Connectors, UI extensions); offline media generation and a real-time streaming interaction pipeline; a **built-in Live2D avatar renderer** for video and live avatars (with the renderer capability pluggable toward 3D/external engines); observability; local-first runtime with a one-click launcher.
 
-**Deferred / optional (post-1.0 or module-only):** managed cloud hosting; built-in advanced 3D avatar rendering; team/RBAC beyond guest+user; marketplace/registry; non-VTuber general use.
+**Deferred / optional (post-1.0 or module-only):** managed cloud hosting; **advanced 3D-model avatar rendering and external-engine integrations** (beyond the default Live2D renderer); team/RBAC beyond guest+user; marketplace/registry; non-VTuber general use.

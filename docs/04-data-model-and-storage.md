@@ -28,6 +28,7 @@
 │   └── <character_id>/
 │       ├── portrait.*           # avatar/portrait
 │       ├── assets/              # misc character assets
+│       ├── model/               # avatar model: Live2D (default) or 3D model files
 │       └── voice/
 │           ├── reference/       # reference audio clips (cloning/voice design)
 │           └── models/          # fine-tuned voice artifacts (versioned)
@@ -137,6 +138,8 @@ erDiagram
 | default_voice_model_id | TEXT FK→voice_model NULL | |
 | default_style | JSON | default pacing/emotion/style hints |
 | portrait_key | TEXT NULL | storage key |
+| avatar_model_key | TEXT NULL | storage key for the avatar model (Live2D model by default; 3D model if used) |
+| avatar_renderer | TEXT NULL | preferred renderer, e.g. `live2d` (default) \| `3d` \| `external`; null = system default |
 | guest_visible | INTEGER | 0/1 (FR-CM-12) |
 | status | TEXT | `draft` \| `active` \| `archived` |
 | tags | JSON | |
@@ -161,7 +164,7 @@ erDiagram
 |---|---|---|
 | id | TEXT PK | |
 | character_id | TEXT FK→character | |
-| kind | TEXT | `portrait` \| `image` \| `audio` \| `other` |
+| kind | TEXT | `portrait` \| `image` \| `audio` \| `live2d_model` \| `model_3d` \| `other` |
 | storage_key | TEXT | |
 | meta | JSON | |
 

@@ -78,7 +78,10 @@
 | **Token** | The unit LLMs process text in; counted for usage/cost accounting ([11 §3](11-feature-observability.md)). |
 | **RTF** | Real-Time Factor — synthesis time ÷ audio duration; < 1 means faster-than-real-time (needed for smooth live TTS). |
 | **Viseme** | A visual mouth-shape unit; NagiFlow emits visemes/timing for avatar lip-sync ([10 §5](10-feature-realtime-and-media-generation.md)). |
-| **OBS / VTube Studio / Live2D** | External tools for streaming and 2D/3D avatar animation, integrated via connectors. |
+| **Avatar renderer** | A provider (`AvatarRenderProvider`) that animates a character's avatar model from emitted viseme/timing/expression events to produce video and live avatars. **Default: Live2D**; pluggable to 3D and external engines ([10 §5](10-feature-realtime-and-media-generation.md)). |
+| **Live2D** | A 2D model/animation technology for expressive avatars; NagiFlow's **default** avatar renderer animates a character's Live2D model. |
+| **3D model (avatar)** | A spatial avatar model (e.g. glTF/VRM-class) rendered by an optional 3D `AvatarRenderProvider` module — the extension path beyond the default Live2D renderer. |
+| **OBS / VTube Studio** | External streaming/avatar tools that can act as alternative avatar renderers via adapter modules/connectors. |
 | **ffmpeg** | The media toolkit used for audio extraction, assembly, and transcoding. |
 | **CLI** | Command-Line Interface — here, the `nagiflow` launcher/commands ([12 §3](12-runtime-and-deployment.md)). |
 

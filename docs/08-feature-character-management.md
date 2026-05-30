@@ -24,6 +24,7 @@ mindmap
       Identity & avatar
       Bio / backstory
       System persona prompt
+      Avatar model (Live2D default / 3D)
     Personality
       Big Five (OCEAN)
       Trait→behavior mapping
@@ -47,6 +48,7 @@ The profile is the descriptive core (FR-CM-1):
 |---|---|
 | `display_name`, `aliases` | Names the character goes by. |
 | `avatar_key`, `portrait_key` | Images stored under `characters/<id>/` (storage keys in DB). |
+| `avatar_model_key`, `avatar_renderer` | The character's **avatar model** for video/live rendering — a **Live2D model by default**, or a **3D model** where used — plus the preferred renderer (`live2d` default, `3d`, or `external`). Consumed by the `AvatarRenderProvider` ([10 §5](10-feature-realtime-and-media-generation.md)). Optional; without it, rendering falls back to a static portrait. |
 | `bio` / `backstory` | Lore and context the character "knows" about itself. |
 | `persona_prompt` | The authored **system persona** — tone, speech quirks, do/don't, world rules. |
 | `language_default` | Preferred language; affects prompt and voice selection. |
@@ -172,6 +174,7 @@ my-character.nagichar  (zip)
 │   ├── reference/        # reference clips (zero-shot / design seeds)
 │   └── models/<version>/ # fine-tuned artifacts (optional, can be large)
 ├── assets/               # avatar, portrait, extra images
+├── model/                # avatar model: Live2D (default) or 3D model files
 └── memory.jsonl          # exported memory entries (see privacy default)
 ```
 

@@ -29,7 +29,7 @@ A single module package may contribute **one or more** of the following. Types a
 
 | Type | Extends | Typical example | Primary doc |
 |---|---|---|---|
-| **Provider** | A capability interface (LLM, TTS, ASR, Embedding, VectorStore, Storage) | "OpenAI-compatible TTS provider"; the default Ollama / VoxCPM2 providers | [03 §6](03-system-architecture.md) |
+| **Provider** | A capability interface (LLM, TTS, ASR, Embedding, VectorStore, Storage, AvatarRender) | "OpenAI-compatible TTS provider"; the default Ollama / VoxCPM2 / Live2D providers | [03 §6](03-system-architecture.md) |
 | **Agent Skill** | The dialogue orchestrator's tool set | "Look up today's schedule"; "roll dice on stream" | §6 |
 | **Connector** | External event sources / sinks | Twitch chat ingestion; Discord notifications; OBS scene switch | §7 |
 | **UI Extension** | The Vuetify frontend | A custom character-tuning panel; a new dashboard widget | §8 |
@@ -342,6 +342,7 @@ These ship with NagiFlow and double as the canonical examples (FR-MOD-5):
 | `nagiflow-sensevoice` | Provider | Default **ASR** for script import and prompt transcription. |
 | `nagiflow-sqlite-vec` *(or local index)* | Provider | Default **vector store** for the memory bank. |
 | `nagiflow-localfs` | Provider | Default **storage** over the workspace folder. |
+| `nagiflow-live2d` | Provider | Default **avatar renderer** (`AvatarRenderProvider`, `kind="live2d"`): drives a character's Live2D model from viseme/timing/expression events to produce video and a live avatar. A **3D renderer** (`kind="3d"`) and external-engine adapters can be added as further modules. |
 | `nagiflow-twitch` / `-youtube` / `-discord` | Connector | Reference live-chat sources/sinks. |
 
 Each is a standalone sub-project that depends only on the public SDK — proof that the extension API is sufficient for real integrations, not just toys.

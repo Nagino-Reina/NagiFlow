@@ -129,12 +129,13 @@ See [01 §9](01-vision-and-scope.md). NagiFlow depends on the availability and l
 |---|---|---|
 | FR-RT-1 | M | Users (and permitted guests) can hold a **conversation** with a character; the character replies in text and synthesized **voice**. |
 | FR-RT-2 | M | The platform provides a **real-time streaming interaction mode** over WebSocket: streamed LLM tokens and streamed/low-latency audio for live use. |
-| FR-RT-3 | S | The streaming pipeline emits **avatar-driving events** (e.g. visemes/timing) that external avatar engines can consume. |
+| FR-RT-3 | S | The streaming pipeline emits **avatar-driving events** (visemes/timing/expression) consumed by a renderer. |
 | FR-RT-4 | S | Live **chat ingestion via Connectors** (e.g. Twitch/YouTube/Discord) can route incoming messages as inputs to a character during a stream. |
-| FR-RT-5 | M | The platform supports **offline/batch media generation** from scripts (audio; optional video via integration). |
+| FR-RT-5 | M | The platform supports **offline/batch media generation** from scripts (audio; optional **video** via the avatar renderer — see FR-RT-9). |
 | FR-RT-6 | S | Generated media is stored as **media assets** with metadata and is downloadable; render runs as a tracked job. |
 | FR-RT-7 | S | Voice input (speech-to-text) can be used as a conversation input where ASR is available. |
 | FR-RT-8 | S | The system handles **interruption/barge-in** and reconnection in live sessions gracefully (best-effort by provider capability). |
+| FR-RT-9 | M | The platform provides a **built-in avatar renderer** behind a pluggable `AvatarRenderProvider` capability. The **default renderer is Live2D** (drives a character's Live2D model from emitted events to produce video and a live avatar); the capability is **extensible to 3D-model renderers and external engines** (OBS, VTube Studio). |
 
 ### 3.6 Observability (`OBS`) — see [11](11-feature-observability.md)
 
@@ -298,7 +299,7 @@ See [01 §9](01-vision-and-scope.md). NagiFlow depends on the availability and l
 | **Database** | SQLite | Relational persistence; seam for external DB. *(FR-SYS-6/7)* |
 | **Media tooling** | ffmpeg | Audio extraction from video, audio assembly. *(FR-SM-5/8)* |
 | **Streaming platforms** | via Connectors | Optional live-chat ingestion/output. *(FR-RT-4, FR-MOD-3)* |
-| **Avatar engines** | via Connectors / viseme output | Optional avatar rendering driven by emitted events. *(FR-RT-3)* |
+| **Avatar renderer** | Built-in **Live2D** (default); pluggable | Drives a character's model from emitted viseme/timing/expression events to render video/live avatar. Extensible to **3D** renderers and **external engines** (OBS, VTube Studio) via the capability / Connectors. *(FR-RT-3/9, FR-MOD-5)* |
 
 ## 8. Verification approach
 
