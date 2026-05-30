@@ -13,11 +13,11 @@
 
 ## 1. Purpose & philosophy
 
-Modularity is a first-class requirement, not an afterthought. NagiFlow ships a small, opinionated **core** and pushes everything that touches the outside world — LLMs, speech engines, storage, live-chat platforms — behind extension points. The same mechanism the core team uses to ship the default Ollama and VoxCPM2 integrations is the mechanism third-party developers use to add their own. There is no privileged "internal" API that modules cannot reach (FR-MOD-5).
+Modularity is a first-class requirement, not an afterthought. NagiFlow ships a small, opinionated **core** and pushes everything that touches the outside world — LLMs, speech engines, storage, live-chat platforms — behind extension points. The same mechanism the core team uses to ship the default Ollama and VoxCPM integrations is the mechanism third-party developers use to add their own. There is no privileged "internal" API that modules cannot reach (FR-MOD-1/6).
 
 Three goals drive the design:
 
-1. **Parity** — official integrations are ordinary modules. If the extension system can express the defaults, it can express almost anything (FR-MOD-5).
+1. **Parity** — official integrations are ordinary modules. If the extension system can express the defaults, it can express almost anything (FR-MOD-6).
 2. **Safety** — a module declares what it needs; the host grants only that. A misbehaving or malicious module should be containable and, at minimum, auditable (NFR-SEC-1/2/4).
 3. **Low ceremony** — a developer should be able to produce a working "Hello Skill" in minutes, in Python, without learning a bespoke build system (NFR-MAINT-1).
 
@@ -29,13 +29,13 @@ A single module package may contribute **one or more** of the following. Types a
 
 | Type | Extends | Typical example | Primary doc |
 |---|---|---|---|
-| **Provider** | A capability interface (LLM, TTS, ASR, Embedding, VectorStore, Storage, AvatarRender) | "OpenAI-compatible TTS provider"; the default Ollama / VoxCPM2 / Live2D providers | [03 §6](03-system-architecture.md) |
+| **Provider** | A capability interface (LLM, TTS, ASR, Embedding, VectorStore, Storage, AvatarRender) | "OpenAI-compatible TTS provider"; the default Ollama / VoxCPM / PNGTuber providers | [03 §6](03-system-architecture.md) |
 | **Agent Skill** | The dialogue orchestrator's tool set | "Look up today's schedule"; "roll dice on stream" | §6 |
 | **Connector** | External event sources / sinks | Twitch chat ingestion; Discord notifications; OBS scene switch | §7 |
 | **UI Extension** | The Vuetify frontend | A custom character-tuning panel; a new dashboard widget | §8 |
 | **Framework hook** | Lifecycle / event-bus subscribers | "On media render complete, post-process audio" | §9 |
 
-These map directly to the requirement that developers can author Agent Skills, Connectors, and extend the framework and UI (FR-MOD-1/2/3/4), and that the default LLM and TTS integrations are delivered as official example modules / sub-projects (FR-MOD-5).
+These map directly to the requirement that developers can author Agent Skills (FR-MOD-2), Connectors (FR-MOD-3), and extend the framework and UI (FR-MOD-4), and that the default LLM and TTS integrations are delivered as official example modules / sub-projects (FR-MOD-6).
 
 ---
 
@@ -63,11 +63,11 @@ The manifest is the contract. The host reads it **before** importing any code, s
 ```json
 {
   "$schema": "https://nagiflow.dev/schema/module/v1.json",
-  "id": "com.alyssum.voxcpm2",
-  "name": "VoxCPM2 Speech",
+  "id": "io.nagiflow.voxcpm",
+  "name": "VoxCPM Speech",
   "version": "0.1.0",
-  "description": "Official VoxCPM2 text-to-speech and voice-cloning provider.",
-  "author": "Alyssum Information Ltd.",
+  "description": "Official VoxCPM text-to-speech and voice-cloning provider.",
+  "author": "NagiFlow",
   "license": "Apache-2.0",
   "app_compat": ">=0.3.0 <0.5.0",
   "entrypoint": "backend:register",
@@ -76,7 +76,7 @@ The manifest is the contract. The host reads it **before** importing any code, s
     "providers": [
       {
         "capability": "tts",
-        "name": "voxcpm2",
+        "name": "voxcpm",
         "features": ["streaming", "voice_clone", "voice_design", "fine_tune"],
         "config_schema": "assets/tts.config.schema.json"
       }
@@ -131,7 +131,7 @@ stateDiagram-v2
 | **Enable / disable** | A module can be toggled at runtime via the API/UI without restarting the app where the contribution supports it (providers and skills do; some UI extensions may require a frontend reload). | Disabling unregisters contributions and runs the module's `teardown` if provided. |
 | **Teardown** | On shutdown, uninstall, or upgrade: contributions removed, background tasks cancelled, open resources released. | Teardown errors are logged but do not block host shutdown. |
 
-The host exposes lifecycle over the API (`/modules`, `/modules/{id}:enable`, `:disable` — see [05 §10](05-api-specification.md)) satisfying "install / enable / disable / configure modules" (FR-MOD-9).
+The host exposes lifecycle over the API (`/modules`, `/modules/{id}:enable`, `:disable` — see [05 §10](05-api-specification.md)) satisfying "discover / install / enable / disable / configure modules" (FR-MOD-8).
 
 ---
 
@@ -188,7 +188,7 @@ class TTSProvider(Protocol):
                              base_voice: "VoiceRef") -> "JobRef": ...
 ```
 
-The default VoxCPM2 provider advertises `{"streaming","voice_clone","voice_design","fine_tune"}`; a thin "OpenAI-compatible TTS" provider might advertise only `{"streaming"}`. The orchestrator never assumes a feature it has not seen advertised (NFR-MAINT-2).
+The default VoxCPM provider advertises `{"streaming","voice_clone","voice_design","fine_tune"}`; a thin "OpenAI-compatible TTS" provider might advertise only `{"streaming"}`. The orchestrator never assumes a feature it has not seen advertised (NFR-MAINT-2).
 
 ---
 
@@ -217,13 +217,13 @@ class RollDice(AgentSkill):
         return {"rolls": rolls, "total": sum(rolls)}
 ```
 
-- **Invocation** — the orchestrator advertises enabled skills to the LLM provider as tools; on a tool call it validates arguments against the schema, runs `run()`, and feeds the result back into the generation loop (see [10 §4](10-feature-realtime-and-media-generation.md)). This realizes FR-MOD-1.
+- **Invocation** — the orchestrator advertises enabled skills to the LLM provider as tools; on a tool call it validates arguments against the schema, runs `run()`, and feeds the result back into the generation loop (see [10 §4](10-feature-realtime-and-media-generation.md)). This realizes FR-MOD-2.
 - **Context** — `ctx` carries the current character, the acting user, the conversation id, and a scoped logger, so a skill can be user- and character-aware without reaching into globals.
 - **Permissioning** — a skill that needs the network or filesystem inherits its package's manifest permissions; the host injects only the guarded clients.
 
 ### 6.1 Compatibility with the Agent-Skill Markdown convention
 
-Some NagiFlow content (and the maintainer's other projects) describe skills as **Markdown "SKILL" documents** with front-matter. NagiFlow supports loading such files from a module's `skills/` directory: the front-matter supplies `name`, `description`, and a parameter schema, and the body is treated as the skill's instruction/prompt fragment. These "declarative skills" need no Python and are ideal for prompt-only behaviors; "code skills" (above) subclass `AgentSkill` when logic or I/O is required. Both register through the same path (FR-MOD-1).
+Some NagiFlow content (and the maintainer's other projects) describe skills as **Markdown "SKILL" documents** with front-matter. NagiFlow supports loading such files from a module's `skills/` directory: the front-matter supplies `name`, `description`, and a parameter schema, and the body is treated as the skill's instruction/prompt fragment. These "declarative skills" need no Python and are ideal for prompt-only behaviors; "code skills" (above) subclass `AgentSkill` when logic or I/O is required. Both register through the same path (FR-MOD-2).
 
 ---
 
@@ -251,7 +251,7 @@ class TwitchChat(Connector):
             await self._post(args["text"], ctx)
 ```
 
-- **Triggers → conversation** — the realtime layer can subscribe a character to a connector's `message` trigger so incoming chat becomes user input (after moderation), satisfying "subscribe to external events and route them" (FR-MOD-2, FR-RT-6).
+- **Triggers → conversation** — the realtime layer can subscribe a character to a connector's `message` trigger so incoming chat becomes user input (after moderation), satisfying "subscribe to external events and route them" (FR-MOD-3, FR-RT-4).
 - **Auth is the user's** — connectors that need credentials read them from declared secrets that the **user** supplies; NagiFlow never creates third-party accounts or performs password login on the user's behalf. OAuth/device-code flows are surfaced to the user to complete.
 - **Sinks** — actions let a skill or hook push outward (e.g. "post the dice result to chat", "switch OBS scene").
 
@@ -259,7 +259,7 @@ class TwitchChat(Connector):
 
 ## 8. UI extensions
 
-The Vuetify frontend exposes **contribution points**; a UI extension supplies a component that mounts into one of them.
+The Vuetify frontend exposes **contribution points**; a UI extension supplies a component that mounts into one of them. The host screens these mount into are specified in [12 §9 (UI extension surface)](12-ui-ux-design.md).
 
 | Contribution point | Where it appears |
 |---|---|
@@ -278,7 +278,7 @@ The Vuetify frontend exposes **contribution points**; a UI extension supplies a 
 ```
 
 - **Loading** — built ES-module assets are served by the host and dynamically imported at runtime; the extension receives a constrained `nagiflowUI` bridge (current character/user, scoped API client, theme tokens) rather than free access to the host app's internals.
-- **Isolation** — extensions render within the host's component boundaries and call the backend only through the same authenticated API as the core; they cannot escalate beyond the acting user's permissions. UI extensions satisfy FR-MOD-3/4 for the presentation layer.
+- **Isolation** — extensions render within the host's component boundaries and call the backend only through the same authenticated API as the core; they cannot escalate beyond the acting user's permissions. UI extensions satisfy FR-MOD-4 for the presentation layer.
 - **Theming** — extensions consume the host theme (including the brand palette) so contributed UI stays visually consistent ([frontend conventions]).
 
 ---
@@ -312,7 +312,7 @@ Handlers are async, run within the emitting request's correlation context, and m
 
 ## 11. Security & the permission model
 
-Modules are powerful, so the host applies **least privilege** driven entirely by the manifest (NFR-SEC-1/2/4):
+Modules are powerful, so the host applies **least privilege** driven entirely by the manifest (NFR-SEC-1/2/4; consolidated in [15 Security & Threat Model](15-security-and-threat-model.md)):
 
 | Resource | Declared as | Enforcement |
 |---|---|---|
@@ -327,22 +327,24 @@ Additional safeguards:
 - **Trust signaling** — the UI distinguishes **official** modules from third-party ones and surfaces the requested permission set at install/enable time so the operator consents knowingly.
 - **Quarantine** — a module that throws during load/registration is disabled and reported rather than crashing the host (NFR-REL-2).
 - **Auditing** — enable/disable/config changes and permission grants are written to the audit log ([04 §3](04-data-model-and-storage.md)).
-- **No ambient authority** — there is no global singleton a module can import to bypass `host`; reviews and docs steer authors to the SDK only. (Python cannot perfectly sandbox in-process code; the model is *least-privilege-by-contract plus auditing*, with process isolation noted as a future hardening option — see [13 risks](13-roadmap-and-milestones.md).)
+- **No ambient authority** — there is no global singleton a module can import to bypass `host`; reviews and docs steer authors to the SDK only. (Python cannot perfectly sandbox in-process code; the model is *least-privilege-by-contract plus auditing*, with process isolation noted as a future hardening option — see [14 risks](14-roadmap-and-milestones.md).)
+- **Trust boundary for shared instances (important).** Because the allowlists are advisory against *malicious* in-process code, a NagiFlow instance exposed to **guests/the public** must run **only official/trusted modules**; installing third-party modules is an **admin** action ([09 §3](09-feature-multiuser-memory-and-privacy.md)) and is intended for the operator's own machine. True isolation of untrusted modules (subprocess/WASM/container) is the planned hardening before any "run untrusted modules on a shared instance" use case ([14 risks](14-roadmap-and-milestones.md)).
 
 ---
 
 ## 12. Official modules (reference implementations)
 
-These ship with NagiFlow and double as the canonical examples (FR-MOD-5):
+These ship with NagiFlow and double as the canonical examples (FR-MOD-5/6):
 
 | Module | Type | Capability |
 |---|---|---|
 | `nagiflow-ollama` | Provider | Default **LLM** via a local Ollama server (chat + tool calling + embeddings where the model supports it). |
-| `nagiflow-voxcpm2` | Provider | Default **TTS**: streaming synthesis, voice cloning, voice design, and fine-tune training (48 kHz). |
+| `nagiflow-voxcpm` | Provider | Default **TTS**: streaming synthesis, voice cloning, voice design, and fine-tune training (48 kHz). |
 | `nagiflow-sensevoice` | Provider | Default **ASR** for script import and prompt transcription. |
 | `nagiflow-sqlite-vec` *(or local index)* | Provider | Default **vector store** for the memory bank. |
 | `nagiflow-localfs` | Provider | Default **storage** over the workspace folder. |
-| `nagiflow-live2d` | Provider | Default **avatar renderer** (`AvatarRenderProvider`, `kind="live2d"`): drives a character's Live2D model from viseme/timing/expression events to produce video and a live avatar. A **3D renderer** (`kind="3d"`) and external-engine adapters can be added as further modules. |
+| `nagiflow-pngtuber` | Provider | Default **avatar renderer** (`AvatarRenderProvider`, `kind="pngtuber"`): drives a character's **layered-PNG sprite set** from audio-amplitude / viseme / expression events to produce video and a live avatar. Fully MIT, no proprietary runtime, no GPU required. |
+| `nagiflow-live2d` *(optional)* | Provider | **Live2D** avatar renderer (`kind="live2d"`): drives a Cubism model from the same events. Ships separately because Live2D's Cubism SDK carries its own (non-MIT) licensing terms. A **3D renderer** (`kind="3d"`) and external-engine adapters are further optional modules. |
 | `nagiflow-twitch` / `-youtube` / `-discord` | Connector | Reference live-chat sources/sinks. |
 
 Each is a standalone sub-project that depends only on the public SDK — proof that the extension API is sufficient for real integrations, not just toys.
@@ -395,16 +397,16 @@ Drop the folder into `<workspace>/modules/`, restart (or hot-load), enable it in
 
 | Requirement | Where addressed |
 |---|---|
-| FR-MOD-1 (Agent Skills) | §6, §13 |
-| FR-MOD-2 (Connectors) | §7 |
-| FR-MOD-3 (UI extensions) | §8 |
-| FR-MOD-4 (framework hooks) | §9 |
-| FR-MOD-5 (defaults as official modules) | §1, §5.1, §12 |
-| FR-MOD-6 (uniform module packaging) | §3 |
+| FR-MOD-1 (extend without modifying core) | §1, §2 |
+| FR-MOD-2 (Agent Skills; incl. declarative Markdown) | §6, §6.1, §13 |
+| FR-MOD-3 (Connectors) | §7 |
+| FR-MOD-4 (framework hooks + UI extensions) | §8, §9 |
+| FR-MOD-5 (provider implementations) | §5.1, §12 |
+| FR-MOD-6 (defaults as official modules) | §1, §12 |
 | FR-MOD-7 (declarative manifest) | §3.1 |
-| FR-MOD-8 (host-compat checking) | §3.1, §4, §10 |
-| FR-MOD-9 (install/enable/disable/configure) | §4 |
-| FR-MOD-10 (provider capability flags) | §5, §5.1 |
-| FR-MOD-11 (declarative Markdown skills) | §6.1 |
+| FR-MOD-8 (discover/install/enable/disable/configure; namespaced routes; host-compat) | §3.1, §4, §10 |
+| FR-MOD-9 (SDK / documented interfaces) | §5, §5.1 |
+| FR-MOD-10 (declared permissions/capabilities gated) | §5.1, §11 |
+| FR-MOD-11 (folder/archive distribution; registry future) | §3, §4 |
 | NFR-SEC-1/2/4 | §11 |
 | NFR-MAINT-1/2/3 | §1, §10 |

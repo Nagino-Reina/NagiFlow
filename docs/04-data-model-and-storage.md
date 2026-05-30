@@ -28,7 +28,7 @@
 │   └── <character_id>/
 │       ├── portrait.*           # avatar/portrait
 │       ├── assets/              # misc character assets
-│       ├── model/               # avatar model: Live2D (default) or 3D model files
+│       ├── avatar/              # avatar bundle: PNGTuber sprite set (default), or Live2D / 3D model files
 │       └── voice/
 │           ├── reference/       # reference audio clips (cloning/voice design)
 │           └── models/          # fine-tuned voice artifacts (versioned)
@@ -58,8 +58,9 @@
 
 - **Engine:** SQLite in **WAL** mode (better read/write concurrency, resilience).
 - **Access:** SQLAlchemy ORM with the **repository + unit-of-work** pattern; no raw paths/SQL in services.
-- **Migrations:** Alembic; applied on startup after a safety backup of `nagiflow.db` into `backups/` ([12 §migrations](12-runtime-and-deployment.md)).
+- **Migrations:** Alembic; applied on startup after a safety backup of `nagiflow.db` into `backups/` ([13 §migrations](13-runtime-and-deployment.md)).
 - **Integrity:** foreign keys enforced; timestamps (`created_at`/`updated_at`) on all rows; soft-delete where reversibility matters (e.g. characters, scripts) and hard-delete where privacy requires it (e.g. user data deletion).
+- **Write concurrency:** WAL allows concurrent readers but **only one writer** at a time. To avoid `SQLITE_BUSY` under live turns + background jobs, connections set a `busy_timeout`, writes are kept short (large bytes go to the FS, not the DB), and write-heavy job steps batch/serialize their commits. Heavy concurrent write load is a signal to migrate the DB seam to an external engine ([§1](#1-storage-philosophy), NFR-SCALE-3).
 
 ## 4. Entity-relationship overview
 
@@ -75,6 +76,8 @@ erDiagram
     CHARACTER ||--o{ MEMORY_ENTRY : owns
 
     CONVERSATION ||--o{ MESSAGE : contains
+    CONVERSATION ||--o{ CONVERSATION_PARTICIPANT : cast
+    CHARACTER ||--o{ CONVERSATION_PARTICIPANT : member_of
     MESSAGE ||--o| MEDIA_ASSET : voiced_by
     MESSAGE ||--o{ USAGE_RECORD : generates
 
@@ -111,7 +114,7 @@ erDiagram
 | status | TEXT | `active` \| `disabled` |
 | prefs | JSON | UI/locale prefs |
 
-> Guests may be represented as ephemeral `user` rows or as session-only principals; see [09](09-feature-multiuser-memory-and-privacy.md). Secrets handling per [14 §security](14-glossary.md).
+> Guests may be represented as ephemeral `user` rows or as session-only principals; see [09](09-feature-multiuser-memory-and-privacy.md). Secrets handling per [15 §3](15-security-and-threat-model.md).
 
 **`session`**
 | Field | Type | Notes |
@@ -138,8 +141,8 @@ erDiagram
 | default_voice_model_id | TEXT FK→voice_model NULL | |
 | default_style | JSON | default pacing/emotion/style hints |
 | portrait_key | TEXT NULL | storage key |
-| avatar_model_key | TEXT NULL | storage key for the avatar model (Live2D model by default; 3D model if used) |
-| avatar_renderer | TEXT NULL | preferred renderer, e.g. `live2d` (default) \| `3d` \| `external`; null = system default |
+| avatar_bundle_key | TEXT NULL | storage key for the avatar **bundle directory** (descriptor + assets): a PNGTuber sprite set by default; a Live2D or 3D model if used |
+| avatar_renderer | TEXT NULL | preferred renderer, e.g. `pngtuber` (default) \| `live2d` \| `3d` \| `external`; null = system default |
 | guest_visible | INTEGER | 0/1 (FR-CM-12) |
 | status | TEXT | `draft` \| `active` \| `archived` |
 | tags | JSON | |
@@ -150,7 +153,7 @@ erDiagram
 | id | TEXT PK | |
 | character_id | TEXT FK→character | |
 | kind | TEXT | `zero_shot` \| `voice_design` \| `fine_tuned` |
-| provider | TEXT | e.g. `voxcpm2` |
+| provider | TEXT | e.g. `voxcpm` |
 | version | INTEGER | |
 | reference_keys | JSON | reference audio storage keys (cloning) |
 | design_description | TEXT NULL | natural-language voice description |
@@ -164,7 +167,7 @@ erDiagram
 |---|---|---|
 | id | TEXT PK | |
 | character_id | TEXT FK→character | |
-| kind | TEXT | `portrait` \| `image` \| `audio` \| `live2d_model` \| `model_3d` \| `other` |
+| kind | TEXT | `portrait` \| `image` \| `audio` \| `pngtuber_sprites` \| `live2d_model` \| `model_3d` \| `other` |
 | storage_key | TEXT | |
 | meta | JSON | |
 
@@ -201,7 +204,8 @@ erDiagram
 | description | TEXT | |
 | language | TEXT | default language |
 | status | TEXT | `draft` \| `review` (post-ASR) \| `ready` \| `archived` |
-| origin | TEXT | `manual` \| `asr_import` |
+| source_kind | TEXT | `manual` \| `imported` (from audio/video ASR) |
+| default_character_id | TEXT FK→character NULL | default speaker for new lines |
 | meta | JSON | |
 
 **`script_line`**
@@ -211,13 +215,14 @@ erDiagram
 | script_id | TEXT FK→script | |
 | order_index | INTEGER | ordering |
 | character_id | TEXT FK→character NULL | resolved speaker |
-| speaker_name | TEXT NULL | free-text speaker (pre-mapping) |
+| character_name_raw | TEXT NULL | free-text speaker as written/recognized (pre-mapping) |
 | text | TEXT | dialogue |
-| start_ts | REAL NULL | seconds |
-| end_ts | REAL NULL | seconds |
+| start_ms | INTEGER NULL | milliseconds from script start |
+| end_ms | INTEGER NULL | milliseconds from script start |
 | reference_audio_key | TEXT NULL | per-line reference |
-| style_guidance | TEXT NULL | free-text/structured direction |
+| style | TEXT NULL | free-text/structured voice direction |
 | speech_rate | REAL NULL | speed factor |
+| pause_after_ms | INTEGER NULL | inserted silence after the line during assembly |
 | language | TEXT NULL | per-line override |
 | notes | TEXT NULL | |
 | take | INTEGER | version/take (FR-SM-12) |
@@ -229,13 +234,23 @@ erDiagram
 | Field | Type | Notes |
 |---|---|---|
 | id | TEXT PK | |
-| character_id | TEXT FK→character | |
+| character_id | TEXT FK→character | **primary / initiator** character; the full cast (multi-character live) is in `conversation_participant` |
 | user_id | TEXT FK→user | (guest user row or local) |
 | mode | TEXT | `chat` \| `live` |
 | sensitive_mode | INTEGER | 0/1 effective for this conversation |
+| director_config | JSON NULL | multi-character turn rules: `max_chain_depth`, `max_character_turns_per_input`, cooldown, selection policy ([10 §4.5](10-feature-realtime-and-media-generation.md)) |
 | title | TEXT NULL | |
 | status | TEXT | `active` \| `ended` |
 | meta | JSON | live-session info, connector source, etc. |
+
+**`conversation_participant`** — the cast of a (multi-character) conversation; for single-character chat there is exactly one row mirroring `conversation.character_id`.
+| Field | Type | Notes |
+|---|---|---|
+| id | TEXT PK | |
+| conversation_id | TEXT FK→conversation | |
+| character_id | TEXT FK→character | a cast member |
+| role | TEXT | `primary` \| `cast` |
+| join_order | INTEGER | display/turn ordering hint |
 
 **`message`**
 | Field | Type | Notes |
@@ -243,6 +258,8 @@ erDiagram
 | id | TEXT PK | |
 | conversation_id | TEXT FK→conversation | |
 | role | TEXT | `user` \| `character` \| `system` \| `tool` |
+| speaker_character_id | TEXT FK→character NULL | which cast member spoke (multi-character live); null for non-character roles |
+| in_reply_to_message_id | TEXT FK→message NULL | set when a character replies to another character/message (director chains) |
 | content | TEXT | text |
 | media_asset_id | TEXT FK→media_asset NULL | synthesized audio |
 | meta | JSON | tool calls, viseme refs, etc. |
@@ -307,7 +324,7 @@ erDiagram
 | Field | Type | Notes |
 |---|---|---|
 | id | TEXT PK | |
-| capability | TEXT | `llm` \| `embedding` \| `tts` (units differ) |
+| kind | TEXT | `llm` \| `embedding` \| `tts` \| `asr` (units differ) |
 | provider_config_id | TEXT FK | |
 | model | TEXT | |
 | user_id | TEXT FK→user NULL | |
@@ -318,7 +335,8 @@ erDiagram
 | total_tokens | INTEGER NULL | |
 | audio_seconds | REAL NULL | for TTS |
 | est_cost | REAL NULL | for remote providers |
-| occurred_at | DATETIME | |
+| occurred_at | DATETIME | event time |
+| correlation_id | TEXT NULL | links request → WS turn → jobs → this record ([05 §1](05-api-specification.md), [11 §4](11-feature-observability.md)) |
 
 **`metric_sample`** *(optional / may be ephemeral)* — periodic system/service samples (cpu/mem/gpu/disk, service health), retained briefly for charts.
 
@@ -331,6 +349,7 @@ erDiagram
 - **Retrieval:** similarity search within the permitted namespaces, blended with **recency** and **importance**; sensitive mode restricts the namespace set ([09](09-feature-multiuser-memory-and-privacy.md)).
 - **Write policy:** the orchestrator extracts salient items and summaries post-turn, scores importance, embeds, and upserts; periodic consolidation/summarization prevents unbounded growth.
 - **Decay/eviction:** `importance` + `expires_at` + caps per namespace bound size; low-value entries are summarized or pruned.
+- **Embedding model & dimension:** the default embedding provider is local (Ollama embeddings, e.g. `nomic-embed-text`). The **embedding model + dimension** are recorded per namespace; **switching the embedding provider/model invalidates existing vectors** (dimension/space mismatch), so `MemoryService` flags affected namespaces and offers a **re-embed job** (re-embeds stored `memory_entry` content) rather than silently mixing spaces.
 - **Pluggability:** the vector store is a provider; a module can swap the local index for an external vector DB without touching `MemoryService`.
 
 ## 7. Character package (export/import)
@@ -346,6 +365,7 @@ A character exports as a self-contained bundle (`.nagichar`, a zip) for portabil
 │   ├── reference/       # reference audio (optional)
 │   └── models/          # fine-tuned artifacts (optional, large)
 ├── assets/              # portrait/images (optional)
+├── avatar/              # avatar bundle: PNGTuber sprite set (default), or Live2D / 3D model (optional)
 └── memory.jsonl         # optional; user-linked memory EXCLUDED by default (privacy)
 ```
 
@@ -356,11 +376,12 @@ A character exports as a self-contained bundle (`.nagichar`, a zip) for portabil
 
 - **Backups:** `backups/` holds pre-migration DB snapshots and user-initiated backups; the whole workspace is copy-safe when the app is stopped.
 - **User deletion (privacy):** deleting a user **hard-deletes** their `user_scoped` memory across characters, their sessions, and anonymizes/removes their conversations per policy; audit logged.
+- **Guest reaping (FR-MM-12):** ephemeral guest principals are garbage-collected after session expiry/inactivity — their sessions, `user_scoped` memory, and vector namespace(s) are removed (same hard-delete path as user deletion). This bounds row/namespace growth on public streaming instances where **each viewer is a distinct guest** ([09 §5.4](09-feature-multiuser-memory-and-privacy.md)). A retention window is configurable.
 - **Retention:** logs and `metric_sample` rotate; `job` artifacts in `jobs/` are transient.
 - **Integrity:** all multi-row operations run in transactions via the unit-of-work; WAL provides crash resilience.
 
 ## 9. Indices & performance (illustrative)
 
-- Indices on hot lookups: `script_line(script_id, order_index)`, `message(conversation_id)`, `memory_entry(character_id, scope, user_id)`, `usage_record(occurred_at)`, `usage_record(character_id)`, `job(status, type)`, `conversation(character_id, user_id)`.
+- Indices on hot lookups: `script_line(script_id, order_index)`, `message(conversation_id)`, `memory_entry(character_id, scope, user_id)`, `usage_record(occurred_at)`, `usage_record(character_id)`, `job(status, type)`, `conversation(character_id, user_id)`, `conversation_participant(conversation_id)`, `message(conversation_id, speaker_character_id)`.
 - Large text/binary stays on the FS (referenced by storage key) to keep the DB small and fast.
 - Vector search is delegated to the vector store, not SQLite.

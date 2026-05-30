@@ -18,8 +18,8 @@
 - **Async:** all handlers are async; long operations return a **job** (`202 Accepted` + job reference) rather than blocking.
 - **Schema:** FastAPI auto-publishes **OpenAPI** at `/openapi.json` and interactive docs at `/docs`.
 - **Time:** ISO-8601 UTC. **IDs:** opaque strings.
-- **Pagination:** `?limit=&cursor=` (or `?page=&page_size=`); list responses include `items` + `next_cursor`.
-- **Idempotency:** mutating endpoints accept an optional `Idempotency-Key` header where retries are likely (uploads, job creation).
+- **Pagination:** **cursor-based** — `?limit=&cursor=`; list responses include `items` + `next_cursor` (`null` when exhausted). Offset/`page` paging is not used, for stable paging over mutating data.
+- **Idempotency:** mutating endpoints accept an optional `Idempotency-Key` header where retries are likely (uploads, job creation). The server stores `(key, route, principal) → first response` for a bounded TTL (default 24 h); a replay with the same key returns the stored response instead of re-executing; a different payload under a used key yields `409 idempotency.conflict`.
 
 ## 2. Authentication & authorization
 
@@ -30,7 +30,10 @@ NagiFlow uses **session-based** auth with two principal kinds (full model in [09
 | **Guest** | Auto-issued on first contact (`POST /auth/guest`) — no credentials | Basic ops only (e.g. converse with guest-visible characters). |
 | **User** | `POST /auth/login` with local credentials | Full authoring/config/ops. |
 
-- The session token is returned and sent on subsequent requests (`Authorization: Bearer <token>` or an HttpOnly cookie for the SPA).
+- The session token is returned and sent on subsequent requests (`Authorization: Bearer <token>` or an **HttpOnly, SameSite=Lax/Strict, Secure** cookie for the SPA).
+- **Token model:** sessions are **opaque random tokens**; only their hash is stored (`session.token_hash`). Sessions carry an idle/absolute **expiry** and can be revoked (logout / logout-all). No long-lived JWTs by default (keeps revocation simple for a local app).
+- **Password storage:** local-account passwords are hashed with **Argon2id** (memory-hard); never stored or logged in plaintext (NFR-SEC-2).
+- **Cookie-mode CSRF:** when the cookie transport is used, state-changing requests require a double-submit CSRF token (or `Origin`/`Sec-Fetch-Site` checks); Bearer-token clients are exempt.
 - **Authorization is enforced server-side** on every protected route against the permission matrix; the client never decides access.
 - Account **creation** is a deliberate, user-driven action (the system never silently creates accounts on a user's behalf).
 
@@ -41,6 +44,7 @@ NagiFlow uses **session-based** auth with two principal kinds (full model in [09
 | POST | `/auth/register` | none | Create a local account (user-initiated). |
 | POST | `/auth/login` | none | Log in to a local account. |
 | POST | `/auth/logout` | any | Invalidate current session. |
+| POST | `/auth/logout-all` | user | Revoke all of the user's sessions. |
 | GET | `/auth/me` | any | Current principal, kind, capabilities. |
 
 ## 3. Error model
@@ -112,7 +116,7 @@ Provider failures are isolated and surfaced (with which provider failed) rather 
 ### 4.3 Conversations & chat
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| POST | `/conversations` | G* | Start a conversation with a character (guests: guest-visible). |
+| POST | `/conversations` | G* | Start a conversation. Body takes `character_id` (single) or `character_ids[]` + optional `director_config` for a multi-character **live** cast (guests: guest-visible only). |
 | GET | `/conversations` | any | List own conversations. |
 | GET | `/conversations/{id}` | owner | Get conversation + messages. |
 | POST | `/conversations/{id}/messages` | owner | Send a message (synchronous reply: text + audio ref). |
@@ -169,7 +173,7 @@ Provider failures are isolated and surfaced (with which provider failed) rather 
 
 ## 5. WebSocket streaming protocol (live turns)
 
-**Endpoint:** `WS /api/v1/conversations/{id}/stream` (auth via session token in the connection request).
+**Endpoint:** `WS /api/v1/conversations/{id}/stream`. **Auth:** the session is taken from the **HttpOnly cookie** or a `Sec-WebSocket-Protocol` bearer sub-protocol — **never** a query-string token (query strings leak into access logs/history).
 
 The protocol is **event-typed JSON** for control/text plus **binary frames** for audio. A turn is a client message followed by a stream of server events ending in `turn.end`.
 
@@ -183,7 +187,8 @@ The protocol is **event-typed JSON** for control/text plus **binary frames** for
 
 ### Server → client
 ```json
-{ "type": "turn.start", "turn_id": "t1", "request_id": "r1" }
+{ "type": "turn.assigned", "turn_id": "t1", "character_id": "c_01H...", "reason": "addressed" } // director picked the speaker (multi-character)
+{ "type": "turn.start", "turn_id": "t1", "request_id": "r1", "character_id": "c_01H..." }
 { "type": "text.delta", "turn_id": "t1", "text": "Hel" }
 { "type": "skill.call", "turn_id": "t1", "name": "get_schedule", "args": {...} }     // Agent Skill invoked
 { "type": "skill.result", "turn_id": "t1", "name": "get_schedule", "ok": true }
@@ -197,6 +202,7 @@ The protocol is **event-typed JSON** for control/text plus **binary frames** for
 
 **Semantics**
 - Text and audio stream **concurrently**; the client may render captions from `text.delta` while playing audio frames.
+- **Multi-character:** in a live session with a *cast*, every server event carries the speaker's `character_id`, and the **director** emits `turn.assigned` before each `turn.start`. Turns are serialized (one speaker at a time); a character may answer another within the director's bounded chain ([10 §4.5](10-feature-realtime-and-media-generation.md)).
 - `control.interrupt` cancels in-flight LLM/TTS for the current turn (barge-in) and emits `turn.end` with a `cancelled` status.
 - Reconnection: the client may resume the conversation; in-flight turn state is best-effort per provider capability.
 - The same orchestration ([03 §4](03-system-architecture.md)) powers both this stream and the synchronous `POST /messages` endpoint.

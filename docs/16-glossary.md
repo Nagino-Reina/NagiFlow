@@ -1,9 +1,9 @@
-# 14 · Glossary & References
+# 16 · Glossary & References
 
 | | |
 |---|---|
 | **Document** | Glossary & References |
-| **Doc ID** | NF-14 |
+| **Doc ID** | NF-16 |
 | **Version** | 0.1 (Draft) |
 | **Last updated** | 2026-05-30 |
 | **Related** | All NagiFlow documents |
@@ -29,6 +29,9 @@
 | **Workspace** | The local folder holding NagiFlow's data: SQLite DB, config, characters, scripts, media, memory index, modules, jobs, backups, logs ([04 §2](04-data-model-and-storage.md)). |
 | **MediaAsset** | A rendered output (audio and/or video, with subtitles) linked to a script ([10 §3](10-feature-realtime-and-media-generation.md)). |
 | **Dialogue Orchestrator** | The runtime component that assembles context, retrieves memory, calls the LLM (with skills), streams TTS, and writes memory/usage ([03 §5](03-system-architecture.md), [10 §4](10-feature-realtime-and-media-generation.md)). |
+| **Cast** | The set of characters active in a single (multi-character) live session; for ordinary chat the cast is one character ([10 §4.5](10-feature-realtime-and-media-generation.md)). |
+| **Turn director / Conversation director** | The scheduler that, in a multi-character session, serializes turns (one speaker at a time), selects the next responder, and bounds character-to-character chains to prevent overlap and infinite loops ([10 §4.5](10-feature-realtime-and-media-generation.md)). |
+| **Avatar bundle** | The directory (descriptor + assets) holding a character's avatar — a PNGTuber sprite set by default, or a Live2D / 3D model — referenced by a single storage key ([04 §5.2](04-data-model-and-storage.md)). |
 
 ---
 
@@ -64,9 +67,9 @@
 | **Ollama** | The default **local LLM** runtime; an **external service** NagiFlow connects to but does not manage. |
 | **LLM** | Large Language Model — produces the character's conversational text. |
 | **TTS** | Text-to-Speech — synthesizes the character's voice. |
-| **VoxCPM2** | OpenBMB's text-to-speech model used as NagiFlow's **default TTS**: multilingual, high-sample-rate studio-quality output, with voice cloning and natural-language **voice design**, and fine-tuning support. Used via its Python API or an OpenAI-compatible server. |
+| **VoxCPM** | OpenBMB's text-to-speech model used as NagiFlow's **default TTS**: multilingual, high-sample-rate studio-quality output, with voice cloning and natural-language **voice design**, and fine-tuning support. Used via its Python API or an OpenAI-compatible server. |
 | **ASR** | Automatic Speech Recognition — transcribes audio to text (for script import and voice input). |
-| **SenseVoice** | The speech-recognition model used by the VoxCPM2 stack; NagiFlow's **default ASR**. |
+| **SenseVoice** | The speech-recognition model used by the VoxCPM stack; NagiFlow's **default ASR**. |
 | **Voice cloning** | Creating a voice from a short **reference** audio clip (zero-shot). |
 | **Voice design** | Creating a voice from a **natural-language description** of how it should sound. |
 | **Fine-tune** | Training a durable custom voice model from a dataset of text+audio pairs ([08 §4.1](08-feature-character-management.md)). |
@@ -78,12 +81,13 @@
 | **Token** | The unit LLMs process text in; counted for usage/cost accounting ([11 §3](11-feature-observability.md)). |
 | **RTF** | Real-Time Factor — synthesis time ÷ audio duration; < 1 means faster-than-real-time (needed for smooth live TTS). |
 | **Viseme** | A visual mouth-shape unit; NagiFlow emits visemes/timing for avatar lip-sync ([10 §5](10-feature-realtime-and-media-generation.md)). |
-| **Avatar renderer** | A provider (`AvatarRenderProvider`) that animates a character's avatar model from emitted viseme/timing/expression events to produce video and live avatars. **Default: Live2D**; pluggable to 3D and external engines ([10 §5](10-feature-realtime-and-media-generation.md)). |
-| **Live2D** | A 2D model/animation technology for expressive avatars; NagiFlow's **default** avatar renderer animates a character's Live2D model. |
-| **3D model (avatar)** | A spatial avatar model (e.g. glTF/VRM-class) rendered by an optional 3D `AvatarRenderProvider` module — the extension path beyond the default Live2D renderer. |
+| **Avatar renderer** | A provider (`AvatarRenderProvider`) that animates a character's avatar bundle from emitted amplitude/viseme/timing/expression events to produce video and live avatars. **Default: PNGTuber**; pluggable to Live2D, 3D, and external engines ([10 §5](10-feature-realtime-and-media-generation.md)). |
+| **PNGTuber** | NagiFlow's **default** avatar renderer: a **layered-PNG sprite set** (mouth states + expression layers + optional blink/sway) driven by audio amplitude / visemes / expression events. Fully MIT, no proprietary runtime, no GPU required. |
+| **Live2D** | A 2D model/animation technology for expressive avatars; available in NagiFlow as an **optional** `AvatarRenderProvider` module (`kind="live2d"`). Ships separately because its Cubism SDK carries non-MIT licensing terms. |
+| **3D model (avatar)** | A spatial avatar model (e.g. glTF/VRM-class) rendered by an optional 3D `AvatarRenderProvider` module — an extension path beyond the default PNGTuber renderer. |
 | **OBS / VTube Studio** | External streaming/avatar tools that can act as alternative avatar renderers via adapter modules/connectors. |
 | **ffmpeg** | The media toolkit used for audio extraction, assembly, and transcoding. |
-| **CLI** | Command-Line Interface — here, the `nagiflow` launcher/commands ([12 §3](12-runtime-and-deployment.md)). |
+| **CLI** | Command-Line Interface — here, the `nagiflow` launcher/commands ([13 §3](13-runtime-and-deployment.md)). |
 
 ---
 
@@ -103,12 +107,12 @@
 
 ## 5. References
 
-> Informational pointers to the principal external technologies. Versions/details evolve; consult upstream docs for current specifics. (Verify before implementation; see [13 §5 risks](13-roadmap-and-milestones.md) on provider churn.)
+> Informational pointers to the principal external technologies. Versions/details evolve; consult upstream docs for current specifics. (Verify before implementation; see [14 §5 risks](14-roadmap-and-milestones.md) on provider churn.)
 
 | Component | What to consult | Note |
 |---|---|---|
-| **VoxCPM2** | OpenBMB's VoxCPM2 model card / repository | Default TTS; multilingual, high-sample-rate, voice clone + voice design + fine-tune; Python API and OpenAI-compatible server; permissively licensed. |
-| **SenseVoice** | SenseVoice model docs | Default ASR used with the VoxCPM2 stack. |
+| **VoxCPM** | OpenBMB's VoxCPM model card / repository | Default TTS; multilingual, high-sample-rate, voice clone + voice design + fine-tune; Python API and OpenAI-compatible server; permissively licensed. |
+| **SenseVoice** | SenseVoice model docs | Default ASR used with the VoxCPM stack. |
 | **Ollama** | Ollama documentation | Default local LLM runtime; model management + local API. |
 | **FastAPI** | FastAPI documentation | Backend framework; async, OpenAPI built-in. |
 | **Vuetify / Vue / Vite** | Respective official docs | Frontend stack. |

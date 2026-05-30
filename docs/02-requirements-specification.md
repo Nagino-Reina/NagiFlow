@@ -6,7 +6,7 @@
 | **Doc ID** | NF-02 |
 | **Version** | 0.1 (Draft) |
 | **Last updated** | 2026-05-30 |
-| **Related** | [01 Vision](01-vision-and-scope.md), [03 Architecture](03-system-architecture.md), feature docs [07](07-feature-script-management.md)–[12](12-runtime-and-deployment.md) |
+| **Related** | [01 Vision](01-vision-and-scope.md), [03 Architecture](03-system-architecture.md), feature docs [07](07-feature-script-management.md)–[13](13-runtime-and-deployment.md) |
 
 ---
 
@@ -24,7 +24,7 @@ This document specifies **what** NagiFlow must do and the qualities it must exhi
 ## 2. Overall description
 
 ### 2.1 Product perspective
-NagiFlow is a self-contained, locally-installed application: a **FastAPI** backend serving a **Vuetify** single-page frontend, persisting to a local **workspace folder + SQLite**, and integrating AI services (LLM, TTS, ASR) and storage through a **provider/module** layer. Bundled defaults (Ollama LLM, VoxCPM2 TTS) are themselves official modules.
+NagiFlow is a self-contained, locally-installed application: a **FastAPI** backend serving a **Vuetify** single-page frontend, persisting to a local **workspace folder + SQLite**, and integrating AI services (LLM, TTS, ASR) and storage through a **provider/module** layer. Bundled defaults (Ollama LLM, VoxCPM TTS) are themselves official modules.
 
 ### 2.2 User classes
 - **Guest** — anonymous; basic conversation only.
@@ -37,7 +37,7 @@ NagiFlow is a self-contained, locally-installed application: a **FastAPI** backe
 - OS: Windows 10/11, macOS (Apple Silicon/Intel), modern Linux.
 - Runtime: Python (backend) + Node/Vite-built static assets (frontend).
 - Optional GPU (NVIDIA/Apple Metal) for fast local LLM/TTS; CPU fallback supported with degraded performance.
-- External (default): Ollama; VoxCPM2 runtime; ffmpeg; optional ASR model.
+- External (default): Ollama; VoxCPM runtime; ffmpeg; optional ASR model.
 
 ### 2.4 Design & implementation constraints
 - Backend core **must** be FastAPI; frontend core **must** be Vuetify.
@@ -45,7 +45,7 @@ NagiFlow is a self-contained, locally-installed application: a **FastAPI** backe
 - Data default **must** be local workspace + SQLite, with storage and DB seams left pluggable.
 
 ### 2.5 Assumptions & dependencies
-See [01 §9](01-vision-and-scope.md). NagiFlow depends on the availability and licenses of integrated OSS (e.g. VoxCPM2, Apache-2.0).
+See [01 §9](01-vision-and-scope.md). NagiFlow depends on the availability and licenses of integrated OSS (e.g. VoxCPM, Apache-2.0).
 
 ---
 
@@ -78,7 +78,7 @@ See [01 §9](01-vision-and-scope.md). NagiFlow depends on the availability and l
 | FR-CM-2 | M | A character has **basic info**: name, aliases, portrait/avatar asset, description, default language, tags, and lifecycle status (draft/active/archived). |
 | FR-CM-3 | M | A character has an editable **persona** (system prompt / behavioral description). |
 | FR-CM-4 | M | A character has a **Big Five (OCEAN) personality** profile with five 0–100 trait values that demonstrably influence dialogue behavior. |
-| FR-CM-5 | M | A character has one or more **voice models**; the default path produces a usable voice via VoxCPM2 **voice design** (text description) and/or **zero-shot cloning** (reference audio). |
+| FR-CM-5 | M | A character has one or more **voice models**; the default path produces a usable voice via VoxCPM **voice design** (text description) and/or **zero-shot cloning** (reference audio). |
 | FR-CM-6 | S | Users can run **voice fine-tune training** for a character from a dataset (e.g. from scripts/reference audio), producing a stored voice artifact that can be selected, previewed, versioned, and rolled back. |
 | FR-CM-7 | M | Users can **preview** a character's voice by synthesizing sample text. |
 | FR-CM-8 | M | A character has a **memory bank**; memory is scoped per user and per character (and may include cross-character interaction memory) per [09](09-feature-multiuser-memory-and-privacy.md). |
@@ -104,6 +104,7 @@ See [01 §9](01-vision-and-scope.md). NagiFlow depends on the availability and l
 | FR-MM-9 | S | Sensitive mode can be configured globally, per character, and/or per conversation, with a safe default. |
 | FR-MM-10 | M | Deleting a user removes that user's scoped memories; users can request deletion of their data. |
 | FR-MM-11 | M | A **permission matrix** defines guest vs user capabilities and is enforced server-side. |
+| FR-MM-12 | S | **Guest sessions have a bounded lifecycle**: ephemeral guest principals and their scoped memory are garbage-collected after expiry/inactivity, and generative use is rate/resource-capped per guest to protect a shared instance. |
 
 **AC (representative)** — FR-MM-7: With sensitive mode on, no response from character C to user U contains information sourced from another user's scoped memory, verified by retrieval-scope tests and prompt review.
 
@@ -116,7 +117,7 @@ See [01 §9](01-vision-and-scope.md). NagiFlow depends on the availability and l
 | FR-MOD-3 | M | Modules can contribute **Connectors** (integrations with external services/platforms). |
 | FR-MOD-4 | S | Modules can contribute **framework extensions** (hooks/middleware) and **UI extensions** (panels/pages/widgets). |
 | FR-MOD-5 | M | Modules can contribute **provider implementations** for LLM, TTS, ASR, Storage, and Vector Store. |
-| FR-MOD-6 | M | The default **LLM (Ollama)** and **TTS (VoxCPM2)** integrations are delivered as **official modules / sub-projects** serving as reference examples. |
+| FR-MOD-6 | M | The default **LLM (Ollama)** and **TTS (VoxCPM)** integrations are delivered as **official modules / sub-projects** serving as reference examples. |
 | FR-MOD-7 | M | Each module declares a **manifest** (identity, version, contributions, permissions/capabilities, compatibility). |
 | FR-MOD-8 | M | Modules can be **discovered, installed, enabled, disabled, and configured** locally; module-contributed routes are namespaced. |
 | FR-MOD-9 | S | An **SDK / documented interfaces** exist for each extension type, with access to core services (config, logging, jobs, persistence as permitted). |
@@ -135,7 +136,9 @@ See [01 §9](01-vision-and-scope.md). NagiFlow depends on the availability and l
 | FR-RT-6 | S | Generated media is stored as **media assets** with metadata and is downloadable; render runs as a tracked job. |
 | FR-RT-7 | S | Voice input (speech-to-text) can be used as a conversation input where ASR is available. |
 | FR-RT-8 | S | The system handles **interruption/barge-in** and reconnection in live sessions gracefully (best-effort by provider capability). |
-| FR-RT-9 | M | The platform provides a **built-in avatar renderer** behind a pluggable `AvatarRenderProvider` capability. The **default renderer is Live2D** (drives a character's Live2D model from emitted events to produce video and a live avatar); the capability is **extensible to 3D-model renderers and external engines** (OBS, VTube Studio). |
+| FR-RT-9 | M | The platform provides a **built-in avatar renderer** behind a pluggable `AvatarRenderProvider` capability. The **default renderer is PNGTuber** (drives a character's layered-PNG sprite set from emitted amplitude/viseme/expression events to produce video and a live avatar); the capability is **extensible to Live2D, 3D-model renderers, and external engines** (OBS, VTube Studio). |
+| FR-RT-10 | S | A **live session may include multiple characters** (a *cast*); each character can respond to the user/viewers **and** to other characters' utterances. |
+| FR-RT-11 | M | When multiple characters are active, a **turn-arbitration director** serializes turns (one speaker at a time), selects responders, and **bounds character-to-character chains** (max chain depth, no immediate ping-pong, per-input turn budget) to prevent overlapping speech and infinite loops. |
 
 ### 3.6 Observability (`OBS`) — see [11](11-feature-observability.md)
 
@@ -148,7 +151,7 @@ See [01 §9](01-vision-and-scope.md). NagiFlow depends on the availability and l
 | FR-OBS-5 | C | Optional **budgets/alerts** on token spend. |
 | FR-OBS-6 | M | All observability data stays **local** by default (no external telemetry without explicit opt-in). |
 
-### 3.7 Platform & runtime (`SYS`) — see [12](12-runtime-and-deployment.md)
+### 3.7 Platform & runtime (`SYS`) — see [13](13-runtime-and-deployment.md)
 
 | ID | Pri | Requirement |
 |---|---|---|
@@ -160,7 +163,7 @@ See [01 §9](01-vision-and-scope.md). NagiFlow depends on the availability and l
 | FR-SYS-6 | M | Data persists in a **local workspace folder** with a **SQLite** database by default. |
 | FR-SYS-7 | S | **Storage** and **database** layers are abstracted to allow future cloud storage / external DB modules. |
 | FR-SYS-8 | M | **LLM** defaults to local **Ollama**, with seams to integrate other LLM services. |
-| FR-SYS-9 | M | **TTS** defaults to **VoxCPM2**, with seams to integrate other speech engines/services. |
+| FR-SYS-9 | M | **TTS** defaults to **VoxCPM**, with seams to integrate other speech engines/services. |
 | FR-SYS-10 | S | Database **migrations** run on startup with a backup safeguard. |
 | FR-SYS-11 | S | Configuration is file/env-based with a clear precedence and safe secret handling. |
 
@@ -219,7 +222,7 @@ See [01 §9](01-vision-and-scope.md). NagiFlow depends on the availability and l
 
 ### UC-4 · Live streaming session
 - **Actor:** User; viewers (anonymous).
-- **Main flow:** Start live session for a character (sensitive mode default on for public context) → connect a chat Connector → incoming messages routed as inputs → character streams text+voice responses → viseme events available to avatar engine → session ends, summary persisted. *(FR-RT-2/3/4, FR-MM-7)*
+- **Main flow:** Start live session for **one or more characters** (a *cast*; sensitive mode default on for public context) → connect a chat Connector → incoming messages routed as inputs → the **turn director** picks a responder; characters stream text+voice responses and may answer one another within bounded chains → viseme events available to avatar engine → session ends, summary persisted. *(FR-RT-2/3/4/10/11, FR-MM-7)*
 
 ### UC-5 · Install & configure a module
 - **Actor:** User/developer.
@@ -245,7 +248,7 @@ See [01 §9](01-vision-and-scope.md). NagiFlow depends on the availability and l
 
 ### 6.2 Scalability
 - **NFR-SCALE-1 (M):** Support tens of characters and thousands of script lines per workspace without UI/DB degradation.
-- **NFR-SCALE-2 (S):** Support multiple concurrent conversations/live sessions bounded by local hardware; the architecture must not preclude horizontal scaling later.
+- **NFR-SCALE-2 (S):** Support multiple concurrent conversations/live sessions bounded by local hardware. The default runtime is **single-process and stateful** (in-process jobs, SQLite, server-side WebSocket turn state); horizontal scaling is **not a v1 goal** but is kept reachable by the documented extraction path (external job broker, external DB/object store, sticky/stateless gateway — [03 §11](03-system-architecture.md)).
 - **NFR-SCALE-3 (S):** Storage and DB seams allow migration to external systems for larger deployments.
 
 ### 6.3 Reliability & availability
@@ -261,7 +264,7 @@ See [01 §9](01-vision-and-scope.md). NagiFlow depends on the availability and l
 ### 6.5 Security
 - **NFR-SEC-1 (M):** Authorization is enforced server-side for every protected operation (never trust the client).
 - **NFR-SEC-2 (M):** Secrets (API keys for external providers/connectors) are never logged, never embedded in URLs, and stored with appropriate care; the user supplies them.
-- **NFR-SEC-3 (M):** Module permissions are declared and gated; untrusted module code is treated with caution ([06 §security](06-module-and-extension-system.md), [14](14-glossary.md)).
+- **NFR-SEC-3 (M):** Module permissions are declared and gated; untrusted module code is treated with caution ([06 §11](06-module-and-extension-system.md), [15 Security](15-security-and-threat-model.md)).
 - **NFR-SEC-4 (S):** Sensitive data is redacted from logs.
 
 ### 6.6 Privacy
@@ -273,7 +276,7 @@ See [01 §9](01-vision-and-scope.md). NagiFlow depends on the availability and l
 ### 6.7 Portability & footprint
 - **NFR-PORT-1 (M):** Runs on Windows, macOS, and Linux.
 - **NFR-PORT-2 (M):** Defaults are lightweight; the base install runs on a typical creator machine.
-- **NFR-PORT-3 (S):** The launcher behaves consistently across OSes (a cross-platform launcher approach is recommended in [12](12-runtime-and-deployment.md)).
+- **NFR-PORT-3 (S):** The launcher behaves consistently across OSes (a cross-platform launcher approach is recommended in [13](13-runtime-and-deployment.md)).
 
 ### 6.8 Maintainability & extensibility
 - **NFR-MAINT-1 (M):** Clear separation between API, services, providers, and persistence; new providers/modules slot into defined interfaces.
@@ -284,7 +287,7 @@ See [01 §9](01-vision-and-scope.md). NagiFlow depends on the availability and l
 - **NFR-OBS-1 (M):** Requests/jobs are traceable via correlation IDs; key counters (requests, errors, latencies, tokens) are collected locally.
 
 ### 6.10 Compliance & licensing
-- **NFR-COMP-1 (M):** Integrated OSS licenses are honored and surfaced; voice-cloning misuse warnings from upstream (e.g. VoxCPM2) are preserved in product guidance.
+- **NFR-COMP-1 (M):** Integrated OSS licenses are honored and surfaced; voice-cloning misuse warnings from upstream (e.g. VoxCPM) are preserved in product guidance.
 - **NFR-COMP-2 (S):** The product provides guidance discouraging impersonation/deepfake misuse of voice features.
 
 ## 7. External interface requirements
@@ -292,14 +295,14 @@ See [01 §9](01-vision-and-scope.md). NagiFlow depends on the availability and l
 | Interface | Default | Requirement |
 |---|---|---|
 | **LLM** | Ollama (local) | Text generation with streaming; model listing; pluggable to other providers via a provider interface. *(FR-SYS-8, FR-MOD-5)* |
-| **TTS** | VoxCPM2 | Speech synthesis supporting voice design (text description) and controllable cloning (reference audio + style); streaming where available; pluggable. *(FR-SYS-9, FR-MOD-5)* |
+| **TTS** | VoxCPM | Speech synthesis supporting voice design (text description) and controllable cloning (reference audio + style); streaming where available; pluggable. *(FR-SYS-9, FR-MOD-5)* |
 | **ASR** | Local model (e.g. SenseVoice-class) | Transcription with timestamps; optional diarization; pluggable. *(FR-SM-5/6, FR-MOD-5)* |
 | **Embeddings / Vector store** | Local default | Embedding generation + similarity search for memory; pluggable. *(FR-CM-8, FR-MM-6)* |
 | **Storage** | Local workspace FS | Read/write of assets/media/models; pluggable to cloud. *(FR-SYS-6/7, FR-MOD-5)* |
 | **Database** | SQLite | Relational persistence; seam for external DB. *(FR-SYS-6/7)* |
 | **Media tooling** | ffmpeg | Audio extraction from video, audio assembly. *(FR-SM-5/8)* |
 | **Streaming platforms** | via Connectors | Optional live-chat ingestion/output. *(FR-RT-4, FR-MOD-3)* |
-| **Avatar renderer** | Built-in **Live2D** (default); pluggable | Drives a character's model from emitted viseme/timing/expression events to render video/live avatar. Extensible to **3D** renderers and **external engines** (OBS, VTube Studio) via the capability / Connectors. *(FR-RT-3/9, FR-MOD-5)* |
+| **Avatar renderer** | Built-in **PNGTuber** (default); pluggable | Drives a character's avatar (layered-PNG sprite set by default) from emitted amplitude/viseme/timing/expression events to render video/live avatar. Extensible to **Live2D**, **3D** renderers, and **external engines** (OBS, VTube Studio) via the capability / Connectors. *(FR-RT-3/9, FR-MOD-5)* |
 
 ## 8. Verification approach
 

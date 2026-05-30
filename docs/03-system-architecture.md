@@ -6,7 +6,7 @@
 | **Doc ID** | NF-03 |
 | **Version** | 0.1 (Draft) |
 | **Last updated** | 2026-05-30 |
-| **Related** | [02 SRS](02-requirements-specification.md), [04 Data](04-data-model-and-storage.md), [05 API](05-api-specification.md), [06 Modules](06-module-and-extension-system.md), [10 Realtime](10-feature-realtime-and-media-generation.md), [12 Runtime](12-runtime-and-deployment.md) |
+| **Related** | [02 SRS](02-requirements-specification.md), [04 Data](04-data-model-and-storage.md), [05 API](05-api-specification.md), [06 Modules](06-module-and-extension-system.md), [10 Realtime](10-feature-realtime-and-media-generation.md), [13 Runtime](13-runtime-and-deployment.md) |
 
 ---
 
@@ -51,7 +51,7 @@ flowchart LR
     end
     subgraph EXT[External / pluggable]
       L[LLM · Ollama]
-      T[TTS · VoxCPM2]
+      T[TTS · VoxCPM]
       A[ASR]
       C[Connectors / cloud]
     end
@@ -83,7 +83,7 @@ flowchart TB
     Dev((Module developer))
     NF[NagiFlow]
     Ollama[Ollama LLM]
-    Vox[VoxCPM2 TTS]
+    Vox[VoxCPM TTS]
     ASR[ASR engine]
     Plat[Streaming platforms]
     Avatar[Avatar engines]
@@ -109,9 +109,9 @@ flowchart TB
 | **Relational DB** | SQLite (WAL) | Structured data (characters, scripts, users, conversations, memory metadata, modules, usage). |
 | **Workspace filesystem** | Local FS | Binary/large assets: audio, media, voice models, vector indices, logs, config. |
 | **Vector index** | Local (pluggable) | Embedding similarity search for memory retrieval. |
-| **External services** | Ollama, VoxCPM2, ASR, connectors | Generation/transcription/integration; managed by user/official modules. |
+| **External services** | Ollama, VoxCPM, ASR, connectors | Generation/transcription/integration; managed by user/official modules. |
 
-In **production mode** the backend also **serves the built SPA's static assets**, so a single process serves both UI and API (see [12](12-runtime-and-deployment.md)).
+In **production mode** the backend also **serves the built SPA's static assets**, so a single process serves both UI and API (see [13](13-runtime-and-deployment.md)).
 
 ### 3.3 Backend component view
 
@@ -174,9 +174,22 @@ flowchart TB
 - **Provider abstraction** — typed interfaces with capability flags; concrete implementations (default + module-supplied) are selected via configuration.
 - **Infrastructure** — `JobRunner` (background work), repositories + Unit-of-Work over SQLAlchemy, an event bus exposing lifecycle/domain hooks for modules, and structured logging.
 
+### 3.4 Frontend architecture (SPA)
+
+The Vuetify SPA is organized for clarity and for hosting UI extensions ([06 §8](06-module-and-extension-system.md)). The full screen-level UI/UX specification — navigation, shell, key screens, accessibility, i18n — is in [12 UI/UX Design](12-ui-ux-design.md).
+
+| Concern | Approach |
+|---|---|
+| **Routing** | Vue Router; top-level destinations — `characters`, `scripts`, `live`/`chat`, `dashboard`, `modules`, `settings`. Module `nav.item` contributions register routes dynamically. |
+| **State** | Pinia stores per domain (`auth`, `characters`, `scripts`, `conversations`, `modules`, `observability`); transient live-turn state kept in a session-scoped store. |
+| **API/WS clients** | A generated/typed REST client (from OpenAPI) and a thin WebSocket client wrapping the live-turn protocol ([05 §5](05-api-specification.md)); both attach the session token and surface the error envelope uniformly. |
+| **Extension host** | A `nagiflowUI` bridge dynamically imports module ES-module bundles into declared contribution points, passing scoped API client + theme tokens (never raw app internals — [06 §8](06-module-and-extension-system.md)). |
+| **i18n** | `vue-i18n` with `zh-Hant` / `en` message catalogs; the backend returns **stable codes/keys**, the frontend renders the localized string (so no localized text is hard-coded server-side). |
+| **Theme** | Central Vuetify theme (brand palette, MD3 tokens); extensions consume the same tokens for visual consistency. |
+
 ## 4. Dialogue orchestration pipeline
 
-The orchestrator turns an inbound message into a character's spoken response. It is provider-agnostic and identical for sync chat and live streaming (streaming simply emits incremental events).
+The orchestrator turns an inbound message into a character's spoken response. It is provider-agnostic and identical for sync chat and live streaming (streaming simply emits incremental events). For **multi-character live sessions** a **TurnDirector** sits in front of the orchestrator and decides *which* character handles each turn and whether a character may respond to another (see [10 §4.5](10-feature-realtime-and-media-generation.md)); the per-character turn it dispatches is the same pipeline below.
 
 ```mermaid
 sequenceDiagram
@@ -212,17 +225,17 @@ sequenceDiagram
 
 1. **Resolve context** — character, user (or guest), conversation, sensitive-mode flag, active skills/connectors.
 2. **Memory retrieval** — `MemoryService` returns scope-filtered entries (vector similarity + recency + importance); sensitive mode excludes other-user memory at this layer ([09](09-feature-multiuser-memory-and-privacy.md)).
-3. **Prompt assembly** — persona + Big Five → behavior directives ([08 §3](08-feature-character-management.md)) + retrieved memory + recent history + tool/skill specifications + guardrails.
+3. **Prompt assembly** — persona + Big Five → behavior directives ([08 §3](08-feature-character-management.md)) + retrieved memory + recent history + tool/skill specifications + guardrails. **Context-budget management:** the assembler fits everything within the LLM's advertised `context_window` — recent turns are kept verbatim while older history is replaced by a rolling **conversation summary**, and retrieved-memory `top-K` is trimmed to the remaining budget. The policy is provider-capability-aware (uses the advertised window) and bounded so prompts never overflow.
 4. **LLM generation** — streaming tokens; tool/function calls dispatched to **Agent Skills** and results fed back.
 5. **Speech synthesis** — `TTSProvider` renders the response with the character's voice and per-turn/line style; streamed chunks plus optional viseme/timing events.
-6. **Memory write** — salient information summarized and stored under the correct scope per write policy.
+6. **Memory write** — salient information summarized and stored under the correct scope per write policy. In **live mode** this runs **off the response path** (deferred/async after `turn.end`, or batched on a summarization pass) so the extra extraction call never adds to first-audio latency ([NFR-PERF-2](02-requirements-specification.md)); a cheap heuristic gate skips extraction for low-salience turns.
 7. **Persist & account** — messages, media references, and **token usage** recorded ([11](11-feature-observability.md)).
 
 ## 5. Cross-cutting concerns
 
 | Concern | Approach |
 |---|---|
-| **Configuration** | Layered config (defaults → workspace config file → environment → runtime overrides) via `ConfigService`; provider selection and module settings live here. ([12 §config](12-runtime-and-deployment.md)) |
+| **Configuration** | Layered config (defaults → workspace config file → environment → runtime overrides) via `ConfigService`; provider selection and module settings live here. ([13 §config](13-runtime-and-deployment.md)) |
 | **Dependency injection** | Services and providers resolved through a container/factory so implementations (incl. module-supplied) are swappable and testable. |
 | **AuthN/Z** | Session-based: guest sessions auto-issued; local-account login upgrades capabilities. Authorization enforced in middleware/services against the permission matrix ([09](09-feature-multiuser-memory-and-privacy.md)). |
 | **Error handling** | Consistent error envelope + stable codes ([05 §errors](05-api-specification.md)); provider failures isolated and surfaced. |
@@ -265,9 +278,17 @@ class StorageProvider(Protocol):
     async def put(self, key: str, data: bytes | IO) -> StoredRef: ...
     async def get(self, key: str) -> IO: ...
     async def url_for(self, key: str) -> str | None: ...
+
+class AvatarRenderProvider(Protocol):
+    capabilities: AvatarCaps   # kind ("pngtuber"|"live2d"|"3d"|"external"), live, video
+    async def render_video(self, model: "AvatarBundleRef",
+                           events: AsyncIterator["AvatarEvent"]) -> "VideoResult": ...
+    async def live_surface(self, model: "AvatarBundleRef",
+                           events: AsyncIterator["AvatarEvent"]) -> AsyncIterator["FrameOrState"]: ...
 ```
 
-- **Defaults** ship as **official modules**: `LLMProvider→Ollama`, `TTSProvider→VoxCPM2`, `ASRProvider→SenseVoice-class`, `EmbeddingProvider`/`VectorStoreProvider→local`, `StorageProvider→LocalFS`.
+- **Defaults** ship as **official modules**: `LLMProvider→Ollama`, `TTSProvider→VoxCPM`, `ASRProvider→SenseVoice-class`, `EmbeddingProvider→local (Ollama embeddings, e.g. nomic-embed-text)`, `VectorStoreProvider→local (sqlite-vec)`, `StorageProvider→LocalFS`, `AvatarRenderProvider→PNGTuber`.
+- **Embedding dimension** is recorded per vector namespace; switching the embedding provider/model (a different dimension) **invalidates existing vectors**, so the system flags affected namespaces and offers a **re-embed job** rather than silently mixing dimensions.
 - **Selection** is configuration-driven; **fallback** order can be configured (e.g. local TTS → remote TTS on failure).
 - See [06](06-module-and-extension-system.md) for how modules register these.
 
@@ -336,7 +357,7 @@ sequenceDiagram
 | Frontend | **Vue 3 + Vuetify + Pinia + Vite** | Project requirement; Material UI, reactive state, fast builds, dynamic-import friendly for UI extensions. |
 | Streaming | **WebSocket (+ optional SSE)** | Bidirectional live turns; token/audio/viseme events. |
 | LLM (default) | **Ollama** | Local, lightweight, broad model support; project default. |
-| TTS (default) | **VoxCPM2** | Local, high-quality, 48 kHz, voice design + controllable cloning, OpenAI-compatible server option; project default. |
+| TTS (default) | **VoxCPM** | Local, high-quality, 48 kHz, voice design + controllable cloning, OpenAI-compatible server option; project default. |
 | ASR (default) | **SenseVoice-class** | Local transcription; pairs naturally with the VoxCPM ecosystem. |
 | Media tooling | **ffmpeg** | Ubiquitous audio extraction/assembly. |
 | Vector store (default) | **Local embedded index** | Lightweight memory retrieval; pluggable. |
@@ -345,7 +366,7 @@ sequenceDiagram
 
 - **Dev mode:** Vite dev server (HMR) for the SPA, proxied to the FastAPI backend; both processes launched and log-multiplexed by the one-click launcher.
 - **Prod (local) mode:** SPA is built to static assets and served by FastAPI; a single backend process serves UI + API.
-- **Process management:** the launcher owns child processes (frontend in dev, backend) and shuts them down on exit, **without** stopping external services like Ollama ([12](12-runtime-and-deployment.md)).
+- **Process management:** the launcher owns child processes (frontend in dev, backend) and shuts them down on exit, **without** stopping external services like Ollama ([13](13-runtime-and-deployment.md)).
 - **Future:** containerized deployment and cloud storage/DB/provider modules — enabled by the existing abstractions, not requiring core changes.
 
 ```mermaid
@@ -374,6 +395,8 @@ flowchart LR
 - **ADR-005 · Privacy enforced at the data/retrieval layer.** *Decision:* memory scoping + sensitive-mode filtering happen before prompt assembly. *Why:* prompt-only enforcement is unreliable; leakage must be structurally prevented. *Trade-off:* slightly more retrieval complexity — acceptable and required.
 - **ADR-006 · Frontend serves from backend in prod.** *Decision:* FastAPI serves built SPA. *Why:* single process, single port, simplest local UX. *Trade-off:* separate scaling of FE/BE later — not a concern for local-first.
 - **ADR-007 · WebSocket for live, REST for the rest.** *Decision:* REST CRUD + WebSocket streaming. *Why:* matches request/response vs continuous interaction; FastAPI supports both natively.
+- **ADR-008 · PNGTuber as the default avatar renderer.** *Decision:* the built-in default `AvatarRenderProvider` is a **PNGTuber** (layered-PNG sprite set driven by audio amplitude / visemes / expression). *Why:* fully MIT-licensable with no proprietary runtime dependency, trivial assets, runs anywhere (no GPU). Live2D's Cubism SDK carries proprietary licensing/redistribution terms, so **Live2D**, **3D**, and **external engines** are kept as **optional modules** behind the same capability. *Trade-off:* PNGTuber is visually simpler than a rigged 2D/3D avatar — acceptable for a default; richer renderers plug in unchanged.
+- **ADR-009 · Director-arbitrated multi-character turns.** *Decision:* multi-character live sessions route through a **TurnDirector** that serializes turns, selects responders, and bounds character-to-character chains. *Why:* without arbitration, "all characters reply to everything" causes overlapping audio and infinite A↔B loops. *Trade-off:* the director adds scheduling logic and a small selection cost per turn — required for coherent multi-character output.
 
 ## 11. Scalability & evolution path
 

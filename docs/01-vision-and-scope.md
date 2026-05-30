@@ -6,7 +6,7 @@
 | **Doc ID** | NF-01 |
 | **Version** | 0.1 (Draft) |
 | **Last updated** | 2026-05-30 |
-| **Related** | [02 Requirements](02-requirements-specification.md), [13 Roadmap](13-roadmap-and-milestones.md) |
+| **Related** | [02 Requirements](02-requirements-specification.md), [14 Roadmap](14-roadmap-and-milestones.md) |
 
 ---
 
@@ -49,7 +49,7 @@ NagiFlow treats a **character** as a first-class, portable asset and gives creat
 - NagiFlow does **not** ship its own foundation LLM or train one; it integrates existing LLM runtimes.
 - NagiFlow is **not** a hosted SaaS in its initial form; it is a locally-run application (cloud deployment is a later, optional path).
 - NagiFlow does **not** provide a real-money marketplace, billing, or content-distribution network.
-- NagiFlow ships a **default Live2D avatar renderer** in core, but is **not** itself a full 3D engine or animation suite; advanced **3D-model rendering** and rich external avatar engines are supported through the pluggable `AvatarRenderProvider` capability and Connectors rather than built into core.
+- NagiFlow ships a **default PNGTuber avatar renderer** in core (a lightweight, fully open layered-PNG avatar), but is **not** itself a full 2D-rig/3D engine or animation suite; richer **Live2D**, **3D-model rendering**, and external avatar engines are supported through the pluggable `AvatarRenderProvider` capability and Connectors rather than built into core.
 
 ## 5. Target users & personas
 
@@ -71,7 +71,7 @@ Lands on a running instance (e.g. a creator's local or shared instance) and just
 |---|---|
 | **Integrated character lifecycle** | Script, voice, personality, and memory are connected — voice direction and persona actually influence synthesis and dialogue. |
 | **Local-first, one-command start** | No cloud dependency; a single launcher checks the environment, builds if needed, runs everything, and cleans up on exit. |
-| **Modular by construction** | Even the defaults (Ollama, VoxCPM2) are modules — proving the extension model and letting users swap any layer. |
+| **Modular by construction** | Even the defaults (Ollama, VoxCPM) are modules — proving the extension model and letting users swap any layer. |
 | **Privacy-aware memory** | Per-user/per-character scoping + sensitive mode prevents cross-user leakage, which matters acutely in public streaming. |
 | **Portable characters** | A character is a single exportable asset, enabling sharing, backup, and migration. |
 | **Built for real-time** | A streaming pipeline (token-streaming LLM + low-RTF streaming TTS + viseme events) targets live VTubing, not just offline rendering. |
@@ -100,17 +100,17 @@ Lands on a running instance (e.g. a creator's local or shared instance) and just
 
 - **A1** Primary deployment is a single consumer machine (Windows, macOS, or Linux); a discrete GPU is recommended for fast local TTS/LLM but not assumed mandatory (fallbacks exist).
 - **A2** Users may not be developers; setup must be guided and forgiving.
-- **A3** External services (Ollama, VoxCPM2 runtime) are installed/managed by the user or by official modules; NagiFlow controls its own processes but does not forcibly manage external ones.
+- **A3** External services (Ollama, VoxCPM runtime) are installed/managed by the user or by official modules; NagiFlow controls its own processes but does not forcibly manage external ones.
 - **A4** Network access is optional; the default path works offline once models are present.
 - **C1** Core is constrained to **FastAPI** (backend) and **Vuetify** (frontend) per project direction.
 - **C2** Defaults must remain lightweight and locally runnable; heavy/cloud options are opt-in via modules.
-- **C3** The project is delivered by a small team / single maintainer; scope and sequencing in [13](13-roadmap-and-milestones.md) reflect this.
+- **C3** The project is delivered by a small team / single maintainer; scope and sequencing in [14](14-roadmap-and-milestones.md) reflect this.
 
 ## 10. Stakeholders
 
 | Stakeholder | Interest |
 |---|---|
-| Maintainer (Alyssum Information Ltd.) | Product direction, architecture, official modules, releases. |
+| Maintainer / project owner | Product direction, architecture, official modules, releases. |
 | Creators / studios (P1, P2) | Reliable, private, integrated VTuber production & live tooling. |
 | Module developers (P3) | Stable, documented extension surface. |
 | Guests / viewers (P4) | Low-friction interaction. |
@@ -118,6 +118,6 @@ Lands on a running instance (e.g. a creator's local or shared instance) and just
 
 ## 11. Scope summary
 
-**In scope (v0.x → v1.0):** script management with ASR import; character management with Big Five, voice (zero-shot + fine-tune) and memory; multi-user/multi-character with scoped memory, sensitive mode, and guest access; module system (providers, Agent Skills, Connectors, UI extensions); offline media generation and a real-time streaming interaction pipeline; a **built-in Live2D avatar renderer** for video and live avatars (with the renderer capability pluggable toward 3D/external engines); observability; local-first runtime with a one-click launcher.
+**In scope (v0.x → v1.0):** script management with ASR import; character management with Big Five, voice (zero-shot + fine-tune) and memory; multi-user/multi-character with scoped memory, sensitive mode, and guest access; **multi-character live sessions** (a *cast* of characters that respond to the user and to one another, ordered by a turn director); module system (providers, Agent Skills, Connectors, UI extensions); offline media generation and a real-time streaming interaction pipeline; a **built-in PNGTuber avatar renderer** for video and live avatars (with the renderer capability pluggable toward Live2D/3D/external engines); observability; local-first runtime with a one-click launcher.
 
-**Deferred / optional (post-1.0 or module-only):** managed cloud hosting; **advanced 3D-model avatar rendering and external-engine integrations** (beyond the default Live2D renderer); team/RBAC beyond guest+user; marketplace/registry; non-VTuber general use.
+**Deferred / optional (post-1.0 or module-only):** managed cloud hosting; **Live2D, advanced 3D-model avatar rendering, and external-engine integrations** (beyond the default PNGTuber renderer); team/RBAC beyond guest+user; marketplace/registry; non-VTuber general use.

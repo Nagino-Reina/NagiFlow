@@ -62,7 +62,7 @@ The health checker probes each configured provider/connector and reports status 
 | Target | Check |
 |---|---|
 | **Ollama (LLM)** | Reachability; **loaded/available models**; sample latency. |
-| **TTS (VoxCPM2)** | Reachable/ready; advertised features; sample latency. |
+| **TTS (VoxCPM)** | Reachable/ready; advertised features; sample latency. |
 | **ASR (SenseVoice)** | Reachable/ready. |
 | **Vector store / storage** | Reachable; basic read. |
 | **Connectors** | Connected/authorized state (no secrets shown). |
@@ -77,33 +77,33 @@ Every model/provider call writes a **`usage_record`** ([04 §5](04-data-model-an
 
 | Field | Meaning |
 |---|---|
-| `provider`, `model` | Who served it (e.g. `ollama` / model name; `voxcpm2`). |
+| `provider`, `model` | Who served it (e.g. `ollama` / model name; `voxcpm`). |
 | `kind` | `llm` / `tts` / `asr` / `embedding`. |
 | `prompt_tokens`, `completion_tokens` | LLM token counts. |
 | `audio_seconds` | For TTS/ASR (token concept doesn't apply). |
 | `est_cost` | Optional, when a price is configured (local Ollama ≈ 0). |
 | `user_id`, `character_id`, `conversation_id` | Attribution. |
-| `created_at`, `correlation_id` | Time + trace linkage. |
+| `occurred_at`, `correlation_id` | Event time + trace linkage ([04 §5.8](04-data-model-and-storage.md)). |
 
 ### 3.1 Aggregation & reporting
 
 - **Totals** — cumulative tokens (and est. cost) overall — directly satisfying "record total tokens spent" (FR-OBS-3).
 - **Breakdowns** — per **user**, per **character**, per **conversation**, per **day**, per **provider/model**.
-- **Export** — CSV/JSON for offline analysis (FR-OBS-6).
-- Local Ollama/VoxCPM2 incur no API cost, so token counts here are primarily **capacity/throughput** signals; cost columns become meaningful when a paid external provider is plugged in.
+- **Export** — CSV/JSON for offline analysis (FR-OBS-3).
+- Local Ollama/VoxCPM incur no API cost, so token counts here are primarily **capacity/throughput** signals; cost columns become meaningful when a paid external provider is plugged in.
 
-### 3.2 Budgets & alerts (optional — FR-OBS-4/5)
+### 3.2 Budgets & alerts (optional — FR-OBS-5)
 
 Operators may set soft **budgets** (e.g. per day or per user) and get **alerts** (UI banner / log / optional connector notification) when thresholds are crossed. Off by default; purely advisory (does not hard-block generation unless an admin opts in).
 
 ---
 
-## 4. Structured logging
+## 4. Structured logging (FR-OBS-4)
 
 - **Format** — structured (JSON-capable) log records with level, timestamp, component, message, and a **`correlation_id`** linking a request → its WS turn → its jobs → its usage records ([05 §1](05-api-specification.md)).
 - **Levels** — standard `DEBUG`…`ERROR`; configurable per component.
-- **Location** — `<workspace>/logs/` with rotation; the **one-click launcher multiplexes backend + frontend logs into a single terminal** ([12 §3](12-runtime-and-deployment.md)).
-- **Tailing** — recent logs are viewable via API/UI (filter by level/component/correlation id) without opening files (FR-OBS-6).
+- **Location** — `<workspace>/logs/` with rotation; the **one-click launcher multiplexes backend + frontend logs into a single terminal** ([13 §3](13-runtime-and-deployment.md)).
+- **Tailing** — recent logs are viewable via API/UI (filter by level/component/correlation id) without opening files (FR-OBS-4).
 - **Redaction (NFR-SEC-2, NFR-PRIV-4)** — secrets and sensitive payloads are redacted; module loggers are namespaced and pass through the same redaction ([06 §11](06-module-and-extension-system.md)). User message content is not logged at info level by default.
 
 ---
@@ -126,7 +126,7 @@ UI extensions can contribute additional `dashboard.widget`s ([06 §8](06-module-
 
 ## 6. Privacy, scope & performance
 
-- **Local-only by default** — metrics, usage, and logs stay in the workspace; no external telemetry unless explicitly configured (NFR-PRIV-4).
+- **Local-only by default** — metrics, usage, and logs stay in the workspace; no external telemetry unless explicitly configured (FR-OBS-6, NFR-PRIV-4).
 - **Permission-gated** — observability is user/admin-only; guests have no access ([09 §3](09-feature-multiuser-memory-and-privacy.md)). Per-user cost visibility follows policy (a user sees their own; admins see all).
 - **Low overhead (NFR-OBS-1)** — sampling intervals and short retention keep monitoring cheap; metric history is pruned so the DB stays small.
 - **Auditability (NFR-SEC-2)** — security-relevant actions also flow to the audit log ([04 §3](04-data-model-and-storage.md)), distinct from operational logs.
@@ -140,9 +140,9 @@ UI extensions can contribute additional `dashboard.widget`s ([06 §8](06-module-
 | FR-OBS-1 (local system resources) | §2.1, §5 |
 | FR-OBS-2 (external service health) | §2.2, §5 |
 | FR-OBS-3 (token totals/accounting) | §3 |
-| FR-OBS-4 (budgets/alerts) | §3.2 |
-| FR-OBS-5 (alert delivery) | §3.2 |
-| FR-OBS-6 (logs view + export) | §3.1, §4 |
+| FR-OBS-4 (structured logs view + redaction) | §4 |
+| FR-OBS-5 (budgets/alerts) | §3.2 |
+| FR-OBS-6 (local-only by default) | §1, §6 |
 | NFR-OBS-1 (low overhead) | §6 |
 | NFR-PRIV-4 (local-only) | §1, §6 |
 | NFR-SEC-2 (redaction/audit) | §4, §6 |

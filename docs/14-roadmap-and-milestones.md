@@ -1,9 +1,9 @@
-# 13 · Roadmap & Milestones
+# 14 · Roadmap & Milestones
 
 | | |
 |---|---|
 | **Document** | Roadmap & Milestones |
-| **Doc ID** | NF-13 |
+| **Doc ID** | NF-14 |
 | **Version** | 0.1 (Draft) |
 | **Last updated** | 2026-05-30 |
 | **Related** | [01 Vision](01-vision-and-scope.md), [02 SRS](02-requirements-specification.md), and all feature docs (07–12) |
@@ -35,17 +35,17 @@ flowchart LR
 **Goal:** the skeleton everything else hangs on.
 - Repo scaffold; FastAPI backend + Vuetify SPA shell; brand theme.
 - Config layering, **workspace** layout, **SQLite + ORM + Alembic** ([04](04-data-model-and-storage.md)).
-- **Launcher MVP** (prereq checks, start both, single-terminal logs, clean shutdown — [12 §3](12-runtime-and-deployment.md)).
+- **Launcher MVP** (prereq checks, start both, single-terminal logs, clean shutdown — [13 §3](13-runtime-and-deployment.md)).
 - **Provider/adapter interfaces** defined ([03 §6](03-system-architecture.md), [06 §5](06-module-and-extension-system.md)).
 
 **Exit:** `nagiflow up` starts an empty-but-running app; migrations apply; provider interfaces compile with a stub provider.
 
 ### P1 — MVP (give a character a voice, and talk to it)
 **Goal:** the smallest end-to-end that demonstrates the product.
-- **Character management**: profile, **Big Five** + behavior mapping, **zero-shot voice** via **VoxCPM2** ([08 §3–4](08-feature-character-management.md)).
+- **Character management**: profile, **Big Five** + behavior mapping, **zero-shot voice** via **VoxCPM** ([08 §3–4](08-feature-character-management.md)).
 - **Single-user** local auth + **guest** session; basic chat with per-character **memory** (single user) via **Ollama** ([09](09-feature-multiuser-memory-and-privacy.md) subset).
 - TTS playback of replies; **basic observability** (system + token totals) ([11](11-feature-observability.md) subset).
-- Official **Ollama** and **VoxCPM2** provider modules ([06 §12](06-module-and-extension-system.md)).
+- Official **Ollama** and **VoxCPM** provider modules ([06 §12](06-module-and-extension-system.md)).
 
 **Exit:** create a character, set personality, give it a voice from a reference clip, hold a spoken text-chat; tokens are counted; runs on a typical dev machine.
 
@@ -55,9 +55,9 @@ flowchart LR
 - **ASR import** (default **SenseVoice**): audio/video → timed draft → review → commit ([07 §4](07-feature-script-management.md)).
 - **Batch media render**: script → assembled audio + **subtitles (SRT/VTT)** ([10 §3](10-feature-realtime-and-media-generation.md)).
 - **Token/cost accounting** broadened (per character/conversation) ([11 §3](11-feature-observability.md)).
-- **Default Live2D avatar renderer** for **batch video**: render a script to video by animating the character's Live2D model from emitted events ([10 §3/§5](10-feature-realtime-and-media-generation.md)).
+- **Default PNGTuber avatar renderer** for **batch video**: render a script to video by animating the character's layered-PNG sprite set from emitted amplitude/viseme/expression events ([10 §3/§5](10-feature-realtime-and-media-generation.md)).
 
-**Exit:** import a recording into a script, correct it, render narrated audio with subtitles **and a Live2D video**; export script as JSON/SRT.
+**Exit:** import a recording into a script, correct it, render narrated audio with subtitles **and a PNGTuber video**; export script as JSON/SRT.
 
 ### P3 — Multi-user, memory scoping & privacy
 **Goal:** safe many-user operation.
@@ -79,20 +79,21 @@ flowchart LR
 
 ### P5 — Realtime streaming, avatar & live chat
 **Goal:** live VTubing.
-- **WebSocket turn pipeline**: streaming LLM + **streaming TTS** + **viseme/timing** ([10 §4–5](10-feature-realtime-and-media-generation.md)).
+- **WebSocket turn pipeline**: streaming LLM + **streaming TTS** + **amplitude/viseme/timing** ([10 §4–5](10-feature-realtime-and-media-generation.md)).
 - **Barge-in**, reconnection ([10 §4.2/4.4](10-feature-realtime-and-media-generation.md)).
+- **Multi-character live sessions** (a *cast*) with the **turn director** (serialized turns, bounded character↔character chains) ([10 §4.5](10-feature-realtime-and-media-generation.md)).
 - **Live-chat connectors** (Twitch/YouTube/Discord) routed as inputs with **sensitive mode default-on** ([10 §6](10-feature-realtime-and-media-generation.md)).
-- **Live avatar via default Live2D renderer**: real-time Live2D animation driven by the streaming viseme/timing/expression events ([10 §5](10-feature-realtime-and-media-generation.md)).
-- **Pluggable renderers**: **3D-model renderer** and **external-engine** adapters (OBS/VTube Studio) via the `AvatarRenderProvider` capability + connectors.
+- **Live avatar via default PNGTuber renderer**: real-time sprite animation driven by the streaming amplitude/viseme/expression events ([10 §5](10-feature-realtime-and-media-generation.md)).
+- **Pluggable renderers**: **Live2D**, **3D-model renderer**, and **external-engine** adapters (OBS/VTube Studio) via the `AvatarRenderProvider` capability + connectors.
 
-**Exit:** a live session where viewer chat drives the character, audio streams in near-real-time, the **default Live2D avatar** lip-syncs (with a 3D/external renderer selectable), and no viewer's info leaks to another.
+**Exit:** a live session where viewer chat drives a **cast** of characters that answer the user and one another in coherent order, audio streams in near-real-time, the **default PNGTuber avatar** lip-syncs (with Live2D/3D/external selectable), and no viewer's info leaks to another.
 
 ### P6 — Fine-tune, advanced observability, cloud seams & polish
 **Goal:** depth, scale-out seams, and release quality.
 - **Voice fine-tune training** pipeline with versioning/rollback ([08 §4.1](08-feature-character-management.md)).
 - **Advanced observability**: budgets/alerts, richer health/latency ([11 §3.2](11-feature-observability.md)).
 - **Cloud/external seams**: storage and external DB adapters; optional vector backends ([03 §6](03-system-architecture.md), [04 §7](04-data-model-and-storage.md)).
-- Packaging (pipx/Docker), docs, accessibility/i18n polish ([12 §7](12-runtime-and-deployment.md)).
+- Packaging (pipx/Docker), docs, accessibility/i18n polish ([13 §7](13-runtime-and-deployment.md)).
 
 **Exit:** train and activate a custom voice; set a token budget with alerts; point storage at an external backend via config; ship a packaged build.
 
@@ -107,7 +108,7 @@ flowchart LR
 | P2 | Scripts/Media | FR-SM-1…9, FR-RT-5 | Import→correct→render with subtitles |
 | P3 | Multi-user/Privacy | FR-MM-1…11, FR-CM-11/12 | Two users, no cross-leak; safe export |
 | P4 | Modules | FR-MOD-1…11 | 3rd-party skill+connector from SDK |
-| P5 | Realtime | FR-RT-1…8 | Live chat-driven, lip-synced session |
+| P5 | Realtime | FR-RT-1…11 | Live chat-driven, multi-character, lip-synced session |
 | P6 | Depth/Scale/Polish | FR-CM-5/6, FR-OBS-4/5, NFR-SCALE-* | Fine-tuned voice; budgets; external storage |
 
 ---
@@ -122,7 +123,7 @@ To keep P1 small, these are explicitly **deferred** past MVP:
 - ASR import & batch media (P2).
 - Budgets/alerts, cloud/external storage & DB (P6).
 
-This sequencing front-loads the riskiest *integration* (Ollama + VoxCPM2 + memory) while leaving breadth for later.
+This sequencing front-loads the riskiest *integration* (Ollama + VoxCPM + memory) while leaving breadth for later.
 
 ---
 
@@ -131,14 +132,14 @@ This sequencing front-loads the riskiest *integration* (Ollama + VoxCPM2 + memor
 | Risk | Impact | Mitigation |
 |---|---|---|
 | **GPU availability** varies wildly | TTS/LLM speed; fine-tune feasibility | CPU fallbacks, smaller models, non-streaming path; detect & adapt ([10 §7](10-feature-realtime-and-media-generation.md)); fine-tune is P6/optional |
-| **VoxCPM2 integration/training complexity** | Voice features slip | Wrap behind the TTS provider contract; ship zero-shot first, fine-tune later; pin versions; isolate in a module |
+| **VoxCPM integration/training complexity** | Voice features slip | Wrap behind the TTS provider contract; ship zero-shot first, fine-tune later; pin versions; isolate in a module |
 | **ASR diarization accuracy** | Messy script imports | Treat diarization as optional; always allow manual speaker mapping ([07 §4.1](07-feature-script-management.md)) |
 | **Frontend module-federation / UI-extension complexity** | P4 slip | Start with backend skills/connectors; UI extensions can land incrementally |
-| **Live2D rendering integration** (model formats, runtime, lip-sync mapping) | Avatar video/live slips | Wrap behind `AvatarRenderProvider`; ship Live2D default first, keep 3D/external as later modules; portrait/audio-only fallback always available ([10 §5/§7](10-feature-realtime-and-media-generation.md)) |
+| **Avatar rendering integration** (formats, lip-sync mapping) + **Live2D licensing** | Avatar video/live slips; license friction | Default to **PNGTuber** (layered PNG, amplitude-driven lip-flap, MIT, no proprietary SDK/GPU) so the core ships clean; wrap everything behind `AvatarRenderProvider`. **Live2D's Cubism SDK is non-MIT** with redistribution/revenue terms, so Live2D ships as a **separate optional module** (the operator accepts its license), as do 3D/external; portrait/audio-only fallback always available ([10 §5/§7](10-feature-realtime-and-media-generation.md)) |
 | **Cross-user privacy bugs** | Serious trust failure | Enforce at **data layer** (namespaces + retrieval filter), test explicitly in P3 ([09](09-feature-multiuser-memory-and-privacy.md)) |
 | **Solo-dev bandwidth** | Everything slows | Strict phase gating; ship vertical slices; avoid premature breadth |
 | **Scope creep** | Never-ship | This roadmap + cut-lines (§4) as the contract; defer to later phases by default |
-| **Provider/API churn** (Ollama/VoxCPM2 changes) | Breakage | Adapter layer + capability flags + pinned versions ([06 §5](06-module-and-extension-system.md)) |
+| **Provider/API churn** (Ollama/VoxCPM changes) | Breakage | Adapter layer + capability flags + pinned versions ([06 §5](06-module-and-extension-system.md)) |
 
 ---
 
@@ -161,8 +162,9 @@ CI runs unit+integration+contract on each change; privacy tests are mandatory ga
 
 ## 7. Versioning & change management
 
+- **License:** NagiFlow is released under the **MIT License**. Integrated third-party components keep their own licenses (e.g. VoxCPM under Apache-2.0); optional renderer modules with non-MIT terms (e.g. **Live2D** Cubism SDK) ship **separately** so the MIT core stays unencumbered.
 - **0.x SemVer**; changelog records breaking changes (config, schema, module API).
-- **Schema** changes ship with Alembic migrations + startup backup ([12 §6](12-runtime-and-deployment.md)).
+- **Schema** changes ship with Alembic migrations + startup backup ([13 §6](13-runtime-and-deployment.md)).
 - **Module API** versioned separately with a deprecation window ([06 §10](06-module-and-extension-system.md)).
 - A **1.0** target is reached when P1–P5 are stable, the module API is frozen for a cycle, and privacy tests are comprehensive.
 

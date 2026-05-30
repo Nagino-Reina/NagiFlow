@@ -13,7 +13,7 @@
 
 ## 1. Overview
 
-A **Character** is the central entity in NagiFlow — the AI VTuber itself. Character management is the single place to define everything that makes a character: who they are (profile), how they behave (Big Five personality), how they sound (a fine-tunable voice model), and what they remember (a personal memory bank). Characters are **portable**: they can be exported as a self-contained package and imported elsewhere (FR-CM-11/12).
+A **Character** is the central entity in NagiFlow — the AI VTuber itself. Character management is the single place to define everything that makes a character: who they are (profile), how they behave (Big Five personality), how they sound (a fine-tunable voice model), and what they remember (a personal memory bank). Characters are **portable**: they can be exported as a self-contained package and imported elsewhere (FR-CM-10/11).
 
 This document specifies the four pillars — **Profile**, **Personality**, **Voice**, **Memory** — plus packaging and lifecycle.
 
@@ -24,7 +24,7 @@ mindmap
       Identity & avatar
       Bio / backstory
       System persona prompt
-      Avatar model (Live2D default / 3D)
+      Avatar bundle (PNGTuber default / Live2D / 3D)
     Personality
       Big Five (OCEAN)
       Trait→behavior mapping
@@ -42,13 +42,13 @@ mindmap
 
 ## 2. Profile & persona
 
-The profile is the descriptive core (FR-CM-1):
+The profile is the descriptive core (FR-CM-1/2/3):
 
 | Field | Purpose |
 |---|---|
 | `display_name`, `aliases` | Names the character goes by. |
 | `avatar_key`, `portrait_key` | Images stored under `characters/<id>/` (storage keys in DB). |
-| `avatar_model_key`, `avatar_renderer` | The character's **avatar model** for video/live rendering — a **Live2D model by default**, or a **3D model** where used — plus the preferred renderer (`live2d` default, `3d`, or `external`). Consumed by the `AvatarRenderProvider` ([10 §5](10-feature-realtime-and-media-generation.md)). Optional; without it, rendering falls back to a static portrait. |
+| `avatar_bundle_key`, `avatar_renderer` | The character's **avatar bundle** for video/live rendering — a **PNGTuber sprite set by default**, or a **Live2D / 3D model** where used — plus the preferred renderer (`pngtuber` default, `live2d`, `3d`, or `external`). Consumed by the `AvatarRenderProvider` ([10 §5](10-feature-realtime-and-media-generation.md)). Optional; without it, rendering falls back to a static portrait. |
 | `bio` / `backstory` | Lore and context the character "knows" about itself. |
 | `persona_prompt` | The authored **system persona** — tone, speech quirks, do/don't, world rules. |
 | `language_default` | Preferred language; affects prompt and voice selection. |
@@ -60,7 +60,7 @@ The **persona prompt** is combined at runtime with the personality mapping (§3)
 
 ## 3. Personality — Big Five (OCEAN)
 
-Each character has a **Big Five** profile: five traits scored **0–100** (FR-CM-2). NagiFlow translates these abstract scores into concrete generation behavior so personality is *expressed*, not just stored (FR-CM-3).
+Each character has a **Big Five** profile: five traits scored **0–100** (FR-CM-4). NagiFlow translates these abstract scores into concrete generation behavior so personality is *expressed*, not just stored (FR-CM-4).
 
 ### 3.1 The five traits
 
@@ -94,7 +94,7 @@ Lows invert the directive (e.g. Extraversion↓ → "Keep replies short and meas
 
 ## 4. Voice
 
-A character has one or more **voice models**; one is marked **active**. NagiFlow supports three ways to give a character a voice, all delivered through the default **VoxCPM2** provider and pluggable to others (FR-CM-4/5, FR-MOD-5):
+A character has one or more **voice models**; one is marked **active**. NagiFlow supports three ways to give a character a voice, all delivered through the default **VoxCPM** provider and pluggable to others (FR-CM-5, FR-MOD-5):
 
 | Kind (`voice_model.kind`) | How it's created | When to use |
 |---|---|---|
@@ -104,7 +104,7 @@ A character has one or more **voice models**; one is marked **active**. NagiFlow
 
 ### 4.1 Fine-tune training pipeline
 
-Producing a `fine_tuned` voice is a managed **job** (FR-CM-5):
+Producing a `fine_tuned` voice is a managed **job** (FR-CM-6):
 
 ```mermaid
 flowchart LR
@@ -119,7 +119,7 @@ flowchart LR
 ```
 
 1. **Dataset** — selected from a script export ([07 §6](07-feature-script-management.md)) or uploaded directly; must be reasonably clean and single-speaker.
-2. **Validate & preprocess** — resample to the provider's rate (48 kHz for VoxCPM2), trim silence, drop low-quality clips, report dataset stats and warnings.
+2. **Validate & preprocess** — resample to the provider's rate (48 kHz for VoxCPM), trim silence, drop low-quality clips, report dataset stats and warnings.
 3. **Train** — delegated to the provider's `start_finetune` ([06 §5.1](06-module-and-extension-system.md)); the job reports progress/metrics.
 4. **Artifact & versioning** — the result is stored under `characters/<id>/voice/models/<version>/` and recorded as a new `voice_model` **version**. Older versions are retained for **rollback** (FR-CM-6).
 5. **Preview & activate** — audition a fixed sample line with the new model; activate to make it the character's default, or discard.
@@ -132,7 +132,7 @@ The active voice plus per-line/per-turn **style** and **speech rate** (from scri
 
 ## 5. Memory bank
 
-Every character owns a **memory bank** — durable, scoped memories that personalize interaction (FR-CM-7). The privacy-critical scoping model is specified fully in [09 §4](09-feature-multiuser-memory-and-privacy.md); the character-side view:
+Every character owns a **memory bank** — durable, scoped memories that personalize interaction (FR-CM-8). The privacy-critical scoping model is specified fully in [09 §4](09-feature-multiuser-memory-and-privacy.md); the character-side view:
 
 ### 5.1 Scopes (summary)
 
@@ -142,7 +142,7 @@ Every character owns a **memory bank** — durable, scoped memories that persona
 | `character_general` | character | User-agnostic facts about the character/world (rarely user-specific). |
 | `character_interaction` | character + **counterpart character** | What the character remembers from interacting with another character. |
 
-This realizes "a character keeps per-user memories, and memories from interacting with other characters" (FR-CM-7, FR-MM-2/3).
+This realizes "a character keeps per-user memories, and memories from interacting with other characters" (FR-CM-8, FR-MM-2/3).
 
 ### 5.2 Write policy
 
@@ -156,13 +156,13 @@ At turn time the orchestrator retrieves the top-K relevant entries by **vector s
 
 ### 5.4 Inspection & editing
 
-Authors can **view, search, edit, pin, and delete** a character's memories from the editor (FR-CM-8) — essential for debugging behavior and for honoring user data-deletion requests (delete a user's `user_scoped` memories; [09 §5.4](09-feature-multiuser-memory-and-privacy.md), NFR-PRIV-3). Memory inspection respects the viewer's permissions.
+Authors can **view, search, edit, pin, and delete** a character's memories from the editor (FR-CM-9) — essential for debugging behavior and for honoring user data-deletion requests (delete a user's `user_scoped` memories; [09 §5.4](09-feature-multiuser-memory-and-privacy.md), NFR-PRIV-3). Memory inspection respects the viewer's permissions.
 
 ---
 
 ## 6. Packaging — export / import
 
-Characters are portable as a **`.nagichar`** package (a zip), satisfying "export/import characters" (FR-CM-11/12).
+Characters are portable as a **`.nagichar`** package (a zip), satisfying "export/import characters" (FR-CM-10/11).
 
 ### 6.1 Package layout
 
@@ -174,7 +174,7 @@ my-character.nagichar  (zip)
 │   ├── reference/        # reference clips (zero-shot / design seeds)
 │   └── models/<version>/ # fine-tuned artifacts (optional, can be large)
 ├── assets/               # avatar, portrait, extra images
-├── model/                # avatar model: Live2D (default) or 3D model files
+├── avatar/               # avatar bundle: PNGTuber sprite set (default), or Live2D / 3D model files
 └── memory.jsonl          # exported memory entries (see privacy default)
 ```
 
@@ -216,12 +216,12 @@ Large fine-tuned voice artifacts are optional in the package (toggle) to keep sh
 
 | Operation | Detail | Trace |
 |---|---|---|
-| Create / edit / archive | Full CRUD on profile, personality, voice, memory. | FR-CM-1/9 |
-| **Duplicate** | Clone a character (profile + personality + voice descriptors); memory copy follows the same privacy options as export. | FR-CM-10 |
+| Create / edit / archive | Full CRUD on profile, personality, voice, memory. | FR-CM-1 |
+| **Duplicate** | Clone a character (profile + personality + voice descriptors); memory copy follows the same privacy options as export. | FR-CM-1 |
 | Activate voice version | Switch active model; rollback to a prior version. | FR-CM-6 |
-| Preview | Live persona chat; voice audition. | FR-CM-3/4 |
-| Export / import | `.nagichar` packaging (§6). | FR-CM-11/12 |
-| Set guest visibility | Mark whether a character is available to guests (gates public chat — [09 §3](09-feature-multiuser-memory-and-privacy.md)). | FR-CM-9, FR-MM-7 |
+| Preview | Live persona chat; voice audition. | FR-CM-7 |
+| Export / import | `.nagichar` packaging (§6). | FR-CM-10/11 |
+| Set guest visibility | Mark whether a character is available to guests (gates public chat — [09 §3](09-feature-multiuser-memory-and-privacy.md)). | FR-CM-12, FR-MM-7 |
 
 ---
 
@@ -245,18 +245,18 @@ Creating and editing characters (profile, personality, voice training, memory ed
 
 | Requirement | Where addressed |
 |---|---|
-| FR-CM-1 (profile/persona) | §2 |
-| FR-CM-2 (Big Five storage) | §3.1 |
-| FR-CM-3 (personality → behavior) | §3.2 |
-| FR-CM-4 (voice model: clone/design) | §4 |
-| FR-CM-5 (voice fine-tune training) | §4.1 |
-| FR-CM-6 (voice versioning/rollback) | §4.1 |
-| FR-CM-7 (memory bank, scoped) | §5 |
-| FR-CM-8 (memory inspection/edit) | §5.4 |
-| FR-CM-9 (lifecycle/guest visibility) | §7 |
-| FR-CM-10 (duplicate) | §7 |
-| FR-CM-11 (export) | §6 |
-| FR-CM-12 (import) | §6.3 |
+| FR-CM-1 (CRUD/duplicate/list characters) | §2, §7 |
+| FR-CM-2 (basic info: name/avatar/lang/tags/status) | §2 |
+| FR-CM-3 (editable persona) | §2 |
+| FR-CM-4 (Big Five + behavior mapping) | §3 |
+| FR-CM-5 (voice model: design/zero-shot) | §4 |
+| FR-CM-6 (voice fine-tune + versioning/rollback) | §4.1 |
+| FR-CM-7 (preview voice) | §4.2, §7 |
+| FR-CM-8 (memory bank, scoped) | §5 |
+| FR-CM-9 (memory inspection/edit) | §5.4 |
+| FR-CM-10 (export/import portable package) | §6, §6.3 |
+| FR-CM-11 (export privacy options) | §6.2 |
+| FR-CM-12 (guest-visible flag) | §7 |
 | FR-MOD-5 (pluggable TTS) | §4 |
 | NFR-PRIV-2 (no leaking user data on export) | §6.2, §6.3 |
 | NFR-PRIV-3 (user data deletion) | §5.4 |

@@ -1,9 +1,9 @@
-# 12 · Runtime & Deployment
+# 13 · Runtime & Deployment
 
 | | |
 |---|---|
 | **Document** | Runtime & Deployment |
-| **Doc ID** | NF-12 |
+| **Doc ID** | NF-13 |
 | **Version** | 0.1 (Draft) |
 | **Last updated** | 2026-05-30 |
 | **Related** | [03 Architecture](03-system-architecture.md), [04 Data](04-data-model-and-storage.md), [06 Modules](06-module-and-extension-system.md), [11 Observability](11-feature-observability.md) |
@@ -30,7 +30,7 @@ flowchart TB
     FE -- prod --> SP[Static SPA served by FastAPI]
     BE --> DB[(SQLite + workspace)]
     BE -. provider calls .-> OL[Ollama - external, not managed]
-    BE -. provider calls .-> TTS[VoxCPM2 / TTS]
+    BE -. provider calls .-> TTS[VoxCPM / TTS]
     L -. multiplexed logs .- BE
     L -. multiplexed logs .- VD
 ```
@@ -68,7 +68,7 @@ flowchart TD
 1. **Check prerequisites (FR-SYS-2).** Verify required tools and versions: **Python**, **Node.js** (for building/serving the frontend), **ffmpeg** (media/ASR), and **optional** Ollama / GPU drivers. Each check reports OK/missing with a concrete remediation hint. Optional dependencies (Ollama, GPU) are reported as informational, not fatal.
 2. **Ensure backend dependencies.** Create/activate a project virtual environment and verify Python packages are installed (install if managed by the launcher).
 3. **Check/build frontend (FR-SYS-3).** In prod mode, detect whether the SPA is built; if not, build it (or, if Node is missing, clearly explain). In dev mode, prepare the Vite dev server.
-4. **Migrate (FR-SYS-9).** Back up the SQLite DB to `backups/`, then run Alembic migrations to current head ([04 §4](04-data-model-and-storage.md)).
+4. **Migrate (FR-SYS-10).** Back up the SQLite DB to `backups/`, then run Alembic migrations to current head ([04 §4](04-data-model-and-storage.md)).
 5. **Start processes.** Launch the backend (uvicorn) and the frontend (vite dev, or rely on FastAPI's static serving in prod), as **child processes in a managed process group**.
 6. **Health-wait.** Poll backend health until ready before declaring "up" (and before opening the browser).
 7. **Single-terminal logs (FR-SYS-4).** Capture child stdout/stderr and **interleave** them into the one terminal with clear, colored prefixes (`[backend]`, `[frontend]`), so the operator watches everything in one place ([11 §4](11-feature-observability.md)).
@@ -92,7 +92,7 @@ This precisely satisfies "on terminal exit, automatically shut down frontend+bac
 
 ---
 
-## 4. Configuration management (FR-SYS-6/7)
+## 4. Configuration management (FR-SYS-6/7/8/9/11)
 
 Layered configuration, highest precedence last:
 
@@ -105,13 +105,13 @@ flowchart LR
 
 | Layer | Holds |
 |---|---|
-| **Defaults** | Local-first defaults (SQLite, Ollama, VoxCPM2, ports). |
+| **Defaults** | Local-first defaults (SQLite, Ollama, VoxCPM, ports). |
 | **Workspace config** | `config/app.toml`, `config/providers.toml` — committed to the workspace, human-editable ([04 §2](04-data-model-and-storage.md)). |
 | **Environment** | Deployment-specific values and **secrets** (provider/connector credentials). |
 | **Runtime** | Admin changes via the settings UI, persisted back to workspace config where appropriate. |
 
 - **Secrets are never committed.** Credentials come from env (or an OS secret store) and are redacted in logs ([11 §4](11-feature-observability.md)). NagiFlow never writes secrets into the repo or the shareable workspace config (NFR-SEC-2).
-- **Provider/connector selection** is config-driven so swapping Ollama→another LLM, or VoxCPM2→another TTS, is configuration, not code ([06](06-module-and-extension-system.md), FR-SYS-6).
+- **Provider/connector selection** is config-driven so swapping Ollama→another LLM, or VoxCPM→another TTS, is configuration, not code ([06](06-module-and-extension-system.md), FR-SYS-8/9).
 
 ---
 
@@ -129,7 +129,7 @@ ADR-006 ([03 §10](03-system-architecture.md)) records the choice to have FastAP
 
 ---
 
-## 6. Migrations & data safety (FR-SYS-9, NFR-REL-3)
+## 6. Migrations & data safety (FR-SYS-10, NFR-REL-3)
 
 - **Migrate on startup** to the current schema head, **after** a timestamped DB backup to `backups/` ([04 §4](04-data-model-and-storage.md)).
 - SQLite runs in **WAL** mode for resilience; backups capture a consistent snapshot.
@@ -137,7 +137,7 @@ ADR-006 ([03 §10](03-system-architecture.md)) records the choice to have FastAP
 
 ---
 
-## 7. Packaging & distribution (FR-SYS-10/11)
+## 7. Packaging & distribution (NFR-PORT-2)
 
 | Channel | Status | Notes |
 |---|---|---|
@@ -167,12 +167,13 @@ Distribution keeps the **local-first** stance: external heavyweight services (Ol
 | FR-SYS-3 (frontend build check) | §3.2 |
 | FR-SYS-4 (single-terminal logs) | §3.2, [11 §4] |
 | FR-SYS-5 (shutdown app, not external svcs) | §3.3, §7 |
-| FR-SYS-6 (pluggable providers via config) | §4 |
-| FR-SYS-7 (layered config + secrets) | §4 |
-| FR-SYS-8 (workspace + SQLite default) | §4, §6, [04] |
-| FR-SYS-9 (migrations on start + backup) | §6 |
-| FR-SYS-10 (packaging/distribution) | §7 |
-| FR-SYS-11 (dev/prod modes) | §5 |
+| FR-SYS-6 (workspace + SQLite default) | §4, [04] |
+| FR-SYS-7 (storage/DB abstracted, pluggable) | §4, §7 |
+| FR-SYS-8 (LLM default Ollama + seams) | §4 |
+| FR-SYS-9 (TTS default VoxCPM + seams) | §4 |
+| FR-SYS-10 (migrations on start + backup) | §6 |
+| FR-SYS-11 (layered config + secrets) | §4 |
+| Dev/prod modes; packaging (supporting detail) | §5, §7 |
 | NFR-PORT-1/2/3 | §3.3, §8 |
 | NFR-REL-1/3 | §3.4, §6 |
 | NFR-UX-1 | §3.2 |

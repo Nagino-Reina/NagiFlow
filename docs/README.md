@@ -17,7 +17,7 @@ NagiFlow is a tool for creators of **AI VTubers**. It unifies the full content l
 
 1. **Authoring** — write and manage scripts (dialogue, characters, timing, voice direction), or import existing audio/video and turn it into a script via speech recognition.
 2. **Embodiment** — create and manage characters: identity, personality (Big Five), a fine-tunable voice, and a personal memory bank.
-3. **Production** — generate multimedia content (voice and video) from scripts; video is rendered by a built-in **Live2D** avatar renderer (pluggable to 3D/external engines).
+3. **Production** — generate multimedia content (voice and video) from scripts; video is rendered by a built-in **PNGTuber** avatar renderer (pluggable to Live2D/3D/external engines).
 4. **Interaction** — run live, streaming conversations between characters and users for VTubing and real-time engagement.
 
 NagiFlow is built to run on a creator's own machine by default, with everything extensible through modules so it can grow into cloud and third-party services without changing its core.
@@ -43,18 +43,19 @@ NagiFlow defaults to **local, lightweight services**, while leaving clean seams 
 | Startup | **One-click local launcher** (env checks, build check, unified logs, graceful shutdown) | — (core) |
 | Data | Local **workspace folder** + **SQLite** | Cloud storage, external databases |
 | LLM | Local **Ollama** | Other LLM providers/APIs |
-| TTS | **OpenBMB / VoxCPM2** | Other speech engines/services |
+| TTS | **OpenBMB / VoxCPM** | Other speech engines/services |
 | ASR (for script import) | Local model (e.g. SenseVoice) | Other ASR providers |
+| Avatar renderer | **PNGTuber** (built-in, MIT, layered PNG) | Live2D / 3D / external engines (OBS, VTube Studio) |
 
 ## 4. Technology stack at a glance
 
 - **Backend:** Python, FastAPI (ASGI / async), SQLAlchemy + SQLite (WAL), Alembic migrations, WebSocket/SSE streaming, background job runner.
 - **Frontend:** Vue 3 + Vuetify (Material Design 3), Pinia state, Vite build.
-- **AI defaults:** Ollama (LLM), VoxCPM2 (TTS, 48 kHz, voice design + controllable cloning), SenseVoice-class ASR.
+- **AI defaults:** Ollama (LLM), VoxCPM (TTS, 48 kHz, voice design + controllable cloning), SenseVoice-class ASR.
 - **Extensibility:** Provider/adapter pattern + module system (Python backend contributions + optional frontend bundles).
 - **Media tooling:** ffmpeg for audio extraction/assembly.
 
-> NagiFlow integrates third-party open-source components (e.g. VoxCPM2 under Apache-2.0). The NagiFlow project license is to be finalized; see [docs/13](docs/13-roadmap-and-milestones.md).
+> NagiFlow is released under the **MIT License**. It integrates third-party open-source components (e.g. VoxCPM under Apache-2.0), whose own licenses are honored and surfaced; see [docs/13](docs/14-roadmap-and-milestones.md).
 
 ## 5. High-level architecture
 
@@ -75,7 +76,7 @@ flowchart TB
     end
     subgraph External["External services (optional / pluggable)"]
         OLL[Ollama]
-        TTS[VoxCPM2 runtime]
+        TTS[VoxCPM runtime]
         CLOUD[Cloud storage / external DB / connectors]
     end
 
@@ -108,16 +109,19 @@ Read in order for a full understanding, or jump to the area you need. These docu
 | [09](docs/09-feature-multiuser-memory-and-privacy.md) | **Feature: Multi-user, Memory & Privacy** | User classes, permission matrix, memory scoping, sensitive mode, guest mode. |
 | [10](docs/10-feature-realtime-and-media-generation.md) | **Feature: Realtime & Media Generation** | Batch media pipeline, streaming interaction, live-chat connectors, avatar/viseme output. |
 | [11](docs/11-feature-observability.md) | **Feature: Observability** | System resources, service health, token/cost accounting, logging. |
-| [12](docs/12-runtime-and-deployment.md) | **Runtime & Deployment** | One-click launcher design, configuration, dev vs prod, packaging. |
-| [13](docs/13-roadmap-and-milestones.md) | **Roadmap & Milestones** | Phased plan, MVP, risks, testing strategy, release strategy. |
-| [14](docs/14-glossary.md) | **Glossary** | Terms, acronyms, references. |
+| [12](docs/12-ui-ux-design.md) | **UI / UX Design** | Design principles, navigation/IA, global shell, key screens, live console, UI-extension surface, accessibility, i18n. |
+| [13](docs/13-runtime-and-deployment.md) | **Runtime & Deployment** | One-click launcher design, configuration, dev vs prod, packaging. |
+| [14](docs/14-roadmap-and-milestones.md) | **Roadmap & Milestones** | Phased plan, MVP, risks, testing strategy, release strategy. |
+| [15](docs/15-security-and-threat-model.md) | **Security & Threat Model** | Consolidated auth, secrets, module trust/sandbox, privacy threats, transport, supply chain. |
+| [16](docs/16-glossary.md) | **Glossary** | Terms, acronyms, references. |
 
 ## 7. Intended audience
 
-- **Product / project owner** — docs 01, 02, 13.
-- **Backend engineers** — docs 03, 04, 05, 06, 07–12.
-- **Frontend engineers** — docs 03 (§frontend), 05, 06 (§UI extensions), and the UX notes within feature docs.
-- **Module developers** — docs 06, 05, 14.
+- **Product / project owner** — docs 01, 02, 14.
+- **Backend engineers** — docs 03, 04, 05, 06, 07–11, 13.
+- **Frontend engineers** — docs 03 (§3.4 frontend), 05, 06 (§8 UI extensions), **12 (UI/UX Design)**, and the UX notes within feature docs.
+- **Module developers** — docs 06, 05, 16.
+- **Security review** — docs 15, 09, 06, 05.
 
 ## 8. Document conventions
 
