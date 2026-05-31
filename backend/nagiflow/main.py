@@ -9,11 +9,13 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from . import __version__
 from .api.middleware import CorrelationIdMiddleware
@@ -27,6 +29,9 @@ from .core.workspace import Workspace
 from .providers.registry import build_registry
 
 log = get_logger("nagiflow.main")
+
+# nagiflow/main.py -> nagiflow -> backend -> repo root -> web/dist
+_SPA_DIST = Path(__file__).resolve().parent.parent.parent / "web" / "dist"
 
 
 @asynccontextmanager
@@ -79,7 +84,33 @@ def create_app() -> FastAPI:
         err = AppError("internal.error", "Internal server error.", status_code=500)
         return JSONResponse(status_code=500, content=err.envelope(get_correlation_id()))
 
+    _mount_spa(app)
     return app
+
+
+def _mount_spa(app: FastAPI) -> None:
+    """Prod mode (ADR-006): serve the built SPA from FastAPI so one process serves UI + API.
+
+    No-op in dev (no `web/dist`), where Vite serves the SPA and proxies `/api`. The catch-all
+    falls back to `index.html` for client-side routes; real assets are served directly.
+    """
+    if not _SPA_DIST.is_dir():
+        return
+
+    assets = _SPA_DIST / "assets"
+    if assets.is_dir():
+        app.mount("/assets", StaticFiles(directory=assets), name="assets")
+
+    index = _SPA_DIST / "index.html"
+
+    @app.get("/{spa_path:path}", include_in_schema=False)
+    async def spa(spa_path: str) -> FileResponse:
+        candidate = _SPA_DIST / spa_path
+        if spa_path and candidate.is_file():
+            return FileResponse(candidate)
+        return FileResponse(index)
+
+    log.info("Serving built SPA from %s", _SPA_DIST)
 
 
 app = create_app()

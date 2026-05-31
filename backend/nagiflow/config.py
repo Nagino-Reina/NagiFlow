@@ -1,8 +1,8 @@
 """Layered configuration (docs/03 §5, docs/13 §4).
 
-Precedence (lowest → highest): built-in defaults → workspace config → environment
-→ runtime overrides. This module covers defaults + environment (the `.env` / `NAGIFLOW_*`
-layer); workspace TOML and runtime overrides layer on top later.
+Precedence (lowest → highest): built-in defaults → workspace config (`workspace/config/app.toml`)
+→ environment (`.env` / `NAGIFLOW_*`). Runtime overrides (settings UI) layer on top later.
+Secrets come from the environment only and are never read from the committed workspace TOML.
 """
 
 from __future__ import annotations
@@ -11,7 +11,14 @@ from functools import lru_cache
 from pathlib import Path
 
 from pydantic import Field, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import (
+    BaseSettings,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+    TomlConfigSettingsSource,
+)
+
+_WORKSPACE_CONFIG = Path("workspace") / "config" / "app.toml"
 
 
 class Settings(BaseSettings):
@@ -19,8 +26,28 @@ class Settings(BaseSettings):
         env_prefix="NAGIFLOW_",
         env_file=".env",
         env_file_encoding="utf-8",
+        toml_file=_WORKSPACE_CONFIG,
         extra="ignore",
     )
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        # Highest precedence first: init/runtime > env > .env > workspace TOML > secrets.
+        # Missing TOML resolves to an empty layer, so it is safe to always include.
+        return (
+            init_settings,
+            env_settings,
+            dotenv_settings,
+            TomlConfigSettingsSource(settings_cls),
+            file_secret_settings,
+        )
 
     # --- workspace & data ---
     workspace_dir: Path = Field(default=Path("workspace"))
