@@ -148,6 +148,9 @@ class Child:
     name: str
     proc: subprocess.Popen[str]
     color: str
+    # On Windows, batch-wrapped children (pnpm.CMD) prompt "Terminate batch job (Y/N)?" on
+    # CTRL_BREAK and hang waiting for input — kill their process tree directly instead.
+    force_kill: bool = False
 
 
 def _popen(cmd: list[str], cwd: Path) -> subprocess.Popen[str]:
@@ -181,28 +184,44 @@ def _pump(child: Child) -> threading.Thread:
     return thread
 
 
+def _taskkill_tree(pid: int) -> None:
+    with suppress(OSError):
+        subprocess.run(["taskkill", "/F", "/T", "/PID", str(pid)],
+                       capture_output=True, check=False)
+
+
 def _terminate(child: Child) -> None:
     proc = child.proc
     if proc.poll() is not None:
         return
     print(f"{child.color}[{child.name}]{_C.RESET} {_C.DIM}stopping...{_C.RESET}")
-    with suppress(ProcessLookupError, OSError):
-        if IS_WIN:
-            proc.send_signal(signal.CTRL_BREAK_EVENT)
+
+    if IS_WIN:
+        if child.force_kill:
+            # Batch-wrapped (pnpm): kill the tree outright — no CTRL_BREAK, no Y/N prompt.
+            _taskkill_tree(proc.pid)
         else:
-            os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+            with suppress(OSError):
+                proc.send_signal(signal.CTRL_BREAK_EVENT)
+            try:
+                proc.wait(timeout=_SHUTDOWN_GRACE)
+                return
+            except subprocess.TimeoutExpired:
+                _taskkill_tree(proc.pid)
+        with suppress(subprocess.TimeoutExpired):
+            proc.wait(timeout=_SHUTDOWN_GRACE)
+        return
+
+    # POSIX: signal the process group, escalate to SIGKILL on deadline.
+    with suppress(ProcessLookupError, OSError):
+        os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
     try:
         proc.wait(timeout=_SHUTDOWN_GRACE)
         return
     except subprocess.TimeoutExpired:
         pass
-    # Escalate.
     with suppress(ProcessLookupError, OSError):
-        if IS_WIN:
-            subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)],
-                           capture_output=True, check=False)
-        else:
-            os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+        os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
 
 
 # --- health wait ---
@@ -275,7 +294,8 @@ def up(*, prod: bool = False, open_browser: bool = True) -> int:
     if not prod:
         pnpm = shutil.which("pnpm")
         assert pnpm is not None  # guaranteed by the prerequisite check above
-        frontend = Child("frontend", _popen([pnpm, "dev"], cwd=_WEB_DIR), _C.FRONTEND)
+        frontend = Child("frontend", _popen([pnpm, "dev"], cwd=_WEB_DIR), _C.FRONTEND,
+                         force_kill=True)
         children.append(frontend)
         _pump(frontend)
         app_url = f"http://localhost:{_VITE_PORT}"
