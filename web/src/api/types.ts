@@ -116,6 +116,31 @@ export interface PersonalitySchema {
   params: Record<string, ParamFormula>
 }
 
+export type VoiceKind = 'zero_shot' | 'voice_design' | 'fine_tuned'
+
+export interface VoiceModel {
+  id: string
+  character_id: string
+  kind: VoiceKind
+  provider: string
+  version: number
+  design_description: string | null
+  status: string
+  is_default: boolean
+  created_at: string
+  updated_at: string
+}
+
+/** Active TTS provider capability flags (docs/06 §5.1). */
+export interface TTSCaps {
+  name: string
+  streaming: boolean
+  voice_clone: boolean
+  voice_design: boolean
+  fine_tune: boolean
+  sample_rate: number
+}
+
 /** The API error envelope (docs/05 §3). */
 export interface ErrorEnvelope {
   error: {

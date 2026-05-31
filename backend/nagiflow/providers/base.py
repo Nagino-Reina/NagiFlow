@@ -12,6 +12,11 @@ from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
 
 
+class ProviderError(RuntimeError):
+    """A provider failed at runtime — missing optional dependency, model load, or backend
+    error. The service layer maps it to the `provider.*` error envelope (docs/05 §3)."""
+
+
 # --- LLM ---
 
 
@@ -64,7 +69,7 @@ class LLMProvider(Protocol):
     async def health(self) -> bool: ...
 
 
-# --- other capability seams (filled in later phases) ---
+# --- TTS (docs/06 §5.1, docs/08 §4) ---
 
 
 @dataclass(frozen=True)
@@ -76,12 +81,37 @@ class TTSCaps:
     sample_rate: int = 48000
 
 
+@dataclass
+class VoiceRef:
+    """A resolved voice descriptor passed to a TTS provider for a single synthesis.
+
+    `kind` is one of zero_shot | voice_design | fine_tuned (docs/08 §4). `reference_paths`
+    are absolute paths the service resolved from the voice model's storage keys, so the
+    provider never needs to know the workspace layout.
+    """
+
+    kind: str = "voice_design"
+    reference_paths: list[str] = field(default_factory=list)
+    design_description: str | None = None
+    artifact_path: str | None = None
+    params: dict[str, Any] = field(default_factory=dict)
+
+
 @runtime_checkable
 class TTSProvider(Protocol):
     name: str
     capabilities: TTSCaps
 
-    async def synthesize(self, *, text: str, voice: dict[str, Any]) -> bytes: ...
+    async def synthesize(
+        self,
+        *,
+        text: str,
+        voice: VoiceRef,
+        style: str | None = None,
+        speech_rate: float = 1.0,
+    ) -> bytes:
+        """Render `text` to a complete WAV byte payload."""
+        ...
 
     async def health(self) -> bool: ...
 

@@ -119,7 +119,35 @@
       "expressiveness": "表現力",
       "none": "無"
     },
-    "voice": { "comingSoon": "語音模型將於 P1 接續推出。" },
+    "voice": {
+      "saveFirst": "請先儲存角色，再於此新增語音。",
+      "empty": "尚無語音模型。",
+      "provider": "供應者",
+      "active": "使用中",
+      "setDefault": "設為使用中",
+      "preview": "試聽",
+      "delete": "刪除",
+      "deleteConfirm": "刪除此語音模型？此操作無法復原。",
+      "add": "新增語音",
+      "unsupported": "目前的 TTS 供應者不支援語音建立。",
+      "kinds": {
+        "zero_shot": "克隆",
+        "voice_design": "設計",
+        "fine_tuned": "微調"
+      },
+      "design": {
+        "title": "設計語音",
+        "hint": "以自然語言描述聲音。",
+        "placeholder": "例：明亮的年輕女聲，略帶沙啞",
+        "create": "設計"
+      },
+      "clone": {
+        "title": "由音檔克隆",
+        "hint": "上傳一段簡短的參考錄音。",
+        "file": "參考音檔",
+        "create": "克隆"
+      }
+    },
     "memory": { "comingSoon": "記憶檢視將於 P3 推出。" }
   },
   "scripts": {
