@@ -27,7 +27,9 @@ class CharacterService:
             avatar_renderer=data.avatar_renderer,
             status="draft",
         )
-        return self.repo.add(character)
+        self.repo.add(character)
+        await self.repo.flush()
+        return character
 
     async def list(self, *, guest_visible_only: bool, cursor: str | None) -> list[Character]:
         return await self.repo.list(guest_visible_only=guest_visible_only, cursor=cursor)
@@ -50,6 +52,7 @@ class CharacterService:
             patch.pop("big_five")
         for key, value in patch.items():
             setattr(character, key, value)
+        await self.repo.flush()
         return character
 
     async def archive(self, character_id: str) -> None:
@@ -75,4 +78,6 @@ class CharacterService:
             avatar_renderer=src.avatar_renderer,
             status="draft",
         )
-        return self.repo.add(clone)
+        self.repo.add(clone)
+        await self.repo.flush()
+        return clone

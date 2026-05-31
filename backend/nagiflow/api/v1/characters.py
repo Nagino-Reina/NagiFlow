@@ -7,11 +7,24 @@ from __future__ import annotations
 
 from fastapi import APIRouter, status
 
-from ...schemas.character import CharacterCreate, CharacterOut, CharacterUpdate
+from ...schemas.character import (
+    CharacterCreate,
+    CharacterOut,
+    CharacterUpdate,
+    PersonalitySchemaOut,
+)
 from ...schemas.common import Page
+from ...services import personality
 from ..deps import Characters, CurrentPrincipal, RequireUser
 
 router = APIRouter(prefix="/characters", tags=["characters"])
+
+
+@router.get("/personality/schema", response_model=PersonalitySchemaOut)
+async def personality_schema(_user: RequireUser) -> PersonalitySchemaOut:
+    """The Big Five → behavior mapping spec. Fetched once; the client computes the
+    per-profile explainability view locally (no per-edit round-trips)."""
+    return PersonalitySchemaOut.model_validate(personality.spec())
 
 
 @router.get("", response_model=Page[CharacterOut])

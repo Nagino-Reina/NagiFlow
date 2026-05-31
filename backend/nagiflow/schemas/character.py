@@ -17,6 +17,32 @@ class BigFive(BaseModel):
     neuroticism: int = Trait
 
 
+class ParamFormulaOut(BaseModel):
+    """A continuous parameter as `base + Σ coefficients[trait] * norm(score)`, clamped."""
+
+    base: float
+    coefficients: dict[str, float]
+    min: float
+    max: float
+
+
+class PersonalitySchemaOut(BaseModel):
+    """The complete Big Five → behavior mapping spec (docs/08 §3.2).
+
+    Served once; the client computes the per-profile view locally from this, so adjusting
+    sliders triggers no further requests (FR-CM-4, NFR-MAINT-2).
+    """
+
+    bands: list[str]
+    thresholds: list[int]
+    traits: list[str]
+    directives: dict[str, list[str]]
+    verbosity: list[str]
+    expressiveness: list[str]
+    voice_style: dict[str, dict[str, str]]
+    params: dict[str, ParamFormulaOut]
+
+
 class CharacterCreate(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     description: str = ""

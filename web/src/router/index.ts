@@ -14,6 +14,7 @@ const router = createRouter({
     { path: '/', name: 'landing', component: () => import('@/pages/index.vue') },
     { path: '/login', name: 'login', component: () => import('@/pages/login.vue') },
     { path: '/characters', name: 'characters', component: () => import('@/pages/characters.vue') },
+    { path: '/characters/:id', name: 'character-editor', component: () => import('@/pages/character-editor.vue') },
     { path: '/scripts', name: 'scripts', component: () => import('@/pages/scripts.vue') },
     { path: '/live', name: 'live', component: () => import('@/pages/live.vue') },
     { path: '/dashboard', name: 'dashboard', component: () => import('@/pages/dashboard.vue') },

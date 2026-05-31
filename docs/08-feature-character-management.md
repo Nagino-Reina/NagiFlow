@@ -74,19 +74,53 @@ Each character has a **Big Five** profile: five traits scored **0–100** (FR-CM
 
 ### 3.2 Trait → behavior mapping
 
-The mapping has two channels: **prompt directives** (steer the LLM) and **generation/voice parameters** (steer style and delivery). The transform is transparent and editable — authors can view the directives a given profile produces and override them.
+The mapping has two channels: **prompt directives** (steer the LLM) and **generation/voice parameters** (steer style and delivery). The transform is transparent and editable — authors can view exactly what a given profile produces.
 
-| Trait (high) | Prompt directives (illustrative) | Param nudges |
+**Graded by score, not binary.** Each trait's 0–100 score is bucketed into **five bands** so the magnitude matters — a 95 reads differently from a 65, and the mid-range is an *active* "balanced" instruction, not silence:
+
+| Band | Score | Meaning |
 |---|---|---|
-| **Openness↑** | "Offer imaginative tangents and novel framings; reference varied topics." | slightly ↑ LLM temperature / top-p |
-| **Conscientiousness↑** | "Be precise and structured; follow through; avoid careless claims." | ↓ temperature; prefer complete sentences |
-| **Extraversion↑** | "Be talkative and upbeat; initiate, react with enthusiasm." | ↑ verbosity target; voice style → energetic; mild ↑ speech rate |
-| **Agreeableness↑** | "Be warm, validating, and cooperative; soften disagreement." | voice style → friendly/soft |
-| **Neuroticism↑** | "Show emotional reactivity; express worry/excitement vividly." | ↑ expressiveness/variance in voice style |
+| **very low** | 0–19 | the low pole, strongly expressed |
+| **low** | 20–39 | leans low |
+| **moderate** | 40–59 | balanced / situational |
+| **high** | 60–79 | leans high |
+| **very high** | 80–100 | the high pole, strongly expressed |
 
-Lows invert the directive (e.g. Extraversion↓ → "Keep replies short and measured; don't volunteer extra."). Mid-range (≈40–60) contributes little, keeping a neutral baseline.
+Each (trait, band) pair yields one **directive** written at that intensity. Illustrative for Extraversion:
 
-**Resolution model.** Each trait maps through a small, documented function to (a) text directives appended to the persona and (b) bounded parameter offsets clamped to safe ranges. Conflicting nudges are combined and clamped (e.g. Conscientiousness↑ vs Openness↑ on temperature net out). The exact tables live in code and are surfaced read-only in the UI so behavior is explainable (NFR-MAINT-2). Voice-style mapping only applies to providers that accept style guidance ([06 §5.1](06-module-and-extension-system.md)).
+| Band | Directive |
+|---|---|
+| very high | "Be highly energetic and talkative; initiate topics, react vividly, keep momentum high." |
+| high | "Be upbeat and sociable; engage warmly and volunteer a little extra." |
+| moderate | "Be moderately engaged; match the user's energy." |
+| low | "Be fairly reserved and concise; answer without volunteering much." |
+| very low | "Be very reserved and brief; minimal words, no small talk." |
+
+The other four traits follow the same five-band shape (tables live in code, surfaced read-only in the UI — NFR-MAINT-2).
+
+**Scores travel into the prompt.** The assembled system context includes a structured personality block that states **both the number and its band**, so the LLM can calibrate, not just toggle:
+
+```
+Personality profile (Big Five, 0–100). Embody these in tone, length, and content:
+- Openness 82/100 (very high): Be highly imaginative and exploratory; offer novel framings…
+- Conscientiousness 35/100 (low): Be casual and flexible; don't over-organize or over-qualify.
+- Extraversion 70/100 (high): Be upbeat and sociable; engage warmly and volunteer a little extra.
+- Agreeableness 75/100 (high): Be friendly and cooperative; soften disagreement.
+- Neuroticism 28/100 (low): Stay calm and even; keep emotions understated.
+```
+
+**Parameter channel (continuous).** Alongside the prompt, scores drive bounded, clamped generation/voice parameters that vary *smoothly* with the score:
+
+| Parameter | Driven by | Behavior |
+|---|---|---|
+| `temperature` | Openness↑, Conscientiousness↓ | linear offset from a 0.7 base, clamped `[0.2, 1.2]` |
+| `top_p` | Openness | linear, clamped `[0.7, 1.0]` |
+| `verbosity` | Extraversion | banded label `minimal → brief → balanced → talkative → expansive` |
+| `speech_rate` | Extraversion | linear `~0.85–1.15` |
+| `expressiveness` | Neuroticism | banded `low → medium → high → very high` |
+| `voice_style` | Extraversion / Agreeableness / Neuroticism | style tags (e.g. `energetic`, `warm`, `expressive`) emitted at the band extremes |
+
+**Resolution model.** Each trait maps through a small, documented function to (a) a banded text directive appended to the persona (with the score) and (b) bounded parameter offsets clamped to safe ranges. Conflicting nudges combine and clamp (e.g. Conscientiousness↑ vs Openness↑ on temperature net out). Voice-style mapping only applies to providers that accept style guidance ([06 §5.1](06-module-and-extension-system.md)); the persona prompt always wins where it explicitly contradicts a trait directive (§9).
 
 > **Design note.** Big Five is used as a *control surface*, not a psychological claim. The point is reproducible, tunable personality expression — two characters with different OCEAN profiles should feel reliably different in tone, length, and delivery.
 

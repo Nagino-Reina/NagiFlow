@@ -4,6 +4,9 @@
     "tagline": "Local-first AI VTuber studio"
   },
   "common": {
+    "validation": {
+      "required": "Required"
+    },
     "action": {
       "save": "Save",
       "cancel": "Cancel",
@@ -45,7 +48,79 @@
   },
   "characters": {
     "title": "Characters",
-    "description": "Create and voice characters, set personality, and manage voice models."
+    "description": "Create and voice characters, set personality, and manage voice models.",
+    "new": "New character",
+    "create": "Create",
+    "edit": "Edit",
+    "duplicate": "Duplicate",
+    "archive": "Archive",
+    "archiveConfirm": "Archive this character? It will be hidden from lists.",
+    "saved": "Saved",
+    "back": "Back to characters",
+    "empty": "No characters yet",
+    "emptyHint": "Create your first character to give it a personality and voice.",
+    "guestVisible": "Guest-visible",
+    "untitled": "Untitled character",
+    "status": {
+      "draft": "Draft",
+      "active": "Active",
+      "archived": "Archived"
+    },
+    "fields": {
+      "name": "Name",
+      "aliases": "Aliases",
+      "aliasesHint": "Comma-separated names the character also goes by",
+      "description": "Description",
+      "persona": "Persona prompt",
+      "personaHint": "Tone, speech quirks, do/don't, world rules",
+      "language": "Default language",
+      "tags": "Tags",
+      "tagsHint": "Comma-separated",
+      "status": "Status"
+    },
+    "tabs": {
+      "profile": "Profile",
+      "personality": "Personality",
+      "voice": "Voice",
+      "memory": "Memory"
+    },
+    "personality": {
+      "title": "Big Five (OCEAN)",
+      "hint": "Scores translate into concrete behavior. The panel on the right shows what this profile produces.",
+      "traits": {
+        "openness": "Openness",
+        "conscientiousness": "Conscientiousness",
+        "extraversion": "Extraversion",
+        "agreeableness": "Agreeableness",
+        "neuroticism": "Neuroticism"
+      },
+      "traitDesc": {
+        "openness": "Low: concrete & conventional · High: curious, imaginative, abstract",
+        "conscientiousness": "Low: spontaneous & loose · High: precise, organized, careful",
+        "extraversion": "Low: reserved & brief · High: talkative, energetic, expressive",
+        "agreeableness": "Low: blunt & challenging · High: warm, cooperative, supportive",
+        "neuroticism": "Low: calm & even · High: reactive, emotionally intense"
+      },
+      "bands": {
+        "very_low": "Very low",
+        "low": "Low",
+        "moderate": "Moderate",
+        "high": "High",
+        "very_high": "Very high"
+      },
+      "resulting": "Resulting behavior",
+      "radarHint": "Grey = default (50). Red above, blue below.",
+      "params": "Generation & voice",
+      "temperature": "Temperature",
+      "topP": "Top-p",
+      "verbosity": "Verbosity",
+      "voiceStyle": "Voice style",
+      "speechRate": "Speech rate",
+      "expressiveness": "Expressiveness",
+      "none": "none"
+    },
+    "voice": { "comingSoon": "Voice models arrive next in P1." },
+    "memory": { "comingSoon": "Memory inspection arrives in P3." }
   },
   "scripts": {
     "title": "Scripts",
