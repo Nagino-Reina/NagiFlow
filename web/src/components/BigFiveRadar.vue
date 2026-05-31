@@ -19,7 +19,8 @@
     <circle
       v-for="(v, i) in vertices"
       :key="`v${i}`"
-      :cx="v.x" :cy="v.y" :r="v.r" :fill="v.color"
+      :cx="v.x" :cy="v.y" :r="v.r"
+      :style="{ fill: v.color }"
     />
 
     <!-- axis labels -->

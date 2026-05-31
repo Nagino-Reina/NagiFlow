@@ -110,8 +110,6 @@
       },
       "resulting": "產生的行為",
       "radarHint": "灰色＝預設值（50）。高於為紅、低於為藍。",
-      "directives": "各特質指令",
-      "noDirectives": "拖動滑桿以查看產生的行為。",
       "params": "生成與語音",
       "temperature": "溫度",
       "topP": "Top-p",

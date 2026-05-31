@@ -110,8 +110,6 @@
       },
       "resulting": "Resulting behavior",
       "radarHint": "Grey = default (50). Red above, blue below.",
-      "directives": "Per-trait directives",
-      "noDirectives": "Adjust the sliders to see the produced behavior.",
       "params": "Generation & voice",
       "temperature": "Temperature",
       "topP": "Top-p",
