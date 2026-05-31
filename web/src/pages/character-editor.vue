@@ -169,10 +169,92 @@
       </v-window-item>
 
       <v-window-item value="voice">
-        <v-card variant="flat" color="surface-container" class="pa-8 text-center">
-          <v-icon icon="mdi-microphone-outline" size="40" class="mb-3 text-medium-emphasis" />
-          <div class="text-body-2 text-medium-emphasis">{{ t('characters.voice.comingSoon') }}</div>
+        <v-card v-if="isNew" variant="flat" color="surface-container" class="pa-6 text-center">
+          <v-icon icon="mdi-content-save-outline" size="36" class="mb-2 text-medium-emphasis" />
+          <div class="text-body-2 text-medium-emphasis">{{ t('characters.voice.saveFirst') }}</div>
         </v-card>
+
+        <template v-else>
+          <v-card variant="flat" color="surface-container" class="mb-4">
+            <v-list v-if="voice.models.length" bg-color="transparent">
+              <v-list-item v-for="vm in voice.models" :key="vm.id">
+                <template #prepend>
+                  <v-icon :icon="vm.kind === 'zero_shot' ? 'mdi-account-voice' : 'mdi-waveform'" />
+                </template>
+                <v-list-item-title class="d-flex align-center ga-2">
+                  {{ t(`characters.voice.kinds.${vm.kind}`) }}
+                  <v-chip v-if="vm.is_default" size="x-small" color="success" variant="tonal">
+                    {{ t('characters.voice.active') }}
+                  </v-chip>
+                </v-list-item-title>
+                <v-list-item-subtitle>
+                  {{ vm.design_description || `${t('characters.voice.provider')}: ${vm.provider}` }}
+                </v-list-item-subtitle>
+                <template #append>
+                  <v-btn
+                    size="small" variant="text" icon="mdi-play"
+                    :loading="previewingId === vm.id"
+                    :aria-label="t('characters.voice.preview')"
+                    @click="playPreview(vm.id)"
+                  />
+                  <v-btn
+                    v-if="!vm.is_default"
+                    size="small" variant="text"
+                    :text="t('characters.voice.setDefault')"
+                    @click="makeDefault(vm.id)"
+                  />
+                  <v-btn
+                    size="small" variant="text" icon="mdi-delete-outline"
+                    :aria-label="t('characters.voice.delete')"
+                    @click="pendingDeleteVoice = vm"
+                  />
+                </template>
+              </v-list-item>
+            </v-list>
+            <div v-else class="pa-6 text-center text-body-2 text-medium-emphasis">
+              {{ t('characters.voice.empty') }}
+            </div>
+          </v-card>
+
+          <v-row>
+            <v-col v-if="voice.caps?.voice_design" cols="12" md="6">
+              <v-card variant="flat" color="surface-container" class="pa-4 h-100">
+                <div class="text-subtitle-2 mb-1">{{ t('characters.voice.design.title') }}</div>
+                <p class="text-caption text-medium-emphasis mb-2">{{ t('characters.voice.design.hint') }}</p>
+                <v-textarea
+                  v-model="designText"
+                  :placeholder="t('characters.voice.design.placeholder')"
+                  rows="2" auto-grow
+                />
+                <v-btn
+                  color="primary" :loading="voiceBusy" :disabled="!designText.trim()"
+                  @click="addDesign"
+                >{{ t('characters.voice.design.create') }}</v-btn>
+              </v-card>
+            </v-col>
+
+            <v-col v-if="voice.caps?.voice_clone" cols="12" md="6">
+              <v-card variant="flat" color="surface-container" class="pa-4 h-100">
+                <div class="text-subtitle-2 mb-1">{{ t('characters.voice.clone.title') }}</div>
+                <p class="text-caption text-medium-emphasis mb-2">{{ t('characters.voice.clone.hint') }}</p>
+                <v-file-input
+                  v-model="cloneFile"
+                  :label="t('characters.voice.clone.file')"
+                  accept="audio/*"
+                  prepend-icon="mdi-microphone"
+                />
+                <v-btn
+                  color="primary" :loading="voiceBusy" :disabled="!hasCloneFile"
+                  @click="addClone"
+                >{{ t('characters.voice.clone.create') }}</v-btn>
+              </v-card>
+            </v-col>
+
+            <v-col v-if="voice.caps && !voice.caps.voice_design && !voice.caps.voice_clone" cols="12">
+              <v-alert type="info" variant="tonal" :text="t('characters.voice.unsupported')" />
+            </v-col>
+          </v-row>
+        </template>
       </v-window-item>
 
       <v-window-item value="memory">
@@ -186,23 +268,44 @@
     <v-snackbar v-model="savedSnack" color="success" timeout="2000">
       {{ t('characters.saved') }}
     </v-snackbar>
+
+    <v-dialog
+      :model-value="pendingDeleteVoice !== null"
+      max-width="420"
+      @update:model-value="pendingDeleteVoice = null"
+    >
+      <v-card>
+        <v-card-title class="text-h6">{{ t('characters.voice.delete') }}</v-card-title>
+        <v-card-text>{{ t('characters.voice.deleteConfirm') }}</v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="pendingDeleteVoice = null">{{ t('common.action.cancel') }}</v-btn>
+          <v-btn color="error" variant="flat" :loading="voiceBusy" @click="confirmDeleteVoice">
+            {{ t('characters.voice.delete') }}
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
 <script lang="ts" setup>
-  import { computed, onMounted, reactive, ref } from 'vue'
+  import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
   import { useI18n } from 'vue-i18n'
   import { useRoute, useRouter } from 'vue-router'
   import BigFiveRadar from '@/components/BigFiveRadar.vue'
   import { ApiError } from '@/api/http'
-  import type { BigFive, CharacterCreate, CharacterStatus } from '@/api/types'
+  import type { BigFive, CharacterCreate, CharacterStatus, VoiceModel } from '@/api/types'
+  import { voiceApi } from '@/api/voice'
   import { bandIndexOf, resolvePersonality } from '@/personality/mapping'
   import { useCharactersStore } from '@/stores/characters'
+  import { useVoiceStore } from '@/stores/voice'
 
   const { t, te } = useI18n()
   const route = useRoute()
   const router = useRouter()
   const store = useCharactersStore()
+  const voice = useVoiceStore()
 
   const TRAITS = ['openness', 'conscientiousness', 'extraversion', 'agreeableness', 'neuroticism'] as const
   const LANGUAGES = [
@@ -256,6 +359,76 @@
   const radarData = computed(() =>
     TRAITS.map(k => ({ label: t(`characters.personality.traits.${k}`), value: form.big_five[k] })))
 
+  // --- Voice tab ---
+  const designText = ref('')
+  const cloneFile = ref<File | File[] | null>(null)
+  const voiceBusy = ref(false)
+  const previewingId = ref<string | null>(null)
+  const pendingDeleteVoice = ref<VoiceModel | null>(null)
+  let audio: HTMLAudioElement | null = null
+  let lastPreviewUrl: string | null = null
+
+  const fileOf = (): File | null => {
+    const f = cloneFile.value
+    return Array.isArray(f) ? (f[0] ?? null) : f
+  }
+  const hasCloneFile = computed(() => fileOf() !== null)
+
+  async function voiceAction (fn: () => Promise<unknown>) {
+    voiceBusy.value = true
+    errorCode.value = null
+    try {
+      await fn()
+    } catch (error) {
+      errorCode.value = error instanceof ApiError ? error.code : 'generic'
+    } finally {
+      voiceBusy.value = false
+    }
+  }
+
+  const addDesign = () => voiceAction(async () => {
+    await voice.createDesign(currentId.value, designText.value.trim())
+    designText.value = ''
+  })
+
+  const addClone = () => voiceAction(async () => {
+    const file = fileOf()
+    if (!file) return
+    await voice.clone(currentId.value, file)
+    cloneFile.value = null
+  })
+
+  const makeDefault = (vid: string) => voiceAction(() => voice.setDefault(currentId.value, vid))
+
+  const confirmDeleteVoice = () => voiceAction(async () => {
+    if (pendingDeleteVoice.value) {
+      await voice.remove(currentId.value, pendingDeleteVoice.value.id)
+      pendingDeleteVoice.value = null
+    }
+  })
+
+  async function playPreview (vid: string) {
+    previewingId.value = vid
+    errorCode.value = null
+    try {
+      const url = await voiceApi.preview(currentId.value, { voice_model_id: vid })
+      audio?.pause()
+      if (lastPreviewUrl) URL.revokeObjectURL(lastPreviewUrl) // free the previous clip
+      lastPreviewUrl = url
+      audio = new Audio(url)
+      await audio.play()
+    } catch (error) {
+      errorCode.value = error instanceof ApiError ? error.code : 'generic'
+    } finally {
+      previewingId.value = null
+    }
+  }
+
+  onUnmounted(() => {
+    audio?.pause()
+    if (lastPreviewUrl) URL.revokeObjectURL(lastPreviewUrl)
+  })
+
   async function save () {
     if (saving.value) return // guard against double-submit (rapid clicks)
     saving.value = true
@@ -275,6 +448,7 @@
         const created = await store.create(payload)
         currentId.value = created.id // flip to update-mode before any further save
         savedSnack.value = true
+        voice.load(created.id).catch(() => { /* voice list is non-critical */ })
         router.replace(`/characters/${created.id}`)
       } else {
         await store.update(currentId.value, { ...payload, status: form.status as CharacterStatus })
@@ -289,7 +463,9 @@
 
   onMounted(async () => {
     store.loadPersonalitySchema().catch(() => { /* explainability panel is non-critical */ })
+    voice.loadCaps().catch(() => { /* capability-gated UI degrades gracefully */ })
     if (!isNew.value) {
+      voice.load(currentId.value).catch(() => { /* voice list is non-critical */ })
       try {
         const c = await store.get(currentId.value)
         form.name = c.name

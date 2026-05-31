@@ -64,6 +64,15 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://127.0.0.1:11434"
     ollama_model: str = "llama3.2"
 
+    # TTS (docs/08 §4). Default to the offline stub so the base install runs with no heavy
+    # deps. "voxcpm" = in-process generation (needs the [voxcpm] extra: torch + voxcpm);
+    # "voxcpm_server" = a remote VoxCPM/OpenAI-compatible server.
+    default_tts: str = "silent"  # "voxcpm" | "voxcpm_server" | "silent"
+    voxcpm_model: str = "openbmb/VoxCPM2"  # HF id (in-process) or server model name
+    voxcpm_load_denoiser: bool = False
+    voxcpm_base_url: str = "http://127.0.0.1:9880"  # voxcpm_server only
+    tts_sample_rate: int = 48000
+
     # --- auth / sessions (docs/05 §2, docs/15 §3) ---
     session_ttl: int = 60 * 60 * 24 * 30  # 30 days
     guest_ttl: int = 60 * 60 * 24  # 1 day

@@ -119,7 +119,35 @@
       "expressiveness": "Expressiveness",
       "none": "none"
     },
-    "voice": { "comingSoon": "Voice models arrive next in P1." },
+    "voice": {
+      "saveFirst": "Save the character first, then add voices here.",
+      "empty": "No voice models yet.",
+      "provider": "Provider",
+      "active": "Active",
+      "setDefault": "Set active",
+      "preview": "Preview",
+      "delete": "Delete",
+      "deleteConfirm": "Delete this voice model? This cannot be undone.",
+      "add": "Add a voice",
+      "unsupported": "The active TTS provider supports no voice creation.",
+      "kinds": {
+        "zero_shot": "Cloned",
+        "voice_design": "Designed",
+        "fine_tuned": "Fine-tuned"
+      },
+      "design": {
+        "title": "Design a voice",
+        "hint": "Describe the voice in natural language.",
+        "placeholder": "e.g. a bright young female voice, slightly husky",
+        "create": "Design"
+      },
+      "clone": {
+        "title": "Clone from a clip",
+        "hint": "Upload a short reference recording.",
+        "file": "Reference clip",
+        "create": "Clone"
+      }
+    },
     "memory": { "comingSoon": "Memory inspection arrives in P3." }
   },
   "scripts": {

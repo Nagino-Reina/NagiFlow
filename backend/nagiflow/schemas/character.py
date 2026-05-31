@@ -4,17 +4,20 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from typing import Annotated
+
 from pydantic import BaseModel, ConfigDict, Field
 
-Trait = Field(ge=0, le=100)
+# Each trait defaults to the neutral midpoint so `big_five` is optional on create.
+Trait = Annotated[int, Field(ge=0, le=100)]
 
 
 class BigFive(BaseModel):
-    openness: int = Trait
-    conscientiousness: int = Trait
-    extraversion: int = Trait
-    agreeableness: int = Trait
-    neuroticism: int = Trait
+    openness: Trait = 50
+    conscientiousness: Trait = 50
+    extraversion: Trait = 50
+    agreeableness: Trait = 50
+    neuroticism: Trait = 50
 
 
 class ParamFormulaOut(BaseModel):

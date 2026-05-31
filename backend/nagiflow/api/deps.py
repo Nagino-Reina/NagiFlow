@@ -8,15 +8,18 @@ from typing import Annotated
 from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..config import get_settings
 from ..core import errors
 from ..core.database import get_session
 from ..providers.registry import ProviderRegistry
 from ..repositories.characters import CharacterRepository
 from ..repositories.conversations import ConversationRepository, MessageRepository
 from ..repositories.users import SessionRepository, UserRepository
+from ..repositories.voice_models import VoiceModelRepository
 from ..services.auth_service import AuthService, Principal
 from ..services.character_service import CharacterService
 from ..services.conversation_service import ConversationService
+from ..services.voice_service import VoiceService
 
 COOKIE_NAME = "nf_session"
 
@@ -60,6 +63,18 @@ def get_conversation_service(session: Session, registry: Registry) -> Conversati
 
 
 Conversations = Annotated[ConversationService, Depends(get_conversation_service)]
+
+
+def get_voice_service(session: Session, registry: Registry) -> VoiceService:
+    return VoiceService(
+        VoiceModelRepository(session),
+        CharacterRepository(session),
+        registry,
+        get_settings().workspace_dir,
+    )
+
+
+Voices = Annotated[VoiceService, Depends(get_voice_service)]
 
 
 def _extract_token(request: Request) -> str | None:
