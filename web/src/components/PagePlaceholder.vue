@@ -6,7 +6,7 @@
     </div>
     <p class="text-body-2 text-medium-emphasis mb-6">{{ description }}</p>
 
-    <v-card variant="tonal" color="surface-container" class="pa-8 text-center">
+    <v-card variant="flat" color="surface-container" class="pa-8 text-center">
       <v-icon icon="mdi-progress-wrench" size="40" class="mb-3 text-medium-emphasis" />
       <div class="text-body-1 text-medium-emphasis">{{ t('common.state.comingSoon') }}</div>
     </v-card>

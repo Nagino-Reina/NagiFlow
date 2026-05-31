@@ -6,7 +6,7 @@
     </div>
     <p class="text-body-2 text-medium-emphasis mb-6">{{ t('settings.description') }}</p>
 
-    <v-card variant="tonal" color="surface-container" class="pa-4 mb-4">
+    <v-card variant="flat" color="surface-container" class="pa-4 mb-4">
       <div class="text-subtitle-2 mb-3">{{ t('settings.theme') }}</div>
       <v-btn-toggle
         :model-value="ui.theme"
@@ -20,7 +20,7 @@
       </v-btn-toggle>
     </v-card>
 
-    <v-card variant="tonal" color="surface-container" class="pa-4">
+    <v-card variant="flat" color="surface-container" class="pa-4">
       <div class="text-subtitle-2 mb-3">{{ t('settings.language') }}</div>
       <v-btn-toggle
         :model-value="ui.locale"
