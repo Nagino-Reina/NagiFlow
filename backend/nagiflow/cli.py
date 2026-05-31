@@ -1,4 +1,4 @@
-"""`nagiflow` CLI — the one-click launcher entry point (docs/13 §3).
+"""`nagiflow` CLI -- the one-click launcher entry point (docs/13 §3).
 
   nagiflow up            start backend + frontend (dev), single-terminal logs
   nagiflow up --prod     build the SPA and serve it from FastAPI (one process)
@@ -10,32 +10,50 @@ shutdown of NagiFlow's own children) lives in `launcher`.
 
 from __future__ import annotations
 
-import argparse
-import sys
+from typing import Annotated
+
+import typer
 
 from . import launcher
 
+app = typer.Typer(
+    name="nagiflow",
+    help="NagiFlow local launcher",
+    add_completion=False,
+    no_args_is_help=False,
+)
+
+
+@app.callback(invoke_without_command=True)
+def _default(ctx: typer.Context) -> None:
+    """Run `up` with defaults when no subcommand is given."""
+    if ctx.invoked_subcommand is None:
+        raise typer.Exit(launcher.up())
+
+
+@app.command()
+def up(
+    prod: Annotated[
+        bool,
+        typer.Option(help="Build the SPA and serve it from FastAPI (one process)."),
+    ] = False,
+    browser: Annotated[
+        bool,
+        typer.Option("--browser/--no-browser", help="Open the app in a browser when ready."),
+    ] = True,
+) -> None:
+    """Start NagiFlow (backend + frontend) with single-terminal logs."""
+    raise typer.Exit(launcher.up(prod=prod, open_browser=browser))
+
+
+@app.command()
+def check() -> None:
+    """Run prerequisite checks and exit."""
+    raise typer.Exit(0 if launcher.run_prerequisite_check(need_frontend=True) else 1)
+
 
 def main() -> None:
-    parser = argparse.ArgumentParser(prog="nagiflow", description="NagiFlow local launcher")
-    sub = parser.add_subparsers(dest="command")
-
-    up = sub.add_parser("up", help="Start NagiFlow (backend + frontend)")
-    up.add_argument("--prod", action="store_true", help="Build the SPA and serve it from FastAPI")
-    up.add_argument("--no-browser", action="store_true", help="Do not open the browser")
-
-    sub.add_parser("check", help="Run prerequisite checks and exit")
-
-    args = parser.parse_args()
-
-    if args.command == "check":
-        ok = launcher._report(launcher.check_prerequisites(need_frontend=True))
-        sys.exit(0 if ok else 1)
-
-    # Default to `up`.
-    prod = getattr(args, "prod", False)
-    open_browser = not getattr(args, "no_browser", False)
-    sys.exit(launcher.up(prod=prod, open_browser=open_browser))
+    app()
 
 
 if __name__ == "__main__":

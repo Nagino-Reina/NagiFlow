@@ -1,8 +1,8 @@
-"""One-click local launcher (docs/13 §3, FR-SYS-1…5).
+"""One-click local launcher (docs/13 §3, FR-SYS-1...5).
 
 Starts the backend (uvicorn) and, in dev, the frontend (Vite), multiplexes both logs into
 a single terminal with colored prefixes, health-waits until ready, and on Ctrl-C / terminal
-close tears down **only NagiFlow's own children** — never external services like Ollama.
+close tears down **only NagiFlow's own children** -- never external services like Ollama.
 
 Cross-platform: POSIX uses sessions + signals; Windows uses a new process group +
 CTRL_BREAK_EVENT with a taskkill escalation (docs/13 §3.3).
@@ -20,8 +20,9 @@ import time
 import urllib.error
 import urllib.request
 import webbrowser
+from contextlib import suppress
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from .config import get_settings
@@ -35,6 +36,8 @@ _WEB_DIR = _REPO_ROOT / "web"
 _DIST_DIR = _WEB_DIR / "dist"
 
 _VITE_PORT = 5173  # keep in sync with web/vite.config.mts
+_HEALTH_TIMEOUT = 40.0
+_SHUTDOWN_GRACE = 8.0
 
 
 class _C:
@@ -49,19 +52,26 @@ class _C:
 
 
 def _enable_ansi() -> None:
-    if IS_WIN:
-        os.system("")  # enable VT processing on modern Windows terminals
-    # Never let a non-ASCII log line from a child crash our terminal on a legacy codepage.
-    try:
+    """Make stdout robust on legacy codepages and turn on VT colors on Windows."""
+    with suppress(AttributeError, ValueError):
+        # Never let a non-ASCII child log line crash our terminal on a legacy codepage.
         sys.stdout.reconfigure(errors="replace")  # type: ignore[union-attr]
-    except (AttributeError, ValueError):
-        pass
+    if not IS_WIN:
+        return
+    with suppress(Exception):
+        import ctypes
+
+        kernel32 = ctypes.windll.kernel32  # type: ignore[attr-defined]
+        handle = kernel32.GetStdHandle(-11)  # STD_OUTPUT_HANDLE
+        mode = ctypes.c_uint()
+        if kernel32.GetConsoleMode(handle, ctypes.byref(mode)):
+            kernel32.SetConsoleMode(handle, mode.value | 0x0004)  # ENABLE_VT_PROCESSING
 
 
 # --- prerequisites (FR-SYS-2) ---
 
 
-@dataclass
+@dataclass(slots=True)
 class Prereq:
     name: str
     ok: bool
@@ -71,33 +81,26 @@ class Prereq:
 
 def check_prerequisites(*, need_frontend: bool) -> list[Prereq]:
     """Verify tools + versions. Optional deps (ffmpeg, Ollama) are informational."""
-    checks: list[Prereq] = [
-        Prereq("Python", True, sys.version.split()[0], required=True),
-    ]
     node = shutil.which("node")
     pnpm = shutil.which("pnpm")
-    checks.append(
-        Prereq("Node.js", node is not None, node or "install Node 18+ - https://nodejs.org",
-               required=need_frontend)
-    )
-    checks.append(
-        Prereq("pnpm", pnpm is not None, pnpm or "install pnpm - `npm i -g pnpm`",
-               required=need_frontend)
-    )
     ffmpeg = shutil.which("ffmpeg")
-    checks.append(
-        Prereq("ffmpeg", ffmpeg is not None, ffmpeg or "optional - media/ASR (P2+)", required=False)
-    )
     ollama = shutil.which("ollama")
-    checks.append(
+    return [
+        Prereq("Python", True, sys.version.split()[0], required=True),
+        Prereq("Node.js", node is not None, node or "install Node 18+ - https://nodejs.org",
+               required=need_frontend),
+        Prereq("pnpm", pnpm is not None, pnpm or "install pnpm - `npm i -g pnpm`",
+               required=need_frontend),
+        Prereq("ffmpeg", ffmpeg is not None, ffmpeg or "optional - media/ASR (P2+)",
+               required=False),
         Prereq("Ollama", ollama is not None,
                ollama or "optional - local LLM; offline echo provider used otherwise",
-               required=False)
-    )
-    return checks
+               required=False),
+    ]
 
 
-def _report(checks: list[Prereq]) -> bool:
+def report(checks: list[Prereq]) -> bool:
+    """Print the check table; return True iff every required prerequisite is present."""
     print(f"{_C.BOLD}NagiFlow - prerequisite check{_C.RESET}")
     all_required_ok = True
     for c in checks:
@@ -114,6 +117,12 @@ def _report(checks: list[Prereq]) -> bool:
     return all_required_ok
 
 
+def run_prerequisite_check(*, need_frontend: bool = True) -> bool:
+    """Public entry point: run the checks and print the report."""
+    _enable_ansi()
+    return report(check_prerequisites(need_frontend=need_frontend))
+
+
 # --- data safety (FR-SYS-10) ---
 
 
@@ -125,7 +134,7 @@ def backup_db() -> Path | None:
         return None
     backups = settings.workspace_dir / "backups"
     backups.mkdir(parents=True, exist_ok=True)
-    ts = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    ts = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
     dst = backups / f"nagiflow-{ts}.db"
     shutil.copy2(db, dst)
     return dst
@@ -134,8 +143,15 @@ def backup_db() -> Path | None:
 # --- process management ---
 
 
+@dataclass(slots=True)
+class Child:
+    name: str
+    proc: subprocess.Popen[str]
+    color: str
+
+
 def _popen(cmd: list[str], cwd: Path) -> subprocess.Popen[str]:
-    kwargs: dict = {}
+    kwargs: dict[str, object] = {}
     if IS_WIN:
         kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
     else:
@@ -149,53 +165,47 @@ def _popen(cmd: list[str], cwd: Path) -> subprocess.Popen[str]:
         text=True,
         encoding="utf-8",
         errors="replace",  # child output (e.g. Vite's unicode) must not crash the pump
-        **kwargs,
+        **kwargs,  # type: ignore[arg-type]
     )
 
 
-def _pump(proc: subprocess.Popen[str], prefix: str, color: str) -> threading.Thread:
+def _pump(child: Child) -> threading.Thread:
     def run() -> None:
-        assert proc.stdout is not None
-        for line in proc.stdout:
-            sys.stdout.write(f"{color}[{prefix}]{_C.RESET} {line.rstrip()}\n")
+        assert child.proc.stdout is not None
+        for line in child.proc.stdout:
+            sys.stdout.write(f"{child.color}[{child.name}]{_C.RESET} {line.rstrip()}\n")
             sys.stdout.flush()
 
-    t = threading.Thread(target=run, name=f"log-{prefix}", daemon=True)
-    t.start()
-    return t
+    thread = threading.Thread(target=run, name=f"log-{child.name}", daemon=True)
+    thread.start()
+    return thread
 
 
-def _terminate(name: str, proc: subprocess.Popen[str], color: str) -> None:
+def _terminate(child: Child) -> None:
+    proc = child.proc
     if proc.poll() is not None:
         return
-    print(f"{color}[{name}]{_C.RESET} {_C.DIM}stopping...{_C.RESET}")
-    try:
+    print(f"{child.color}[{child.name}]{_C.RESET} {_C.DIM}stopping...{_C.RESET}")
+    with suppress(ProcessLookupError, OSError):
         if IS_WIN:
             proc.send_signal(signal.CTRL_BREAK_EVENT)
         else:
             os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
-    except (ProcessLookupError, OSError):
-        pass
     try:
-        proc.wait(timeout=8)
+        proc.wait(timeout=_SHUTDOWN_GRACE)
         return
     except subprocess.TimeoutExpired:
         pass
     # Escalate.
-    try:
+    with suppress(ProcessLookupError, OSError):
         if IS_WIN:
-            subprocess.run(
-                ["taskkill", "/F", "/T", "/PID", str(proc.pid)],
-                capture_output=True,
-                check=False,
-            )
+            subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)],
+                           capture_output=True, check=False)
         else:
             os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
-    except (ProcessLookupError, OSError):
-        pass
 
 
-# --- health wait (FR-SYS) ---
+# --- health wait ---
 
 
 def _health_url() -> str:
@@ -204,12 +214,12 @@ def _health_url() -> str:
     return f"http://{host}:{s.port}/healthz"
 
 
-def wait_healthy(timeout: float = 40.0) -> bool:
+def wait_healthy(timeout: float = _HEALTH_TIMEOUT) -> bool:
     url = _health_url()
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         try:
-            with urllib.request.urlopen(url, timeout=2) as resp:
+            with urllib.request.urlopen(url, timeout=2) as resp:  # noqa: S310 (local http)
                 if resp.status == 200:
                     return True
         except (urllib.error.URLError, ConnectionError, OSError):
@@ -237,7 +247,7 @@ def up(*, prod: bool = False, open_browser: bool = True) -> int:
     _enable_ansi()
     settings = get_settings()
 
-    if not _report(check_prerequisites(need_frontend=True)):
+    if not report(check_prerequisites(need_frontend=True)):
         return 1
 
     if prod:
@@ -251,23 +261,23 @@ def up(*, prod: bool = False, open_browser: bool = True) -> int:
     if bak is not None:
         print(f"{_C.DIM}DB backed up -> {bak}{_C.RESET}")
 
-    children: list[tuple[str, subprocess.Popen[str], str]] = []
+    children: list[Child] = []
 
-    backend_cmd = [
-        sys.executable, "-m", "uvicorn", "nagiflow.main:app",
-        "--host", settings.host, "--port", str(settings.port),
-    ]
-    backend = _popen(backend_cmd, cwd=_BACKEND_ROOT)
-    children.append(("backend", backend, _C.BACKEND))
-    _pump(backend, "backend", _C.BACKEND)
+    backend = Child("backend", _popen(
+        [sys.executable, "-m", "uvicorn", "nagiflow.main:app",
+         "--host", settings.host, "--port", str(settings.port)],
+        cwd=_BACKEND_ROOT,
+    ), _C.BACKEND)
+    children.append(backend)
+    _pump(backend)
 
     app_url = f"http://127.0.0.1:{settings.port}"
     if not prod:
         pnpm = shutil.which("pnpm")
-        assert pnpm is not None  # guaranteed by prereq check
-        frontend = _popen([pnpm, "dev"], cwd=_WEB_DIR)
-        children.append(("frontend", frontend, _C.FRONTEND))
-        _pump(frontend, "frontend", _C.FRONTEND)
+        assert pnpm is not None  # guaranteed by the prerequisite check above
+        frontend = Child("frontend", _popen([pnpm, "dev"], cwd=_WEB_DIR), _C.FRONTEND)
+        children.append(frontend)
+        _pump(frontend)
         app_url = f"http://localhost:{_VITE_PORT}"
 
     if wait_healthy():
@@ -280,7 +290,7 @@ def up(*, prod: bool = False, open_browser: bool = True) -> int:
     return _run_until_exit(children)
 
 
-def _run_until_exit(children: list[tuple[str, subprocess.Popen[str], str]]) -> int:
+def _run_until_exit(children: list[Child]) -> int:
     stop = threading.Event()
 
     def handler(_signum: int, _frame: object) -> None:
@@ -293,16 +303,16 @@ def _run_until_exit(children: list[tuple[str, subprocess.Popen[str], str]]) -> i
 
     exit_code = 0
     while not stop.is_set():
-        for name, proc, color in children:
-            if proc.poll() is not None:
-                print(f"{color}[{name}]{_C.RESET} {_C.WARN}exited (code {proc.returncode}); "
-                      f"shutting down.{_C.RESET}")
-                exit_code = proc.returncode or 0
+        for child in children:
+            if child.proc.poll() is not None:
+                print(f"{child.color}[{child.name}]{_C.RESET} "
+                      f"{_C.WARN}exited (code {child.proc.returncode}); shutting down.{_C.RESET}")
+                exit_code = child.proc.returncode or 0
                 stop.set()
                 break
-        time.sleep(0.5)
+        stop.wait(0.5)
 
     print(f"\n{_C.DIM}Shutting down NagiFlow (external services left running)...{_C.RESET}")
-    for name, proc, color in children:
-        _terminate(name, proc, color)
+    for child in children:
+        _terminate(child)
     return exit_code
