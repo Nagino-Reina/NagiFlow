@@ -45,16 +45,14 @@ export default defineConfig({
     ],
   },
   server: {
-    port: 3000,
+    port: 5173,
     proxy: {
+      // Dev mode: proxy REST + WebSocket to the FastAPI backend (docs/03 §9).
+      // Same-origin from the SPA's view, so no CORS and the session cookie/Bearer flows through.
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'http://127.0.0.1:8000',
         changeOrigin: true,
-      },
-      '/api': {
-        target: 'ws://localhost:8000',
         ws: true,
-        changeOrigin: true,
       },
     },
   },

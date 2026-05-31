@@ -1,0 +1,90 @@
+{
+  "app": {
+    "name": "NagiFlow",
+    "tagline": "Local-first AI VTuber studio"
+  },
+  "common": {
+    "action": {
+      "save": "Save",
+      "cancel": "Cancel",
+      "login": "Log in",
+      "register": "Register",
+      "logout": "Log out",
+      "logoutAll": "Log out everywhere",
+      "retry": "Retry",
+      "close": "Close"
+    },
+    "state": {
+      "loading": "Loading…",
+      "empty": "Nothing here yet",
+      "comingSoon": "Coming soon"
+    }
+  },
+  "nav": {
+    "chat": "Chat",
+    "characters": "Characters",
+    "scripts": "Scripts",
+    "live": "Live",
+    "dashboard": "Dashboard",
+    "modules": "Modules",
+    "settings": "Settings"
+  },
+  "shell": {
+    "toggleNav": "Toggle navigation",
+    "toggleTheme": "Toggle light/dark",
+    "language": "Language",
+    "account": "Account",
+    "guest": "Guest",
+    "loginRequired": "Log in to use this"
+  },
+  "landing": {
+    "title": "Welcome to NagiFlow",
+    "subtitle": "Pick a character and start chatting — no setup required.",
+    "empty": "No guest-visible characters yet. Log in to create one.",
+    "chatPlaceholder": "Chat experience arrives in the P1 milestone."
+  },
+  "characters": {
+    "title": "Characters",
+    "description": "Create and voice characters, set personality, and manage voice models."
+  },
+  "scripts": {
+    "title": "Scripts",
+    "description": "Author multi-speaker scripts, import from audio, and render media."
+  },
+  "live": {
+    "title": "Live",
+    "description": "Drive a cast of characters in a real-time VTubing session."
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "description": "System health, service status, token usage, and jobs."
+  },
+  "modules": {
+    "title": "Modules",
+    "description": "Install and configure providers, skills, connectors, and UI extensions."
+  },
+  "settings": {
+    "title": "Settings",
+    "description": "Providers, locale, theme, sensitive mode, and workspace info.",
+    "theme": "Theme",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "language": "Language"
+  },
+  "auth": {
+    "title": "Sign in to NagiFlow",
+    "username": "Username",
+    "password": "Password",
+    "loginTab": "Log in",
+    "registerTab": "Register",
+    "displayName": "Display name",
+    "noAccount": "Authoring and configuration require a local account."
+  },
+  "error": {
+    "generic": "Something went wrong.",
+    "auth.required": "Please log in to continue.",
+    "guest.upgrade_required": "Log in to use this feature.",
+    "provider.unavailable": "A required service is unavailable.",
+    "internal.error": "Internal server error."
+  }
+}

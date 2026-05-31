@@ -2,7 +2,7 @@
   "name": "nagiflow-web",
   "private": true,
   "type": "module",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "scripts": {
     "dev": "vite",
     "build": "run-p type-check \"build-only {@}\" --",
@@ -21,8 +21,7 @@
     "vuetify": "^4.0.2",
     "pinia": "^3.0.4",
     "vue-i18n": "^11.3.0",
-    "vue-router": "^5.0.3",
-    "axios": "^1.16.1"
+    "vue-router": "^5.0.3"
   },
   "devDependencies": {
     "@tsconfig/node22": "^22.0.5",
