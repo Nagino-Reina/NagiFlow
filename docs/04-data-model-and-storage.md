@@ -104,6 +104,7 @@ erDiagram
 ### 5.1 Identity & sessions
 
 **`user`**
+
 | Field | Type | Notes |
 |---|---|---|
 | id | TEXT PK | |
@@ -117,6 +118,7 @@ erDiagram
 > Guests may be represented as ephemeral `user` rows or as session-only principals; see [09](09-feature-multiuser-memory-and-privacy.md). Secrets handling per [15 §3](15-security-and-threat-model.md).
 
 **`session`**
+
 | Field | Type | Notes |
 |---|---|---|
 | id | TEXT PK | |
@@ -129,6 +131,7 @@ erDiagram
 ### 5.2 Characters & voice
 
 **`character`**
+
 | Field | Type | Notes |
 |---|---|---|
 | id | TEXT PK | |
@@ -148,6 +151,7 @@ erDiagram
 | tags | JSON | |
 
 **`voice_model`**
+
 | Field | Type | Notes |
 |---|---|---|
 | id | TEXT PK | |
@@ -163,6 +167,7 @@ erDiagram
 | is_default | INTEGER | 0/1 |
 
 **`character_asset`**
+
 | Field | Type | Notes |
 |---|---|---|
 | id | TEXT PK | |
@@ -174,6 +179,7 @@ erDiagram
 ### 5.3 Memory
 
 **`memory_entry`** — the privacy-critical table (see [09](09-feature-multiuser-memory-and-privacy.md)).
+
 | Field | Type | Notes |
 |---|---|---|
 | id | TEXT PK | |
@@ -197,6 +203,7 @@ erDiagram
 ### 5.4 Scripts
 
 **`script`**
+
 | Field | Type | Notes |
 |---|---|---|
 | id | TEXT PK | |
@@ -209,6 +216,7 @@ erDiagram
 | meta | JSON | |
 
 **`script_line`**
+
 | Field | Type | Notes |
 |---|---|---|
 | id | TEXT PK | |
@@ -231,6 +239,7 @@ erDiagram
 ### 5.5 Conversations & messages
 
 **`conversation`**
+
 | Field | Type | Notes |
 |---|---|---|
 | id | TEXT PK | |
@@ -244,6 +253,7 @@ erDiagram
 | meta | JSON | live-session info, connector source, etc. |
 
 **`conversation_participant`** — the cast of a (multi-character) conversation; for single-character chat there is exactly one row mirroring `conversation.character_id`.
+
 | Field | Type | Notes |
 |---|---|---|
 | id | TEXT PK | |
@@ -253,6 +263,7 @@ erDiagram
 | join_order | INTEGER | display/turn ordering hint |
 
 **`message`**
+
 | Field | Type | Notes |
 |---|---|---|
 | id | TEXT PK | |
@@ -267,6 +278,7 @@ erDiagram
 ### 5.6 Media & jobs
 
 **`media_asset`**
+
 | Field | Type | Notes |
 |---|---|---|
 | id | TEXT PK | |
@@ -278,6 +290,7 @@ erDiagram
 | meta | JSON | sample rate, codec, line alignment |
 
 **`job`** — generic long-running work (ASR import, render, fine-tune).
+
 | Field | Type | Notes |
 |---|---|---|
 | id | TEXT PK | |
@@ -294,6 +307,7 @@ erDiagram
 ### 5.7 Modules & providers
 
 **`module`**
+
 | Field | Type | Notes |
 |---|---|---|
 | id | TEXT PK | manifest id |
@@ -308,6 +322,7 @@ erDiagram
 **`module_config`** — per-module settings (`module_id`, `key`, `value JSON`). Secrets are referenced, not stored in plaintext where avoidable.
 
 **`provider_config`**
+
 | Field | Type | Notes |
 |---|---|---|
 | id | TEXT PK | |
@@ -321,6 +336,7 @@ erDiagram
 ### 5.8 Usage, metrics & audit
 
 **`usage_record`** — token/cost accounting ([11](11-feature-observability.md)).
+
 | Field | Type | Notes |
 |---|---|---|
 | id | TEXT PK | |
