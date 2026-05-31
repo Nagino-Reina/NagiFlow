@@ -4,5 +4,13 @@
 out
 gen
 
-# Environments
+# Environments / secrets
 .env
+.env.local
+
+# Local data (workspace holds the SQLite DB, media, logs, backups)
+workspace/
+*.db
+*.db-wal
+*.db-shm
+.logs
