@@ -1,45 +1,45 @@
-"""Conversation and message Pydantic schemas."""
+"""Conversation & message schemas (docs/05 §4.3)."""
 
-from typing import Any
-from uuid import UUID
+from __future__ import annotations
 
-from nagiflow.schemas.common import OrmBase, TimestampSchema
+from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
-class ConversationCreate(OrmBase):
-    character_id: UUID
+class ConversationCreate(BaseModel):
+    character_id: str
     title: str | None = None
 
 
-class ConversationResponse(TimestampSchema):
-    id: UUID
-    user_id: UUID
-    character_id: UUID
+class ConversationOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    character_id: str
+    user_id: str
+    mode: str
+    sensitive_mode: bool
     title: str | None
+    status: str
+    created_at: datetime
 
 
-class MessageResponse(TimestampSchema):
-    id: UUID
-    conversation_id: UUID
+class MessageCreate(BaseModel):
+    text: str = Field(min_length=1)
+
+
+class MessageOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    conversation_id: str
     role: str
+    speaker_character_id: str | None
     content: str
-    meta: dict[str, Any] | None
-    audio_path: str | None
+    created_at: datetime
 
 
-class ConversationDetail(ConversationResponse):
-    messages: list[MessageResponse] = []
-
-
-class ChatRequest(OrmBase):
-    """One-shot (non-streaming) chat request body."""
-
-    conversation_id: UUID | None = None
-    message: str
-    generate_audio: bool = False
-
-
-class ChatResponse(OrmBase):
-    conversation_id: UUID
-    message: MessageResponse
-    audio_url: str | None = None
+class SendMessageResponse(BaseModel):
+    user_message: MessageOut
+    reply: MessageOut

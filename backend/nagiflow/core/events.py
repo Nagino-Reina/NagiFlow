@@ -1,75 +1,42 @@
-"""
-In-process async event bus.
+"""Minimal in-process event bus (docs/03 §5, docs/06 §9).
 
-Provides lightweight pub/sub for coordinating WebSocket streaming
-(LLM text → TTS synthesis → avatar state changes).
-
-Usage::
-
-    # Publisher
-    await event_bus.publish("stream:anim", {"state": "talking", "expression": "default"})
-
-    # Subscriber (async generator)
-    async for payload in event_bus.subscribe("stream:anim"):
-        ...
+Modules and core subscribe to lifecycle/domain events (e.g. `conversation.turn.post`,
+`memory.write.pre`). This is the seam; richer veto/mutate contracts come later.
 """
 
 from __future__ import annotations
 
 import asyncio
 from collections import defaultdict
-from collections.abc import AsyncGenerator
+from collections.abc import Awaitable, Callable
 from typing import Any
 
-
-class _Stop:
-    """Unique sentinel used to signal EventBus subscriber shutdown."""
-    __slots__ = ()
-
-
-_STOP = _Stop()
+Handler = Callable[[dict[str, Any]], Awaitable[None]]
 
 
 class EventBus:
     def __init__(self) -> None:
-        self._queues: dict[str, list[asyncio.Queue[Any]]] = defaultdict(list)
+        self._handlers: dict[str, list[Handler]] = defaultdict(list)
 
-    async def publish(self, channel: str, payload: Any) -> None:
-        """Broadcast *payload* to all active subscribers of *channel*."""
-        for q in list(self._queues.get(channel, [])):
-            await q.put(payload)
+    def on(self, event: str, handler: Handler) -> Callable[[], None]:
+        self._handlers[event].append(handler)
+        return lambda: self._handlers[event].remove(handler)
 
-    async def subscribe(
-        self, channel: str, timeout: float | None = None
-    ) -> AsyncGenerator[Any, None]:
-        """
-        Yield payloads published to *channel*.
-
-        The generator exits when the channel is closed or when
-        *timeout* seconds elapse without a new event.
-        """
-        q: asyncio.Queue[Any] = asyncio.Queue()
-        self._queues[channel].append(q)
-        try:
-            while True:
-                try:
-                    item = await asyncio.wait_for(q.get(), timeout=timeout)
-                except TimeoutError:
-                    break
-                if isinstance(item, _Stop):
-                    break
-                yield item
-        finally:
+    async def emit(self, event: str, payload: dict[str, Any]) -> None:
+        # Errors in a handler are isolated to that handler (docs/06 §9).
+        for handler in list(self._handlers.get(event, ())):
             try:
-                self._queues[channel].remove(q)
-            except ValueError:
-                pass
+                await handler(payload)
+            except Exception:  # noqa: BLE001 - isolation by design
+                import logging
 
-    async def close_channel(self, channel: str) -> None:
-        """Signal all subscribers of *channel* to stop."""
-        for q in list(self._queues.get(channel, [])):
-            await q.put(_STOP)
+                logging.getLogger("nagiflow.events").exception(
+                    "event handler failed for %s", event
+                )
 
 
-# Module-level singleton
 event_bus = EventBus()
+
+
+async def gather_emit(events: list[tuple[str, dict[str, Any]]]) -> None:
+    await asyncio.gather(*(event_bus.emit(e, p) for e, p in events))

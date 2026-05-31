@@ -1,90 +1,93 @@
-"""
-FastAPI dependency providers.
+"""FastAPI dependencies — DI for session, providers, principals, services (docs/03 §5)."""
 
-These are injected via ``Depends()`` in route handlers.
+from __future__ import annotations
 
-Usage::
+from collections.abc import AsyncIterator
+from typing import Annotated
 
-    @router.get("/me")
-    async def me(user: User = Depends(get_current_user)):
-        ...
-
-    @router.delete("/characters/{character_id}")
-    async def delete(
-        character_id: UUID,
-        user: User = Depends(get_current_active_user),
-        db: AsyncSession = Depends(get_session),
-    ):
-        ...
-"""
-
-from uuid import UUID
-
-from fastapi import Depends, Query
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from nagiflow.core.database import get_session
-from nagiflow.core.exceptions import AuthenticationError
-from nagiflow.core.security import UserRole, decode_access_token, require_role
-from nagiflow.models.user import User
-from nagiflow.services.auth import AuthService
+from ..core import errors
+from ..core.database import get_session
+from ..providers.registry import ProviderRegistry
+from ..repositories.characters import CharacterRepository
+from ..repositories.conversations import ConversationRepository, MessageRepository
+from ..repositories.users import SessionRepository, UserRepository
+from ..services.auth_service import AuthService, Principal
+from ..services.character_service import CharacterService
+from ..services.conversation_service import ConversationService
 
-_bearer = HTTPBearer(auto_error=False)
-
-
-async def get_current_user(
-    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
-    db: AsyncSession = Depends(get_session),
-) -> User:
-    """Extract and validate the JWT bearer token, returning the current user."""
-    if credentials is None:
-        raise AuthenticationError("Missing Authorization header.")
-    payload = decode_access_token(credentials.credentials)
-    user_id = UUID(payload["sub"])
-    auth_svc = AuthService(db)
-    user = await auth_svc.get_user(user_id)
-    return user
+COOKIE_NAME = "nf_session"
 
 
-async def get_current_active_user(
-    current_user: User = Depends(get_current_user),
-) -> User:
-    from nagiflow.core.exceptions import PermissionDeniedError
-
-    if not current_user.is_active:
-        raise PermissionDeniedError("Account is inactive.")
-    return current_user
+async def db_session() -> AsyncIterator[AsyncSession]:
+    async for s in get_session():
+        yield s
 
 
-def require_minimum_role(role: UserRole):
-    """Return a dependency that enforces a minimum role level."""
-
-    async def _check(user: User = Depends(get_current_active_user)) -> User:
-        require_role(user.role, role)
-        return user
-
-    return _check
+Session = Annotated[AsyncSession, Depends(db_session)]
 
 
-# ---------------------------------------------------------------------------
-# Common pagination query parameters
-# ---------------------------------------------------------------------------
+def get_registry(request: Request) -> ProviderRegistry:
+    return request.app.state.registry
 
 
-class PaginationParams:
-    def __init__(
-        self,
-        page: int = Query(default=1, ge=1, description="Page number (1-indexed)"),
-        page_size: int = Query(default=20, ge=1, le=100, description="Items per page"),
-    ) -> None:
-        self.page = page
-        self.page_size = page_size
+Registry = Annotated[ProviderRegistry, Depends(get_registry)]
 
-    @property
-    def offset(self) -> int:
-        return (self.page - 1) * self.page_size
 
-    @property
-    def limit(self) -> int:
-        return self.page_size
+def get_auth_service(session: Session) -> AuthService:
+    return AuthService(UserRepository(session), SessionRepository(session))
+
+
+Auth = Annotated[AuthService, Depends(get_auth_service)]
+
+
+def get_character_service(session: Session) -> CharacterService:
+    return CharacterService(CharacterRepository(session))
+
+
+Characters = Annotated[CharacterService, Depends(get_character_service)]
+
+
+def get_conversation_service(session: Session, registry: Registry) -> ConversationService:
+    return ConversationService(
+        ConversationRepository(session),
+        MessageRepository(session),
+        CharacterRepository(session),
+        registry,
+    )
+
+
+Conversations = Annotated[ConversationService, Depends(get_conversation_service)]
+
+
+def _extract_token(request: Request) -> str | None:
+    header = request.headers.get("Authorization")
+    if header and header.lower().startswith("bearer "):
+        return header[7:].strip()
+    return request.cookies.get(COOKIE_NAME)
+
+
+async def current_principal(request: Request, auth: Auth) -> Principal:
+    """Require any valid session (guest or user). Issue a guest session via POST /auth/guest."""
+    token = _extract_token(request)
+    if not token:
+        raise errors.auth_required()
+    principal = await auth.resolve(token)
+    if principal is None:
+        raise errors.auth_required()
+    return principal
+
+
+CurrentPrincipal = Annotated[Principal, Depends(current_principal)]
+
+
+async def require_user(principal: CurrentPrincipal) -> Principal:
+    """Gate advanced operations to authenticated (non-guest) users (docs/09 §3)."""
+    if principal.kind != "user":
+        raise errors.guest_upgrade_required()
+    return principal
+
+
+RequireUser = Annotated[Principal, Depends(require_user)]

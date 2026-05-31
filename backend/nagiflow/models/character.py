@@ -1,91 +1,54 @@
-"""Character ORM model."""
+"""Character & VoiceModel models (docs/04 §5.2)."""
 
-import uuid
-from typing import TYPE_CHECKING
+from __future__ import annotations
 
-from sqlalchemy import ForeignKey, String, Text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.types import JSON
+from sqlalchemy import JSON, Boolean, Integer, String, Text
+from sqlalchemy.orm import Mapped, mapped_column
 
-from nagiflow.models.base import Base, TimestampMixin, new_uuid
+from .base import Base, TimestampMixin
 
-if TYPE_CHECKING:
-    from nagiflow.models.conversation import Conversation
-    from nagiflow.models.knowledge import KnowledgeDocument
-    from nagiflow.models.memory import LongTermMemory
-    from nagiflow.models.skill import CharacterSkill
-    from nagiflow.models.user import User
+
+def _default_big_five() -> dict:
+    return {
+        "openness": 50,
+        "conscientiousness": 50,
+        "extraversion": 50,
+        "agreeableness": 50,
+        "neuroticism": 50,
+    }
 
 
 class Character(Base, TimestampMixin):
-    """
-    An AI Vtuber character profile.
+    __tablename__ = "character"
 
-    The ``personality`` JSON column stores the Big Five scores plus any
-    custom free-form configuration supplied by the user.
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    aliases: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    description: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    persona: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    big_five: Mapped[dict] = mapped_column(JSON, default=_default_big_five, nullable=False)
+    default_language: Mapped[str] = mapped_column(String, default="en", nullable=False)
+    default_voice_model_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    default_style: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    portrait_key: Mapped[str | None] = mapped_column(String, nullable=True)
+    avatar_bundle_key: Mapped[str | None] = mapped_column(String, nullable=True)
+    avatar_renderer: Mapped[str | None] = mapped_column(String, nullable=True)
+    guest_visible: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    status: Mapped[str] = mapped_column(String, default="draft", nullable=False)
+    tags: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
 
-    Example personality payload::
 
-        {
-            "big_five": {
-                "openness": 75,
-                "conscientiousness": 60,
-                "extraversion": 80,
-                "agreeableness": 70,
-                "neuroticism": 40
-            },
-            "custom": {
-                "catchphrase": "Let's go!",
-                "speech_style": "casual",
-                "interests": ["gaming", "anime"]
-            }
-        }
-    """
+class VoiceModel(Base, TimestampMixin):
+    __tablename__ = "voice_model"
 
-    __tablename__ = "characters"
-
-    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_uuid)
-    user_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
-    )
-
-    # --- Identity ---
-    name: Mapped[str] = mapped_column(String(128), nullable=False)
-    description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    system_prompt: Mapped[str | None] = mapped_column(Text, nullable=True)
-
-    # --- Personality ---
-    personality: Mapped[dict | None] = mapped_column(JSON, nullable=True)
-
-    # --- LLM / TTS / Avatar overrides (if null, global defaults are used) ---
-    llm_provider: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    llm_model: Mapped[str | None] = mapped_column(String(128), nullable=True)
-    tts_provider: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    tts_speaker_id: Mapped[int | None] = mapped_column(nullable=True)
-    avatar_provider: Mapped[str] = mapped_column(String(64), nullable=False, default="pngtuber")
-
-    # --- Asset paths (workspace-relative) ---
-    avatar_path: Mapped[str | None] = mapped_column(Text, nullable=True)
-    voice_sample_path: Mapped[str | None] = mapped_column(Text, nullable=True)
-    model_path: Mapped[str | None] = mapped_column(Text, nullable=True)
-    model_type: Mapped[str | None] = mapped_column(
-        String(16), nullable=True
-    )  # "live2d" | "3d"
-
-    # --- Visibility ---
-    is_public: Mapped[bool] = mapped_column(default=False, nullable=False)
-
-    # --- Relationships ---
-    owner: Mapped["User"] = relationship("User", back_populates="characters")
-    conversations: Mapped[list["Conversation"]] = relationship(
-        "Conversation", back_populates="character", cascade="all, delete-orphan"
-    )
-    memories: Mapped[list["LongTermMemory"]] = relationship(
-        "LongTermMemory", back_populates="character", cascade="all, delete-orphan"
-    )
-    knowledge_docs: Mapped[list["KnowledgeDocument"]] = relationship(
-        "KnowledgeDocument", back_populates="character"
-    )
-    character_skills: Mapped[list["CharacterSkill"]] = relationship(
-        "CharacterSkill", back_populates="character", cascade="all, delete-orphan"
-    )
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    character_id: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    kind: Mapped[str] = mapped_column(String, nullable=False)  # zero_shot|voice_design|fine_tuned
+    provider: Mapped[str] = mapped_column(String, nullable=False)
+    version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    reference_keys: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    design_description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    artifact_key: Mapped[str | None] = mapped_column(String, nullable=True)
+    params: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    status: Mapped[str] = mapped_column(String, default="ready", nullable=False)
+    is_default: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

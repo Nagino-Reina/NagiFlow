@@ -1,65 +1,45 @@
-"""
-Alembic environment configuration.
+"""Alembic environment (docs/13 §6).
 
-Supports async SQLAlchemy engines (required for aiosqlite / asyncpg).
+Uses a synchronous SQLite engine derived from NagiFlow settings; `render_as_batch=True`
+enables SQLite-friendly ALTERs. Targets `Base.metadata` for autogenerate.
 """
 
-import asyncio
-from logging.config import fileConfig
+from __future__ import annotations
 
 from alembic import context
-from sqlalchemy import pool
-from sqlalchemy.ext.asyncio import async_engine_from_config
+from sqlalchemy import create_engine, pool
 
-# Alembic Config object
-config = context.config
-
-if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
-
-# Import all models so Alembic can detect schema changes
-from nagiflow.models import Base  # noqa: E402
-from nagiflow.config import settings  # noqa: E402
+from nagiflow.config import get_settings
+from nagiflow.models import Base
 
 target_metadata = Base.metadata
 
-# Override sqlalchemy.url from application settings
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+
+def _url() -> str:
+    return f"sqlite:///{get_settings().db_path.as_posix()}"
 
 
 def run_migrations_offline() -> None:
-    """Run migrations in 'offline' mode (no DB connection required)."""
-    url = config.get_main_option("sqlalchemy.url")
     context.configure(
-        url=url,
+        url=_url(),
         target_metadata=target_metadata,
         literal_binds=True,
-        dialect_opts={"paramstyle": "named"},
+        render_as_batch=True,
     )
     with context.begin_transaction():
         context.run_migrations()
-
-
-def do_run_migrations(connection):
-    context.configure(connection=connection, target_metadata=target_metadata)
-    with context.begin_transaction():
-        context.run_migrations()
-
-
-async def run_async_migrations() -> None:
-    """Run migrations using an async engine."""
-    connectable = async_engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
-    async with connectable.connect() as connection:
-        await connection.run_sync(do_run_migrations)
-    await connectable.dispose()
 
 
 def run_migrations_online() -> None:
-    asyncio.run(run_async_migrations())
+    engine = create_engine(_url(), poolclass=pool.NullPool)
+    with engine.connect() as connection:
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            render_as_batch=True,
+        )
+        with context.begin_transaction():
+            context.run_migrations()
 
 
 if context.is_offline_mode():

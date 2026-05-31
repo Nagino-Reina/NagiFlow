@@ -1,35 +1,16 @@
-"""Common Pydantic schema types and mixins."""
+"""Shared schema helpers (docs/05 §1)."""
 
-from datetime import datetime
-from uuid import UUID
+from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict
+from typing import Generic, TypeVar
 
+from pydantic import BaseModel
 
-class OrmBase(BaseModel):
-    """Base schema that enables ORM mode for all response models."""
-
-    model_config = ConfigDict(from_attributes=True)
+T = TypeVar("T")
 
 
-class TimestampSchema(OrmBase):
-    created_at: datetime
-    updated_at: datetime
+class Page(BaseModel, Generic[T]):
+    """Cursor-paginated list response (docs/05 §1)."""
 
-
-class PaginatedResponse(OrmBase):
-    """Generic paginated list wrapper."""
-
-    total: int
-    page: int
-    page_size: int
-    items: list  # type: ignore[type-arg]
-
-
-class MessageResponse(BaseModel):
-    message: str
-    success: bool = True
-
-
-class UUIDResponse(BaseModel):
-    id: UUID
+    items: list[T]
+    next_cursor: str | None = None

@@ -1,63 +1,45 @@
-"""Conversation and Message ORM models."""
+"""Conversation, ConversationParticipant, Message (docs/04 §5.5)."""
 
-import uuid
-from typing import TYPE_CHECKING
+from __future__ import annotations
 
-from sqlalchemy import ForeignKey, String, Text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.types import JSON
+from sqlalchemy import JSON, Boolean, Integer, String, Text
+from sqlalchemy.orm import Mapped, mapped_column
 
-from nagiflow.models.base import Base, TimestampMixin, new_uuid
-
-if TYPE_CHECKING:
-    from nagiflow.models.character import Character
-    from nagiflow.models.user import User
+from .base import Base, TimestampMixin
 
 
 class Conversation(Base, TimestampMixin):
-    """A conversation session between a user and a character."""
+    __tablename__ = "conversation"
 
-    __tablename__ = "conversations"
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    character_id: Mapped[str] = mapped_column(String, index=True, nullable=False)  # primary
+    user_id: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    mode: Mapped[str] = mapped_column(String, default="chat", nullable=False)  # chat | live
+    sensitive_mode: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    director_config: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    title: Mapped[str | None] = mapped_column(String, nullable=True)
+    status: Mapped[str] = mapped_column(String, default="active", nullable=False)
+    meta: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
 
-    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_uuid)
-    user_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
-    )
-    character_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("characters.id", ondelete="CASCADE"), nullable=False, index=True
-    )
-    title: Mapped[str | None] = mapped_column(String(256), nullable=True)
 
-    # Relationships
-    user: Mapped["User"] = relationship("User", back_populates="conversations")
-    character: Mapped["Character"] = relationship("Character", back_populates="conversations")
-    messages: Mapped[list["Message"]] = relationship(
-        "Message",
-        back_populates="conversation",
-        cascade="all, delete-orphan",
-        order_by="Message.created_at",
-    )
+class ConversationParticipant(Base, TimestampMixin):
+    __tablename__ = "conversation_participant"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    conversation_id: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    character_id: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    role: Mapped[str] = mapped_column(String, default="primary", nullable=False)
+    join_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
 
 class Message(Base, TimestampMixin):
-    """A single message within a conversation (user or assistant turn)."""
+    __tablename__ = "message"
 
-    __tablename__ = "messages"
-
-    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_uuid)
-    conversation_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("conversations.id", ondelete="CASCADE"), nullable=False, index=True
-    )
-
-    # "user" | "assistant" | "system" | "tool"
-    role: Mapped[str] = mapped_column(String(16), nullable=False)
-    content: Mapped[str] = mapped_column(Text, nullable=False)
-
-    # Optional structured metadata: token counts, tool calls, emotion tags, etc.
-    meta: Mapped[dict | None] = mapped_column(JSON, nullable=True)
-
-    # TTS audio path (workspace-relative) if audio was generated for this message
-    audio_path: Mapped[str | None] = mapped_column(Text, nullable=True)
-
-    # Relationship
-    conversation: Mapped[Conversation] = relationship("Conversation", back_populates="messages")
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    conversation_id: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    role: Mapped[str] = mapped_column(String, nullable=False)
+    speaker_character_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    in_reply_to_message_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    content: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    media_asset_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    meta: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)

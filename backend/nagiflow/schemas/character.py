@@ -1,88 +1,60 @@
-"""Character Pydantic schemas."""
+"""Character schemas (docs/05 §4.1, docs/08)."""
 
-from typing import Any, Literal
-from uuid import UUID
+from __future__ import annotations
 
-from pydantic import Field, field_validator
+from datetime import datetime
 
-from nagiflow.schemas.common import OrmBase, TimestampSchema
+from pydantic import BaseModel, ConfigDict, Field
 
-
-class BigFivePersonality(OrmBase):
-    """
-    Big Five (OCEAN) personality trait scores.
-    Each score is a float in [0, 100].
-    """
-
-    openness: float = Field(default=50.0, ge=0, le=100)
-    conscientiousness: float = Field(default=50.0, ge=0, le=100)
-    extraversion: float = Field(default=50.0, ge=0, le=100)
-    agreeableness: float = Field(default=50.0, ge=0, le=100)
-    neuroticism: float = Field(default=50.0, ge=0, le=100)
+Trait = Field(ge=0, le=100)
 
 
-class PersonalityConfig(OrmBase):
-    big_five: BigFivePersonality = Field(default_factory=BigFivePersonality)
-    custom: dict[str, Any] = Field(default_factory=dict)
+class BigFive(BaseModel):
+    openness: int = Trait
+    conscientiousness: int = Trait
+    extraversion: int = Trait
+    agreeableness: int = Trait
+    neuroticism: int = Trait
 
 
-class CharacterCreate(OrmBase):
-    name: str = Field(min_length=1, max_length=128)
+class CharacterCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    description: str = ""
+    persona: str = ""
+    big_five: BigFive = Field(default_factory=BigFive)
+    default_language: str = "en"
+    aliases: list[str] = Field(default_factory=list)
+    tags: list[str] = Field(default_factory=list)
+    guest_visible: bool = False
+    avatar_renderer: str | None = None
+
+
+class CharacterUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=120)
     description: str | None = None
-    system_prompt: str | None = None
-    personality: PersonalityConfig | None = None
-
-    # LLM / TTS / Avatar overrides
-    llm_provider: str | None = None
-    llm_model: str | None = None
-    tts_provider: str | None = None
-    tts_speaker_id: int | None = None
-    avatar_provider: str = "pngtuber"
-
-    # Model type: live2d or 3d
-    model_type: Literal["live2d", "3d"] | None = None
-    is_public: bool = False
+    persona: str | None = None
+    big_five: BigFive | None = None
+    default_language: str | None = None
+    aliases: list[str] | None = None
+    tags: list[str] | None = None
+    guest_visible: bool | None = None
+    avatar_renderer: str | None = None
+    status: str | None = None
 
 
-class CharacterUpdate(OrmBase):
-    name: str | None = Field(default=None, min_length=1, max_length=128)
-    description: str | None = None
-    system_prompt: str | None = None
-    personality: PersonalityConfig | None = None
-    llm_provider: str | None = None
-    llm_model: str | None = None
-    tts_provider: str | None = None
-    tts_speaker_id: int | None = None
-    avatar_provider: str | None = None
-    model_type: Literal["live2d", "3d"] | None = None
-    is_public: bool | None = None
+class CharacterOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
 
-
-class CharacterResponse(TimestampSchema):
-    id: UUID
-    user_id: UUID
+    id: str
     name: str
-    description: str | None
-    system_prompt: str | None
-    personality: dict[str, Any] | None
-    llm_provider: str | None
-    llm_model: str | None
-    tts_provider: str | None
-    tts_speaker_id: int | None
-    avatar_provider: str
-    avatar_path: str | None
-    voice_sample_path: str | None
-    model_path: str | None
-    model_type: str | None
-    is_public: bool
-
-
-class CharacterBrief(OrmBase):
-    """Lightweight character summary for list endpoints."""
-
-    id: UUID
-    name: str
-    description: str | None
-    avatar_path: str | None
-    model_type: str | None
-    is_public: bool
+    aliases: list[str]
+    description: str
+    persona: str
+    big_five: dict
+    default_language: str
+    guest_visible: bool
+    avatar_renderer: str | None
+    status: str
+    tags: list[str]
+    created_at: datetime
+    updated_at: datetime

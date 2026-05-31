@@ -1,122 +1,42 @@
+"""Password hashing + opaque session tokens (docs/05 §2, docs/15 §3).
+
+- Passwords: Argon2id (memory-hard). Never stored/logged in plaintext.
+- Sessions: opaque random tokens; only the SHA-256 hash is persisted.
 """
-Security utilities: password hashing, JWT creation/verification, and
-role-based access-control helpers.
-"""
 
-from datetime import datetime, timedelta, timezone
-from enum import StrEnum
-from typing import Any
-from uuid import UUID
+from __future__ import annotations
 
-from jose import JWTError, jwt
-from pwdlib import PasswordHash
+import hashlib
+import secrets
 
-from nagiflow.config import settings
-from nagiflow.core.exceptions import AuthenticationError, PermissionDeniedError, TokenExpiredError
+from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError
 
-# ---------------------------------------------------------------------------
-# Password
-# ---------------------------------------------------------------------------
-
-_pwd_hasher = PasswordHash.recommended()
-
-def hash_password(plain: str) -> str:
-    return _pwd_hasher.hash(plain)
+_ph = PasswordHasher()
 
 
-def verify_password(plain: str, hashed: str) -> bool:
-    return _pwd_hasher.verify(plain, hashed)
+def hash_password(password: str) -> str:
+    return _ph.hash(password)
 
 
-# ---------------------------------------------------------------------------
-# Roles
-# ---------------------------------------------------------------------------
-
-
-class UserRole(StrEnum):
-    USER = "user"
-    MODERATOR = "moderator"
-    ADMIN = "admin"
-
-
-ROLE_HIERARCHY: dict[UserRole, int] = {
-    UserRole.USER: 0,
-    UserRole.MODERATOR: 1,
-    UserRole.ADMIN: 2,
-}
-
-
-def require_role(user_role: str, minimum: UserRole) -> None:
-    """Raise PermissionDeniedError if *user_role* is below *minimum*."""
-    current_level = ROLE_HIERARCHY.get(UserRole(user_role), -1)
-    required_level = ROLE_HIERARCHY[minimum]
-    if current_level < required_level:
-        raise PermissionDeniedError(
-            f"This action requires at least the '{minimum}' role."
-        )
-
-
-# ---------------------------------------------------------------------------
-# JWT
-# ---------------------------------------------------------------------------
-
-_TOKEN_TYPE_ACCESS = "access"
-_TOKEN_TYPE_REFRESH = "refresh"
-
-
-def _create_token(
-    subject: str | UUID,
-    token_type: str,
-    expires_delta: timedelta,
-    extra_claims: dict[str, Any] | None = None,
-) -> str:
-    now = datetime.now(tz=timezone.utc)
-    payload: dict[str, Any] = {
-        "sub": str(subject),
-        "typ": token_type,
-        "iat": now,
-        "exp": now + expires_delta,
-    }
-    if extra_claims:
-        payload.update(extra_claims)
-    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
-
-
-def create_access_token(user_id: UUID, role: str) -> str:
-    return _create_token(
-        subject=user_id,
-        token_type=_TOKEN_TYPE_ACCESS,
-        expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
-        extra_claims={"role": role},
-    )
-
-
-def create_refresh_token(user_id: UUID) -> str:
-    return _create_token(
-        subject=user_id,
-        token_type=_TOKEN_TYPE_REFRESH,
-        expires_delta=timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
-    )
-
-
-def decode_token(token: str, expected_type: str = _TOKEN_TYPE_ACCESS) -> dict[str, Any]:
-    """Decode and validate a JWT. Raises appropriate NagiFlowErrors."""
+def verify_password(hashed: str, password: str) -> bool:
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-    except JWTError as exc:
-        if "expired" in str(exc).lower():
-            raise TokenExpiredError() from exc
-        raise AuthenticationError() from exc
-
-    if payload.get("typ") != expected_type:
-        raise AuthenticationError("Invalid token type.")
-
-    return payload
+        return _ph.verify(hashed, password)
+    except VerifyMismatchError:
+        return False
+    except Exception:
+        return False
 
 
-def decode_access_token(token: str) -> dict[str, Any]:
-    return decode_token(token, _TOKEN_TYPE_ACCESS)
+def needs_rehash(hashed: str) -> bool:
+    return _ph.check_needs_rehash(hashed)
 
 
-def decode_refresh_token(token: str) -> dict[str, Any]:
-    return decode_token(token, _TOKEN_TYPE_REFRESH)
+def generate_session_token() -> tuple[str, str]:
+    """Return (clear_token, token_hash). Only the hash is stored."""
+    token = secrets.token_urlsafe(32)
+    return token, hash_token(token)
+
+
+def hash_token(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()

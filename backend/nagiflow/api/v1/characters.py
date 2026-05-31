@@ -1,267 +1,61 @@
-"""Character management endpoints."""
+"""Character endpoints (docs/05 §4.1).
 
-from typing import Literal
-from uuid import UUID
+Guests may list/read only guest-visible characters; create/edit/delete are user-gated.
+"""
 
-from fastapi import APIRouter, Depends, File, Query, Response, UploadFile
-from fastapi.responses import FileResponse
-from sqlalchemy.ext.asyncio import AsyncSession
+from __future__ import annotations
 
-from nagiflow.api.deps import PaginationParams, get_current_active_user
-from nagiflow.core.database import get_session
-from nagiflow.core.workspace import workspace
-from nagiflow.models.user import User
-from nagiflow.schemas.character import CharacterBrief, CharacterCreate, CharacterResponse, CharacterUpdate
-from nagiflow.schemas.common import MessageResponse
-from nagiflow.schemas.skill import AssignSkillRequest, CharacterSkillResponse
-from nagiflow.services.character import CharacterService
+from fastapi import APIRouter, status
 
-router = APIRouter(prefix="/characters", tags=["Characters"])
+from ...schemas.character import CharacterCreate, CharacterOut, CharacterUpdate
+from ...schemas.common import Page
+from ..deps import Characters, CurrentPrincipal, RequireUser
+
+router = APIRouter(prefix="/characters", tags=["characters"])
 
 
-@router.post("", response_model=CharacterResponse, status_code=201)
-async def create_character(
-    data: CharacterCreate,
-    current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_session),
-) -> CharacterResponse:
-    """Create a new AI Vtuber character profile."""
-    svc = CharacterService(db)
-    character = await svc.create(current_user.id, data)
-    return CharacterResponse.model_validate(character)
-
-
-@router.get("", response_model=list[CharacterBrief])
+@router.get("", response_model=Page[CharacterOut])
 async def list_characters(
-    include_public: bool = Query(default=False),
-    pagination: PaginationParams = Depends(),
-    current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_session),
-) -> list[CharacterBrief]:
-    """List characters owned by the current user, optionally including public ones."""
-    svc = CharacterService(db)
-    characters = await svc.list_for_user(
-        current_user.id,
-        include_public=include_public,
-        limit=pagination.limit,
-        offset=pagination.offset,
-    )
-    return [CharacterBrief.model_validate(c) for c in characters]
+    principal: CurrentPrincipal, svc: Characters, cursor: str | None = None
+) -> Page[CharacterOut]:
+    guest_only = principal.kind != "user"
+    items = await svc.list(guest_visible_only=guest_only, cursor=cursor)
+    next_cursor = items[-1].id if len(items) == 50 else None
+    return Page(items=[CharacterOut.model_validate(c) for c in items], next_cursor=next_cursor)
 
 
-@router.get("/{character_id}", response_model=CharacterResponse)
+@router.post("", response_model=CharacterOut, status_code=status.HTTP_201_CREATED)
+async def create_character(
+    body: CharacterCreate, _user: RequireUser, svc: Characters
+) -> CharacterOut:
+    character = await svc.create(body)
+    return CharacterOut.model_validate(character)
+
+
+@router.get("/{character_id}", response_model=CharacterOut)
 async def get_character(
-    character_id: UUID,
-    current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_session),
-) -> CharacterResponse:
-    """Retrieve a character by ID."""
-    svc = CharacterService(db)
-    character = await svc.get(character_id, current_user.id)
-    return CharacterResponse.model_validate(character)
+    character_id: str, principal: CurrentPrincipal, svc: Characters
+) -> CharacterOut:
+    character = await svc.get(character_id, guest=principal.kind != "user")
+    return CharacterOut.model_validate(character)
 
 
-@router.patch("/{character_id}", response_model=CharacterResponse)
+@router.patch("/{character_id}", response_model=CharacterOut)
 async def update_character(
-    character_id: UUID,
-    data: CharacterUpdate,
-    current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_session),
-) -> CharacterResponse:
-    """Update a character's profile or settings."""
-    svc = CharacterService(db)
-    character = await svc.update(character_id, current_user.id, data)
-    return CharacterResponse.model_validate(character)
+    character_id: str, body: CharacterUpdate, _user: RequireUser, svc: Characters
+) -> CharacterOut:
+    character = await svc.update(character_id, body)
+    return CharacterOut.model_validate(character)
 
 
-@router.delete("/{character_id}", response_model=MessageResponse)
-async def delete_character(
-    character_id: UUID,
-    current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_session),
-) -> MessageResponse:
-    """Delete a character and all associated workspace files."""
-    svc = CharacterService(db)
-    await svc.delete(character_id, current_user.id)
-    return MessageResponse(message="Character deleted.")
+@router.delete("/{character_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_character(character_id: str, _user: RequireUser, svc: Characters) -> None:
+    await svc.archive(character_id)
 
 
-# ---------------------------------------------------------------------------
-# Asset upload endpoints
-# ---------------------------------------------------------------------------
-
-
-@router.post("/{character_id}/avatar", response_model=MessageResponse)
-async def upload_avatar(
-    character_id: UUID,
-    file: UploadFile = File(...),
-    current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_session),
-) -> MessageResponse:
-    """Upload an avatar image for a character."""
-    svc = CharacterService(db)
-    data = await file.read()
-    path = await svc.save_avatar(character_id, current_user.id, data, file.filename or "avatar")
-    return MessageResponse(message=f"Avatar saved to '{path}'.")
-
-
-# ---------------------------------------------------------------------------
-# PNGTuber avatar asset endpoints
-# ---------------------------------------------------------------------------
-
-_VALID_STATES = {"idle", "talking", "blinking"}
-_VALID_EXPRESSIONS = {"default", "happy", "sad", "angry", "surprised"}
-
-
-@router.post("/{character_id}/avatar/pngtuber/{state}/{expression}", response_model=MessageResponse)
-async def upload_pngtuber_asset(
-    character_id: UUID,
-    state: str,
-    expression: str,
-    file: UploadFile = File(...),
-    current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_session),
-) -> MessageResponse:
-    """Upload a PNGTuber state PNG (e.g. state=idle, expression=happy)."""
-    from nagiflow.core.exceptions import ValidationError
-
-    if state not in _VALID_STATES:
-        raise ValidationError(f"Invalid state '{state}'. Valid: {sorted(_VALID_STATES)}")
-    if expression not in _VALID_EXPRESSIONS:
-        raise ValidationError(f"Invalid expression '{expression}'. Valid: {sorted(_VALID_EXPRESSIONS)}")
-
-    svc = CharacterService(db)
-    await svc.get(character_id, current_user.id)  # ownership check
-
-    dest = workspace.character_avatar_dir(character_id) / f"{state}_{expression}.png"
-    data = await file.read()
-    await workspace.save_file(dest, data)
-    return MessageResponse(message=f"PNGTuber asset saved: {state}_{expression}.png")
-
-
-@router.get("/{character_id}/avatar/pngtuber/config")
-async def get_pngtuber_config(
-    character_id: UUID,
-    current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_session),
-) -> dict:
-    """Return which state/expression PNG files have been uploaded."""
-    svc = CharacterService(db)
-    await svc.get(character_id, current_user.id)
-
-    avatar_dir = workspace.character_avatar_dir(character_id)
-    uploaded: list[dict] = []
-    if avatar_dir.exists():
-        for png in sorted(avatar_dir.glob("*.png")):
-            parts = png.stem.split("_", 1)
-            if len(parts) == 2:
-                state, expression = parts
-                if state in _VALID_STATES and expression in _VALID_EXPRESSIONS:
-                    uploaded.append({"state": state, "expression": expression, "filename": png.name})
-    return {"character_id": str(character_id), "assets": uploaded}
-
-
-@router.get("/{character_id}/avatar/pngtuber/{filename}")
-async def serve_pngtuber_asset(
-    character_id: UUID,
-    filename: str,
-    current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_session),
-) -> FileResponse:
-    """Serve a specific PNGTuber PNG by filename."""
-    from nagiflow.core.exceptions import NotFoundError
-
-    svc = CharacterService(db)
-    await svc.get(character_id, current_user.id)
-
-    path = workspace.character_avatar_dir(character_id) / filename
-    if not path.exists() or path.suffix.lower() != ".png":
-        raise NotFoundError(f"Asset '{filename}' not found.")
-    return FileResponse(path, media_type="image/png")
-
-
-@router.post("/{character_id}/voice-sample", response_model=MessageResponse)
-async def upload_voice_sample(
-    character_id: UUID,
-    file: UploadFile = File(...),
-    current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_session),
-) -> MessageResponse:
-    """Upload a reference voice sample for TTS speaker matching."""
-    svc = CharacterService(db)
-    data = await file.read()
-    path = await svc.save_voice_sample(character_id, current_user.id, data, file.filename or "voice_sample")
-    return MessageResponse(message=f"Voice sample saved to '{path}'.")
-
-
-@router.post("/{character_id}/model", response_model=MessageResponse)
-async def upload_model(
-    character_id: UUID,
-    model_type: Literal["live2d", "3d"] = Query(...),
-    file: UploadFile = File(...),
-    current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_session),
-) -> MessageResponse:
-    """
-    Upload a Live2D (.model3.json, .moc3, .zip) or 3D (.vrm, .glb, .gltf) model file.
-    """
-    svc = CharacterService(db)
-    data = await file.read()
-    path = await svc.save_model_file(
-        character_id, current_user.id, data, file.filename or "model", model_type
-    )
-    return MessageResponse(message=f"Model saved to '{path}'.")
-
-
-# ---------------------------------------------------------------------------
-# Skill management
-# ---------------------------------------------------------------------------
-
-
-@router.get("/{character_id}/skills", response_model=list[CharacterSkillResponse])
-async def list_character_skills(
-    character_id: UUID,
-    current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_session),
-) -> list[CharacterSkillResponse]:
-    """List skills assigned to a character."""
-    svc = CharacterService(db)
-    char_skills = await svc.get_skills(character_id, current_user.id)
-    return [
-        CharacterSkillResponse(
-            id=cs.id,
-            character_id=cs.character_id,
-            skill_id=cs.skill_id,
-            skill_name=cs.skill.name,
-            skill_display_name=cs.skill.display_name,
-            config=cs.config,
-            is_enabled=cs.is_enabled,
-        )
-        for cs in char_skills
-    ]
-
-
-@router.post("/{character_id}/skills", response_model=MessageResponse, status_code=201)
-async def assign_skill(
-    character_id: UUID,
-    req: AssignSkillRequest,
-    current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_session),
-) -> MessageResponse:
-    """Assign a skill to a character."""
-    svc = CharacterService(db)
-    await svc.assign_skill(character_id, current_user.id, req)
-    return MessageResponse(message="Skill assigned.")
-
-
-@router.delete("/{character_id}/skills/{skill_id}", response_model=MessageResponse)
-async def remove_skill(
-    character_id: UUID,
-    skill_id: UUID,
-    current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_session),
-) -> MessageResponse:
-    """Remove a skill assignment from a character."""
-    svc = CharacterService(db)
-    await svc.remove_skill(character_id, current_user.id, skill_id)
-    return MessageResponse(message="Skill removed.")
+@router.post("/{character_id}:duplicate", response_model=CharacterOut)
+async def duplicate_character(
+    character_id: str, _user: RequireUser, svc: Characters
+) -> CharacterOut:
+    character = await svc.duplicate(character_id)
+    return CharacterOut.model_validate(character)
