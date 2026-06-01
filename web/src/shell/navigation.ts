@@ -14,7 +14,7 @@ export interface NavDestination {
 }
 
 export const NAV_DESTINATIONS: NavDestination[] = [
-  { i18nKey: 'nav.chat', icon: 'mdi-chat-outline', to: '/', requiresUser: false },
+  { i18nKey: 'nav.chat', icon: 'mdi-chat-outline', to: '/chat', requiresUser: false },
   { i18nKey: 'nav.characters', icon: 'mdi-account-multiple-outline', to: '/characters', requiresUser: true },
   { i18nKey: 'nav.scripts', icon: 'mdi-script-text-outline', to: '/scripts', requiresUser: true },
   { i18nKey: 'nav.live', icon: 'mdi-broadcast', to: '/live', requiresUser: true },

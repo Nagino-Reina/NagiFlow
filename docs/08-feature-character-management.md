@@ -6,7 +6,7 @@
 | **Doc ID** | NF-08 |
 | **Version** | 0.1 (Draft) |
 | **Last updated** | 2026-05-30 |
-| **Related** | [04 Data](04-data-model-and-storage.md), [06 Modules](06-module-and-extension-system.md), [07 Scripts](07-feature-script-management.md), [09 Privacy](09-feature-multiuser-memory-and-privacy.md), [10 Realtime/Media](10-feature-realtime-and-media-generation.md) |
+| **Related** | [04 Data](04-data-model-and-storage.md), [06 Modules](06-module-and-extension-system.md), [07 Scripts](07-feature-script-management.md), [09 Privacy](09-feature-multiuser-memory-and-privacy.md), [11 Realtime/Media](11-feature-realtime-and-media-generation.md) |
 | **Traces** | FR-CM-1 … FR-CM-12, FR-MOD-5, NFR-PRIV-2/3, NFR-MAINT-2 |
 
 ---
@@ -48,13 +48,13 @@ The profile is the descriptive core (FR-CM-1/2/3):
 |---|---|
 | `display_name`, `aliases` | Names the character goes by. |
 | `avatar_key`, `portrait_key` | Images stored under `characters/<id>/` (storage keys in DB). |
-| `avatar_bundle_key`, `avatar_renderer` | The character's **avatar bundle** for video/live rendering — a **PNGTuber sprite set by default**, or a **Live2D / 3D model** where used — plus the preferred renderer (`pngtuber` default, `live2d`, `3d`, or `external`). Consumed by the `AvatarRenderProvider` ([10 §5](10-feature-realtime-and-media-generation.md)). Optional; without it, rendering falls back to a static portrait. |
+| `avatar_bundle_key`, `avatar_renderer` | The character's **avatar bundle** for video/live rendering — a **PNGTuber sprite set by default**, or a **Live2D / 3D model** where used — plus the preferred renderer (`pngtuber` default, `live2d`, `3d`, or `external`). Consumed by the `AvatarRenderProvider` ([11 §5](11-feature-realtime-and-media-generation.md)). Optional; without it, rendering falls back to a static portrait. |
 | `bio` / `backstory` | Lore and context the character "knows" about itself. |
 | `persona_prompt` | The authored **system persona** — tone, speech quirks, do/don't, world rules. |
 | `language_default` | Preferred language; affects prompt and voice selection. |
 | `tags`, `status` | Organization; lifecycle (`active`/`draft`/`archived`). |
 
-The **persona prompt** is combined at runtime with the personality mapping (§3) and retrieved memories (§5) by the Dialogue Orchestrator ([10 §4](10-feature-realtime-and-media-generation.md)) to produce the system context for each turn. Authors get a live **preview chat** to iterate on persona without leaving the editor.
+The **persona prompt** is combined at runtime with the personality mapping (§3) and retrieved memories (§5) by the Dialogue Orchestrator ([11 §4](11-feature-realtime-and-media-generation.md)) to produce the system context for each turn. Authors get a live **preview chat** to iterate on persona without leaving the editor.
 
 ---
 
@@ -261,7 +261,7 @@ Large fine-tuned voice artifacts are optional in the package (toggle) to keep sh
 
 ## 8. Permissions
 
-Creating and editing characters (profile, personality, voice training, memory editing, export/import) are **advanced** operations requiring an authenticated user ([09 §3](09-feature-multiuser-memory-and-privacy.md)). Guests may only *converse* with characters explicitly marked **guest-visible**, and never see or edit memory or character internals. Voice fine-tune and import jobs are attributed to the requesting user in usage accounting ([11 §3](11-feature-observability.md)).
+Creating and editing characters (profile, personality, voice training, memory editing, export/import) are **advanced** operations requiring an authenticated user ([09 §3](09-feature-multiuser-memory-and-privacy.md)). Guests may only *converse* with characters explicitly marked **guest-visible**, and never see or edit memory or character internals. Voice fine-tune and import jobs are attributed to the requesting user in usage accounting ([12 §3](12-feature-observability.md)).
 
 ---
 

@@ -1,4 +1,4 @@
-"""Password hashing + opaque session tokens (docs/05 §2, docs/15 §3).
+"""Password hashing + opaque session tokens (docs/05 §2, docs/16 §3).
 
 - Passwords: Argon2id (memory-hard). Never stored/logged in plaintext.
 - Sessions: opaque random tokens; only the SHA-256 hash is persisted.

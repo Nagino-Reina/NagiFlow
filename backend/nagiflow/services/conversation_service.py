@@ -8,6 +8,7 @@ from ..models.conversation import Conversation, ConversationParticipant, Message
 from ..providers.registry import ProviderRegistry
 from ..repositories.characters import CharacterRepository
 from ..repositories.conversations import ConversationRepository, MessageRepository
+from .affect import AffectService
 from .orchestrator import DialogueOrchestrator
 
 
@@ -18,11 +19,13 @@ class ConversationService:
         messages: MessageRepository,
         characters: CharacterRepository,
         registry: ProviderRegistry,
+        affect: AffectService,
     ) -> None:
         self.conversations = conversations
         self.messages = messages
         self.characters = characters
         self.registry = registry
+        self.affect = affect
 
     async def create(
         self, *, user_id: str, character_id: str, is_guest: bool, title: str | None
@@ -84,9 +87,20 @@ class ConversationService:
         )
         self.messages.add(user_msg)
 
+        # Emotion: appraise the turn and update the per-relationship mood (docs/10 §3, §6).
+        affect_result = await self.affect.process_turn(
+            character=character,
+            user_id=conversation.user_id,
+            user_text=text,
+            history=history,
+        )
+
         orchestrator = DialogueOrchestrator(self.registry)
         result = await orchestrator.handle_turn(
-            character=character, history=history, user_text=text
+            character=character,
+            history=history,
+            user_text=text,
+            affect_directive=affect_result.directive,
         )
 
         reply_msg = Message(
@@ -102,7 +116,10 @@ class ConversationService:
                     "completion_tokens": (
                         result.usage.completion_tokens if result.usage else None
                     ),
-                }
+                },
+                "affect": affect_result.affect.to_dict(),
+                "expression": affect_result.expression,
+                "voice_style": affect_result.voice_style,
             },
         )
         self.messages.add(reply_msg)

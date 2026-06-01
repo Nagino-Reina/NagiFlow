@@ -17,7 +17,7 @@ def _set_cookie(response: Response, issued: IssuedSession) -> None:
         issued.token,
         httponly=True,
         samesite="lax",
-        secure=False,  # local dev over http; set True behind TLS (docs/15 §6)
+        secure=False,  # local dev over http; set True behind TLS (docs/16 §6)
     )
 
 

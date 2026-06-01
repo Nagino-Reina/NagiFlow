@@ -58,7 +58,7 @@
 
 - **Engine:** SQLite in **WAL** mode (better read/write concurrency, resilience).
 - **Access:** SQLAlchemy ORM with the **repository + unit-of-work** pattern; no raw paths/SQL in services.
-- **Migrations:** Alembic; applied on startup after a safety backup of `nagiflow.db` into `backups/` ([13 §migrations](13-runtime-and-deployment.md)).
+- **Migrations:** Alembic; applied on startup after a safety backup of `nagiflow.db` into `backups/` ([14 §migrations](14-runtime-and-deployment.md)).
 - **Integrity:** foreign keys enforced; timestamps (`created_at`/`updated_at`) on all rows; soft-delete where reversibility matters (e.g. characters, scripts) and hard-delete where privacy requires it (e.g. user data deletion).
 - **Write concurrency:** WAL allows concurrent readers but **only one writer** at a time. To avoid `SQLITE_BUSY` under live turns + background jobs, connections set a `busy_timeout`, writes are kept short (large bytes go to the FS, not the DB), and write-heavy job steps batch/serialize their commits. Heavy concurrent write load is a signal to migrate the DB seam to an external engine ([§1](#1-storage-philosophy), NFR-SCALE-3).
 
@@ -115,7 +115,7 @@ erDiagram
 | status | TEXT | `active` \| `disabled` |
 | prefs | JSON | UI/locale prefs |
 
-> Guests may be represented as ephemeral `user` rows or as session-only principals; see [09](09-feature-multiuser-memory-and-privacy.md). Secrets handling per [15 §3](15-security-and-threat-model.md).
+> Guests may be represented as ephemeral `user` rows or as session-only principals; see [09](09-feature-multiuser-memory-and-privacy.md). Secrets handling per [16 §3](16-security-and-threat-model.md).
 
 **`session`**
 
@@ -247,7 +247,7 @@ erDiagram
 | user_id | TEXT FK→user | (guest user row or local) |
 | mode | TEXT | `chat` \| `live` |
 | sensitive_mode | INTEGER | 0/1 effective for this conversation |
-| director_config | JSON NULL | multi-character turn rules: `max_chain_depth`, `max_character_turns_per_input`, cooldown, selection policy ([10 §4.5](10-feature-realtime-and-media-generation.md)) |
+| director_config | JSON NULL | multi-character turn rules: `max_chain_depth`, `max_character_turns_per_input`, cooldown, selection policy ([11 §4.5](11-feature-realtime-and-media-generation.md)) |
 | title | TEXT NULL | |
 | status | TEXT | `active` \| `ended` |
 | meta | JSON | live-session info, connector source, etc. |
@@ -335,7 +335,7 @@ erDiagram
 
 ### 5.8 Usage, metrics & audit
 
-**`usage_record`** — token/cost accounting ([11](11-feature-observability.md)).
+**`usage_record`** — token/cost accounting ([12](12-feature-observability.md)).
 
 | Field | Type | Notes |
 |---|---|---|
@@ -352,7 +352,7 @@ erDiagram
 | audio_seconds | REAL NULL | for TTS |
 | est_cost | REAL NULL | for remote providers |
 | occurred_at | DATETIME | event time |
-| correlation_id | TEXT NULL | links request → WS turn → jobs → this record ([05 §1](05-api-specification.md), [11 §4](11-feature-observability.md)) |
+| correlation_id | TEXT NULL | links request → WS turn → jobs → this record ([05 §1](05-api-specification.md), [12 §4](12-feature-observability.md)) |
 
 **`metric_sample`** *(optional / may be ephemeral)* — periodic system/service samples (cpu/mem/gpu/disk, service health), retained briefly for charts.
 

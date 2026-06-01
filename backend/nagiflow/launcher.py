@@ -1,11 +1,11 @@
-"""One-click local launcher (docs/13 §3, FR-SYS-1...5).
+"""One-click local launcher (docs/14 §3, FR-SYS-1...5).
 
 Starts the backend (uvicorn) and, in dev, the frontend (Vite), multiplexes both logs into
 a single terminal with colored prefixes, health-waits until ready, and on Ctrl-C / terminal
 close tears down **only NagiFlow's own children** -- never external services like Ollama.
 
 Cross-platform: POSIX uses sessions + signals; Windows uses a new process group +
-CTRL_BREAK_EVENT with a taskkill escalation (docs/13 §3.3).
+CTRL_BREAK_EVENT with a taskkill escalation (docs/14 §3.3).
 """
 
 from __future__ import annotations

@@ -6,7 +6,7 @@
 | **Doc ID** | NF-09 |
 | **Version** | 0.1 (Draft) |
 | **Last updated** | 2026-05-30 |
-| **Related** | [03 Architecture](03-system-architecture.md), [04 Data](04-data-model-and-storage.md), [05 API](05-api-specification.md), [08 Characters](08-feature-character-management.md), [10 Realtime](10-feature-realtime-and-media-generation.md) |
+| **Related** | [03 Architecture](03-system-architecture.md), [04 Data](04-data-model-and-storage.md), [05 API](05-api-specification.md), [08 Characters](08-feature-character-management.md), [11 Realtime](11-feature-realtime-and-media-generation.md) |
 | **Traces** | FR-MM-1 … FR-MM-12, FR-CM-8, NFR-PRIV-1/2/3/4, NFR-SEC-1/2/3 |
 
 ---
@@ -94,7 +94,7 @@ Every `memory_entry` has exactly one **scope**:
 
 This directly implements "a character keeps memories scoped to each user, and memories from interacting with other characters" (FR-MM-4/5, FR-CM-8).
 
-> **Where `character_interaction` memories come from.** They are produced in **multi-character live sessions** (FR-RT-10): when the turn **director** lets character A respond to character B, the salient content of that exchange is written as a `character_interaction` memory on A keyed to counterpart B (and vice-versa) — see [10 §4.5](10-feature-realtime-and-media-generation.md). Outside a multi-character session this scope simply stays empty.
+> **Where `character_interaction` memories come from.** They are produced in **multi-character live sessions** (FR-RT-10): when the turn **director** lets character A respond to character B, the salient content of that exchange is written as a `character_interaction` memory on A keyed to counterpart B (and vice-versa) — see [11 §4.5](11-feature-realtime-and-media-generation.md). Outside a multi-character session this scope simply stays empty.
 
 ### 4.2 Vector namespaces
 
@@ -174,7 +174,7 @@ It does not erase the character's memory of the current user, nor block `charact
 
 ### 5.4 Edge cases
 
-- **Public stream = everyone is "another user".** When live-chat viewers are routed in as inputs ([10 §6](10-feature-realtime-and-media-generation.md)), each viewer is a distinct (often guest) user; sensitive mode ON ensures the character won't surface one viewer's info to another. This is why the global default is ON for streaming.
+- **Public stream = everyone is "another user".** When live-chat viewers are routed in as inputs ([11 §6](11-feature-realtime-and-media-generation.md)), each viewer is a distinct (often guest) user; sensitive mode ON ensures the character won't surface one viewer's info to another. This is why the global default is ON for streaming.
 - **Same user, different session.** `user_scoped` memory persists across that user's sessions (continuity), independent of sensitive mode.
 - **Counterpart references users.** An interaction memory that embeds another user's info is filtered under sensitive mode even though its scope is `character_interaction`.
 
@@ -185,14 +185,14 @@ It does not erase the character's memory of the current user, nor block `charact
 - **Deletion (FR-MM-10, NFR-PRIV-3).** Deleting a user **hard-deletes** their `user_scoped` memories across characters and removes their vector namespace(s); the user's conversations/messages are deleted or anonymized per policy. `character_general` and unrelated data are untouched.
 - **Guest reaping (FR-MM-12).** Ephemeral **guest** principals are garbage-collected after session expiry/inactivity via the same hard-delete path (sessions + `user_scoped` memory + vector namespaces). On a public stream **every viewer is a distinct guest**, so reaping bounds row/namespace growth; generative use is also rate/resource-capped per guest to protect a shared instance ([04 §8](04-data-model-and-storage.md)).
 - **Export hygiene (NFR-PRIV-2).** Character export excludes `user_scoped` memory by default so sharing a character never ships other people's data ([08 §6.2](08-feature-character-management.md)).
-- **Local-first (NFR-PRIV-4).** All user data lives in the local workspace by default; nothing is sent to external services except what a configured provider/connector explicitly transmits to do its job, and that surface is visible in observability ([11](11-feature-observability.md)).
+- **Local-first (NFR-PRIV-4).** All user data lives in the local workspace by default; nothing is sent to external services except what a configured provider/connector explicitly transmits to do its job, and that surface is visible in observability ([12](12-feature-observability.md)).
 - **Auditability (NFR-SEC-2).** Sensitive operations — permission changes, sensitive-mode toggles, memory deletions, module permission grants — are written to the audit log ([04 §3](04-data-model-and-storage.md)).
 
 ---
 
 ## 7. Threat considerations (privacy-focused)
 
-> The full cross-cutting threat model (modules, secrets, transport, supply chain) is consolidated in [15 Security & Threat Model](15-security-and-threat-model.md); this section covers the privacy slice.
+> The full cross-cutting threat model (modules, secrets, transport, supply chain) is consolidated in [16 Security & Threat Model](16-security-and-threat-model.md); this section covers the privacy slice.
 
 | Concern | Mitigation |
 |---|---|

@@ -1,4 +1,4 @@
-"""Layered configuration (docs/03 §5, docs/13 §4).
+"""Layered configuration (docs/03 §5, docs/14 §4).
 
 Precedence (lowest → highest): built-in defaults → workspace config (`workspace/config/app.toml`)
 → environment (`.env` / `NAGIFLOW_*`). Runtime overrides (settings UI) layer on top later.
@@ -73,7 +73,11 @@ class Settings(BaseSettings):
     voxcpm_base_url: str = "http://127.0.0.1:9880"  # voxcpm_server only
     tts_sample_rate: int = 48000
 
-    # --- auth / sessions (docs/05 §2, docs/15 §3) ---
+    # Emotion & affect (docs/10). Appraisal engine: "hybrid" (LLM with deterministic
+    # fallback), "deterministic" (lexicon/heuristic only — offline, reproducible), or "off".
+    affect_appraisal: str = "hybrid"
+
+    # --- auth / sessions (docs/05 §2, docs/16 §3) ---
     session_ttl: int = 60 * 60 * 24 * 30  # 30 days
     guest_ttl: int = 60 * 60 * 24  # 1 day
 

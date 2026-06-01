@@ -1,12 +1,12 @@
-# 12 · UI / UX Design
+# 13 · UI / UX Design
 
 | | |
 |---|---|
 | **Document** | UI / UX Design |
-| **Doc ID** | NF-12 |
+| **Doc ID** | NF-13 |
 | **Version** | 0.1 (Draft) |
 | **Last updated** | 2026-05-31 |
-| **Related** | [01 Vision](01-vision-and-scope.md), [02 SRS](02-requirements-specification.md), [03 §3.4 Frontend](03-system-architecture.md), [05 API](05-api-specification.md), [06 §8 UI extensions](06-module-and-extension-system.md), feature docs [07](07-feature-script-management.md)–[11](11-feature-observability.md) |
+| **Related** | [01 Vision](01-vision-and-scope.md), [02 SRS](02-requirements-specification.md), [03 §3.4 Frontend](03-system-architecture.md), [05 API](05-api-specification.md), [06 §8 UI extensions](06-module-and-extension-system.md), feature docs [07](07-feature-script-management.md)–[12](12-feature-observability.md) |
 | **Traces** | NFR-UX-1/2/3, FR-MM-2/11, FR-CM-4, FR-SM-3/5, FR-RT-2/9/10/11, FR-OBS-1/2/3, FR-MOD-4 |
 
 ---
@@ -94,8 +94,8 @@ flowchart TB
 
 - **App bar** — nav toggle, brand, optional global search, **locale switch** (zh-Hant/en), **theme toggle** (light/dark), info, **job tray** badge, **notifications**, and the **principal menu** (guest → "Log in / Register"; user → profile, logout, logout-all).
 - **Nav rail** — collapsible Vuetify navigation drawer; icons + labels; active-route highlight; extension destinations grouped below core.
-- **Job tray** — a persistent, collapsible strip listing active/recent **jobs** (ASR import, render, fine-tune, re-embed) with progress and cancel; clicking opens the Dashboard → Jobs panel ([11 §5](11-feature-observability.md)).
-- **Notifications** — transient toasts (success/info) and a small inbox for budget alerts ([11 §3.2](11-feature-observability.md)) and finished jobs.
+- **Job tray** — a persistent, collapsible strip listing active/recent **jobs** (ASR import, render, fine-tune, re-embed) with progress and cancel; clicking opens the Dashboard → Jobs panel ([12 §5](12-feature-observability.md)).
+- **Notifications** — transient toasts (success/info) and a small inbox for budget alerts ([12 §3.2](12-feature-observability.md)) and finished jobs.
 - **Sensitive-mode indicator** — a global chip shows the effective sensitive-mode state in any conversation/live context ([09 §5](09-feature-multiuser-memory-and-privacy.md)).
 
 ---
@@ -151,7 +151,7 @@ The system is a single token set with **light** and **dark** values. Brand ident
 | **success** | `#1E7D43` / `#FFFFFF` | `#8BD6A0` / `#003919` | `#A6F2C0` / `#005227` |
 | **info** | `#1763C7` / `#FFFFFF` | `#A9C7FF` / `#002E69` | `#D6E3FF` / `#004494` |
 
-Status is **never color-alone** — always icon + text (§10). Service health maps: `up → success`, `degraded → warning`, `down → error` ([11 §2.2](11-feature-observability.md)); sensitive-mode chip uses `tertiary`/lock icon.
+Status is **never color-alone** — always icon + text (§10). Service health maps: `up → success`, `degraded → warning`, `down → error` ([12 §2.2](12-feature-observability.md)); sensitive-mode chip uses `tertiary`/lock icon.
 
 #### Avatar-stage surfaces
 
@@ -300,14 +300,14 @@ The most complex screen — a "broadcast desk".
 ```
 
 - **Cast selection** — start with one or **add characters** to form a *cast* (FR-RT-10). Each cast member has a color/badge used to tag transcript + avatar.
-- **Director controls** — surface `director_config` ([10 §4.5](10-feature-realtime-and-media-generation.md)): `max_chain_depth`, `max_character_turns_per_input`, cooldown, selection policy (addressed / relevance / round-robin). The transcript shows **`turn.assigned`** ("who the director picked") and **chain depth** so behavior is legible.
-- **Avatar stage** — renders the speaking character via the active `AvatarRenderProvider` (**PNGTuber default**; Live2D/3D/external selectable per character — [10 §5](10-feature-realtime-and-media-generation.md)). Renderer picker + "no avatar → portrait/audio-only" fallback indicator.
+- **Director controls** — surface `director_config` ([11 §4.5](11-feature-realtime-and-media-generation.md)): `max_chain_depth`, `max_character_turns_per_input`, cooldown, selection policy (addressed / relevance / round-robin). The transcript shows **`turn.assigned`** ("who the director picked") and **chain depth** so behavior is legible.
+- **Avatar stage** — renders the speaking character via the active `AvatarRenderProvider` (**PNGTuber default**; Live2D/3D/external selectable per character — [11 §5](11-feature-realtime-and-media-generation.md)). Renderer picker + "no avatar → portrait/audio-only" fallback indicator.
 - **Streaming** — text captions + audio play concurrently; amplitude/viseme drives the avatar mouth. **Interrupt/barge-in** button (and push-to-talk) cancels the in-flight turn (FR-RT-8).
-- **Connectors** — attach live-chat sources (Twitch/YouTube/Discord); incoming messages appear as viewer inputs; **sensitive mode defaults ON** for public streaming with a prominent, locked indicator ([10 §6](10-feature-realtime-and-media-generation.md), [09 §5.4](09-feature-multiuser-memory-and-privacy.md)).
+- **Connectors** — attach live-chat sources (Twitch/YouTube/Discord); incoming messages appear as viewer inputs; **sensitive mode defaults ON** for public streaming with a prominent, locked indicator ([11 §6](11-feature-realtime-and-media-generation.md), [09 §5.4](09-feature-multiuser-memory-and-privacy.md)).
 - **Resilience** — reconnect banner on socket loss; per-turn error chip; session summary on end.
 
 ### 7.7 Observability dashboard (FR-OBS-*)
-Vuetify cards ([11 §5](11-feature-observability.md)):
+Vuetify cards ([12 §5](12-feature-observability.md)):
 - **System** — CPU/RAM/GPU/disk gauges + short trend (GPU card only when detected).
 - **Services** — provider/connector health (`up`/`degraded`/`down`, latency, last-checked).
 - **Usage** — token totals + breakdowns (per user/character/conversation/day/model) + trend; **budget status** if enabled; CSV/JSON export.
@@ -322,7 +322,7 @@ Vuetify cards ([11 §5](11-feature-observability.md)):
 - **Providers** — per-capability (`llm`/`tts`/`asr`/`embedding`/`vector`/`storage`/`avatar`) list with **default + fallback order**, a **test/health** button, and capability-flag display so users see what each provider supports.
 
 ### 7.9 Settings
-- **Providers & defaults**, **sensitive-mode global default** (recommended ON for public/streaming), **locale**, **theme/density**, **workspace info**, **config** (layered view; secrets from env shown as "set/unset", never values — [13 §4](13-runtime-and-deployment.md)).
+- **Providers & defaults**, **sensitive-mode global default** (recommended ON for public/streaming), **locale**, **theme/density**, **workspace info**, **config** (layered view; secrets from env shown as "set/unset", never values — [14 §4](14-runtime-and-deployment.md)).
 
 ---
 

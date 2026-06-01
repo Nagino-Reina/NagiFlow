@@ -1,12 +1,12 @@
-# 13 · Runtime & Deployment
+# 14 · Runtime & Deployment
 
 | | |
 |---|---|
 | **Document** | Runtime & Deployment |
-| **Doc ID** | NF-13 |
+| **Doc ID** | NF-14 |
 | **Version** | 0.1 (Draft) |
 | **Last updated** | 2026-05-30 |
-| **Related** | [03 Architecture](03-system-architecture.md), [04 Data](04-data-model-and-storage.md), [06 Modules](06-module-and-extension-system.md), [11 Observability](11-feature-observability.md) |
+| **Related** | [03 Architecture](03-system-architecture.md), [04 Data](04-data-model-and-storage.md), [06 Modules](06-module-and-extension-system.md), [12 Observability](12-feature-observability.md) |
 | **Traces** | FR-SYS-1 … FR-SYS-11, NFR-PORT-1/2/3, NFR-REL-1/3, NFR-UX-1 |
 
 ---
@@ -71,7 +71,7 @@ flowchart TD
 4. **Migrate (FR-SYS-10).** Back up the SQLite DB to `backups/`, then run Alembic migrations to current head ([04 §4](04-data-model-and-storage.md)).
 5. **Start processes.** Launch the backend (uvicorn) and the frontend (vite dev, or rely on FastAPI's static serving in prod), as **child processes in a managed process group**.
 6. **Health-wait.** Poll backend health until ready before declaring "up" (and before opening the browser).
-7. **Single-terminal logs (FR-SYS-4).** Capture child stdout/stderr and **interleave** them into the one terminal with clear, colored prefixes (`[backend]`, `[frontend]`), so the operator watches everything in one place ([11 §4](11-feature-observability.md)).
+7. **Single-terminal logs (FR-SYS-4).** Capture child stdout/stderr and **interleave** them into the one terminal with clear, colored prefixes (`[backend]`, `[frontend]`), so the operator watches everything in one place ([12 §4](12-feature-observability.md)).
 8. **Open browser (optional, NFR-UX-1).** Offer to open the app URL.
 
 ### 3.3 Shutdown semantics (FR-SYS-5 — the subtle part)
@@ -110,7 +110,7 @@ flowchart LR
 | **Environment** | Deployment-specific values and **secrets** (provider/connector credentials). |
 | **Runtime** | Admin changes via the settings UI, persisted back to workspace config where appropriate. |
 
-- **Secrets are never committed.** Credentials come from env (or an OS secret store) and are redacted in logs ([11 §4](11-feature-observability.md)). NagiFlow never writes secrets into the repo or the shareable workspace config (NFR-SEC-2).
+- **Secrets are never committed.** Credentials come from env (or an OS secret store) and are redacted in logs ([12 §4](12-feature-observability.md)). NagiFlow never writes secrets into the repo or the shareable workspace config (NFR-SEC-2).
 - **Provider/connector selection** is config-driven so swapping Ollama→another LLM, or VoxCPM→another TTS, is configuration, not code ([06](06-module-and-extension-system.md), FR-SYS-8/9).
 
 ---
@@ -152,8 +152,8 @@ Distribution keeps the **local-first** stance: external heavyweight services (Ol
 
 ## 8. Cross-platform support (NFR-PORT-1/2/3)
 
-- **OS** — Windows, macOS, Linux. Platform differences are isolated in the launcher (signals/process trees) and in optional GPU probing ([11 §2.1](11-feature-observability.md)).
-- **Hardware tiers** — runs CPU-only (lighter models, possibly non-streaming TTS) or with a GPU (faster, streaming, fine-tune training). Capabilities are detected and the UI adapts ([10 §7](10-feature-realtime-and-media-generation.md)).
+- **OS** — Windows, macOS, Linux. Platform differences are isolated in the launcher (signals/process trees) and in optional GPU probing ([12 §2.1](12-feature-observability.md)).
+- **Hardware tiers** — runs CPU-only (lighter models, possibly non-streaming TTS) or with a GPU (faster, streaming, fine-tune training). Capabilities are detected and the UI adapts ([11 §7](11-feature-realtime-and-media-generation.md)).
 - **Paths/encoding** — workspace paths are handled portably; the DB stores **storage keys**, not absolute paths, so a workspace can move between machines ([04 §2](04-data-model-and-storage.md)).
 
 ---
@@ -165,7 +165,7 @@ Distribution keeps the **local-first** stance: external heavyweight services (Ol
 | FR-SYS-1 (one-click launcher) | §3 |
 | FR-SYS-2 (prereq/tool/package checks) | §3.2 |
 | FR-SYS-3 (frontend build check) | §3.2 |
-| FR-SYS-4 (single-terminal logs) | §3.2, [11 §4] |
+| FR-SYS-4 (single-terminal logs) | §3.2, [12 §4] |
 | FR-SYS-5 (shutdown app, not external svcs) | §3.3, §7 |
 | FR-SYS-6 (workspace + SQLite default) | §4, [04] |
 | FR-SYS-7 (storage/DB abstracted, pluggable) | §4, §7 |

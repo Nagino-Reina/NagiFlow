@@ -1,4 +1,4 @@
-"""Correlation-ID middleware (docs/05 §1, docs/11 §4)."""
+"""Correlation-ID middleware (docs/05 §1, docs/12 §4)."""
 
 from __future__ import annotations
 

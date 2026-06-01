@@ -1,4 +1,4 @@
-"""System & service-health endpoints (docs/05 §4.7, docs/11 §2.2)."""
+"""System & service-health endpoints (docs/05 §4.7, docs/12 §2.2)."""
 
 from __future__ import annotations
 

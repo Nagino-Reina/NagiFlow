@@ -6,7 +6,7 @@
 | **Doc ID** | NF-01 |
 | **Version** | 0.1 (Draft) |
 | **Last updated** | 2026-05-30 |
-| **Related** | [02 Requirements](02-requirements-specification.md), [14 Roadmap](14-roadmap-and-milestones.md) |
+| **Related** | [02 Requirements](02-requirements-specification.md), [15 Roadmap](15-roadmap-and-milestones.md) |
 
 ---
 
@@ -92,7 +92,7 @@ Lands on a running instance (e.g. a creator's local or shared instance) and just
 | Time-to-first-conversation | A new user reaches a working character chat in **< 30 minutes** from a clean machine. |
 | Setup friction | The launcher detects and clearly reports **100%** of missing prerequisites. |
 | Character portability | Export → import on a second machine reproduces profile, personality, and voice config with **no manual fix-up** (memory inclusion optional). |
-| Live latency | First audible response in a live turn within a **low single-digit-second** budget on a capable consumer GPU (see [10](10-feature-realtime-and-media-generation.md)). |
+| Live latency | First audible response in a live turn within a **low single-digit-second** budget on a capable consumer GPU (see [11](11-feature-realtime-and-media-generation.md)). |
 | Extensibility | A reference provider/skill/connector/UI module can each be added **without modifying core source**. |
 | Cost transparency | Token spend is attributable **per user and per character**, and a running total is always visible. |
 
@@ -104,7 +104,7 @@ Lands on a running instance (e.g. a creator's local or shared instance) and just
 - **A4** Network access is optional; the default path works offline once models are present.
 - **C1** Core is constrained to **FastAPI** (backend) and **Vuetify** (frontend) per project direction.
 - **C2** Defaults must remain lightweight and locally runnable; heavy/cloud options are opt-in via modules.
-- **C3** The project is delivered by a small team / single maintainer; scope and sequencing in [14](14-roadmap-and-milestones.md) reflect this.
+- **C3** The project is delivered by a small team / single maintainer; scope and sequencing in [15](15-roadmap-and-milestones.md) reflect this.
 
 ## 10. Stakeholders
 

@@ -118,8 +118,9 @@ Provider failures are isolated and surfaced (with which provider failed) rather 
 |---|---|---|---|
 | POST | `/conversations` | G* | Start a conversation. Body takes `character_id` (single) or `character_ids[]` + optional `director_config` for a multi-character **live** cast (guests: guest-visible only). |
 | GET | `/conversations` | any | List own conversations. |
-| GET | `/conversations/{id}` | owner | Get conversation + messages. |
-| POST | `/conversations/{id}/messages` | owner | Send a message (synchronous reply: text + audio ref). |
+| GET | `/conversations/{id}` | owner | Get a conversation. |
+| GET | `/conversations/{id}/messages` | owner | List messages in a conversation. |
+| POST | `/conversations/{id}/messages` | owner | Send a message (synchronous reply: text now; audio ref with the voice path). |
 | WS | `/conversations/{id}/stream` | owner | **Streaming turn** (see §5). |
 | PATCH | `/conversations/{id}` | owner | Update (e.g. end, toggle sensitive mode if permitted). |
 | DELETE | `/conversations/{id}` | owner | Delete conversation. |
@@ -202,7 +203,7 @@ The protocol is **event-typed JSON** for control/text plus **binary frames** for
 
 **Semantics**
 - Text and audio stream **concurrently**; the client may render captions from `text.delta` while playing audio frames.
-- **Multi-character:** in a live session with a *cast*, every server event carries the speaker's `character_id`, and the **director** emits `turn.assigned` before each `turn.start`. Turns are serialized (one speaker at a time); a character may answer another within the director's bounded chain ([10 §4.5](10-feature-realtime-and-media-generation.md)).
+- **Multi-character:** in a live session with a *cast*, every server event carries the speaker's `character_id`, and the **director** emits `turn.assigned` before each `turn.start`. Turns are serialized (one speaker at a time); a character may answer another within the director's bounded chain ([11 §4.5](11-feature-realtime-and-media-generation.md)).
 - `control.interrupt` cancels in-flight LLM/TTS for the current turn (barge-in) and emits `turn.end` with a `cancelled` status.
 - Reconnection: the client may resume the conversation; in-flight turn state is best-effort per provider capability.
 - The same orchestration ([03 §4](03-system-architecture.md)) powers both this stream and the synchronous `POST /messages` endpoint.

@@ -1,9 +1,9 @@
-# 14 · Roadmap & Milestones
+# 15 · Roadmap & Milestones
 
 | | |
 |---|---|
 | **Document** | Roadmap & Milestones |
-| **Doc ID** | NF-14 |
+| **Doc ID** | NF-15 |
 | **Version** | 0.1 (Draft) |
 | **Last updated** | 2026-05-30 |
 | **Related** | [01 Vision](01-vision-and-scope.md), [02 SRS](02-requirements-specification.md), and all feature docs (07–12) |
@@ -35,7 +35,7 @@ flowchart LR
 **Goal:** the skeleton everything else hangs on.
 - Repo scaffold; FastAPI backend + Vuetify SPA shell; brand theme.
 - Config layering, **workspace** layout, **SQLite + ORM + Alembic** ([04](04-data-model-and-storage.md)).
-- **Launcher MVP** (prereq checks, start both, single-terminal logs, clean shutdown — [13 §3](13-runtime-and-deployment.md)).
+- **Launcher MVP** (prereq checks, start both, single-terminal logs, clean shutdown — [14 §3](14-runtime-and-deployment.md)).
 - **Provider/adapter interfaces** defined ([03 §6](03-system-architecture.md), [06 §5](06-module-and-extension-system.md)).
 
 **Exit:** `nagiflow up` starts an empty-but-running app; migrations apply; provider interfaces compile with a stub provider.
@@ -44,7 +44,7 @@ flowchart LR
 **Goal:** the smallest end-to-end that demonstrates the product.
 - **Character management**: profile, **Big Five** + behavior mapping, **zero-shot voice** via **VoxCPM** ([08 §3–4](08-feature-character-management.md)).
 - **Single-user** local auth + **guest** session; basic chat with per-character **memory** (single user) via **Ollama** ([09](09-feature-multiuser-memory-and-privacy.md) subset).
-- TTS playback of replies; **basic observability** (system + token totals) ([11](11-feature-observability.md) subset).
+- TTS playback of replies; **basic observability** (system + token totals) ([12](12-feature-observability.md) subset).
 - Official **Ollama** and **VoxCPM** provider modules ([06 §12](06-module-and-extension-system.md)).
 
 **Exit:** create a character, set personality, give it a voice from a reference clip, hold a spoken text-chat; tokens are counted; runs on a typical dev machine.
@@ -53,9 +53,9 @@ flowchart LR
 **Goal:** authoring and production.
 - **Script management**: manual authoring, multi-speaker, per-line direction ([07 §3](07-feature-script-management.md)).
 - **ASR import** (default **SenseVoice**): audio/video → timed draft → review → commit ([07 §4](07-feature-script-management.md)).
-- **Batch media render**: script → assembled audio + **subtitles (SRT/VTT)** ([10 §3](10-feature-realtime-and-media-generation.md)).
-- **Token/cost accounting** broadened (per character/conversation) ([11 §3](11-feature-observability.md)).
-- **Default PNGTuber avatar renderer** for **batch video**: render a script to video by animating the character's layered-PNG sprite set from emitted amplitude/viseme/expression events ([10 §3/§5](10-feature-realtime-and-media-generation.md)).
+- **Batch media render**: script → assembled audio + **subtitles (SRT/VTT)** ([11 §3](11-feature-realtime-and-media-generation.md)).
+- **Token/cost accounting** broadened (per character/conversation) ([12 §3](12-feature-observability.md)).
+- **Default PNGTuber avatar renderer** for **batch video**: render a script to video by animating the character's layered-PNG sprite set from emitted amplitude/viseme/expression events ([11 §3/§5](11-feature-realtime-and-media-generation.md)).
 
 **Exit:** import a recording into a script, correct it, render narrated audio with subtitles **and a PNGTuber video**; export script as JSON/SRT.
 
@@ -79,11 +79,11 @@ flowchart LR
 
 ### P5 — Realtime streaming, avatar & live chat
 **Goal:** live VTubing.
-- **WebSocket turn pipeline**: streaming LLM + **streaming TTS** + **amplitude/viseme/timing** ([10 §4–5](10-feature-realtime-and-media-generation.md)).
-- **Barge-in**, reconnection ([10 §4.2/4.4](10-feature-realtime-and-media-generation.md)).
-- **Multi-character live sessions** (a *cast*) with the **turn director** (serialized turns, bounded character↔character chains) ([10 §4.5](10-feature-realtime-and-media-generation.md)).
-- **Live-chat connectors** (Twitch/YouTube/Discord) routed as inputs with **sensitive mode default-on** ([10 §6](10-feature-realtime-and-media-generation.md)).
-- **Live avatar via default PNGTuber renderer**: real-time sprite animation driven by the streaming amplitude/viseme/expression events ([10 §5](10-feature-realtime-and-media-generation.md)).
+- **WebSocket turn pipeline**: streaming LLM + **streaming TTS** + **amplitude/viseme/timing** ([11 §4–5](11-feature-realtime-and-media-generation.md)).
+- **Barge-in**, reconnection ([11 §4.2/4.4](11-feature-realtime-and-media-generation.md)).
+- **Multi-character live sessions** (a *cast*) with the **turn director** (serialized turns, bounded character↔character chains) ([11 §4.5](11-feature-realtime-and-media-generation.md)).
+- **Live-chat connectors** (Twitch/YouTube/Discord) routed as inputs with **sensitive mode default-on** ([11 §6](11-feature-realtime-and-media-generation.md)).
+- **Live avatar via default PNGTuber renderer**: real-time sprite animation driven by the streaming amplitude/viseme/expression events ([11 §5](11-feature-realtime-and-media-generation.md)).
 - **Pluggable renderers**: **Live2D**, **3D-model renderer**, and **external-engine** adapters (OBS/VTube Studio) via the `AvatarRenderProvider` capability + connectors.
 
 **Exit:** a live session where viewer chat drives a **cast** of characters that answer the user and one another in coherent order, audio streams in near-real-time, the **default PNGTuber avatar** lip-syncs (with Live2D/3D/external selectable), and no viewer's info leaks to another.
@@ -91,9 +91,9 @@ flowchart LR
 ### P6 — Fine-tune, advanced observability, cloud seams & polish
 **Goal:** depth, scale-out seams, and release quality.
 - **Voice fine-tune training** pipeline with versioning/rollback ([08 §4.1](08-feature-character-management.md)).
-- **Advanced observability**: budgets/alerts, richer health/latency ([11 §3.2](11-feature-observability.md)).
+- **Advanced observability**: budgets/alerts, richer health/latency ([12 §3.2](12-feature-observability.md)).
 - **Cloud/external seams**: storage and external DB adapters; optional vector backends ([03 §6](03-system-architecture.md), [04 §7](04-data-model-and-storage.md)).
-- Packaging (pipx/Docker), docs, accessibility/i18n polish ([13 §7](13-runtime-and-deployment.md)).
+- Packaging (pipx/Docker), docs, accessibility/i18n polish ([14 §7](14-runtime-and-deployment.md)).
 
 **Exit:** train and activate a custom voice; set a token budget with alerts; point storage at an external backend via config; ship a packaged build.
 
@@ -131,11 +131,11 @@ This sequencing front-loads the riskiest *integration* (Ollama + VoxCPM + memory
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| **GPU availability** varies wildly | TTS/LLM speed; fine-tune feasibility | CPU fallbacks, smaller models, non-streaming path; detect & adapt ([10 §7](10-feature-realtime-and-media-generation.md)); fine-tune is P6/optional |
+| **GPU availability** varies wildly | TTS/LLM speed; fine-tune feasibility | CPU fallbacks, smaller models, non-streaming path; detect & adapt ([11 §7](11-feature-realtime-and-media-generation.md)); fine-tune is P6/optional |
 | **VoxCPM integration/training complexity** | Voice features slip | Wrap behind the TTS provider contract; ship zero-shot first, fine-tune later; pin versions; isolate in a module |
 | **ASR diarization accuracy** | Messy script imports | Treat diarization as optional; always allow manual speaker mapping ([07 §4.1](07-feature-script-management.md)) |
 | **Frontend module-federation / UI-extension complexity** | P4 slip | Start with backend skills/connectors; UI extensions can land incrementally |
-| **Avatar rendering integration** (formats, lip-sync mapping) + **Live2D licensing** | Avatar video/live slips; license friction | Default to **PNGTuber** (layered PNG, amplitude-driven lip-flap, MIT, no proprietary SDK/GPU) so the core ships clean; wrap everything behind `AvatarRenderProvider`. **Live2D's Cubism SDK is non-MIT** with redistribution/revenue terms, so Live2D ships as a **separate optional module** (the operator accepts its license), as do 3D/external; portrait/audio-only fallback always available ([10 §5/§7](10-feature-realtime-and-media-generation.md)) |
+| **Avatar rendering integration** (formats, lip-sync mapping) + **Live2D licensing** | Avatar video/live slips; license friction | Default to **PNGTuber** (layered PNG, amplitude-driven lip-flap, MIT, no proprietary SDK/GPU) so the core ships clean; wrap everything behind `AvatarRenderProvider`. **Live2D's Cubism SDK is non-MIT** with redistribution/revenue terms, so Live2D ships as a **separate optional module** (the operator accepts its license), as do 3D/external; portrait/audio-only fallback always available ([11 §5/§7](11-feature-realtime-and-media-generation.md)) |
 | **Cross-user privacy bugs** | Serious trust failure | Enforce at **data layer** (namespaces + retrieval filter), test explicitly in P3 ([09](09-feature-multiuser-memory-and-privacy.md)) |
 | **Solo-dev bandwidth** | Everything slows | Strict phase gating; ship vertical slices; avoid premature breadth |
 | **Scope creep** | Never-ship | This roadmap + cut-lines (§4) as the contract; defer to later phases by default |
@@ -164,7 +164,7 @@ CI runs unit+integration+contract on each change; privacy tests are mandatory ga
 
 - **License:** NagiFlow is released under the **MIT License**. Integrated third-party components keep their own licenses (e.g. VoxCPM under Apache-2.0); optional renderer modules with non-MIT terms (e.g. **Live2D** Cubism SDK) ship **separately** so the MIT core stays unencumbered.
 - **0.x SemVer**; changelog records breaking changes (config, schema, module API).
-- **Schema** changes ship with Alembic migrations + startup backup ([13 §6](13-runtime-and-deployment.md)).
+- **Schema** changes ship with Alembic migrations + startup backup ([14 §6](14-runtime-and-deployment.md)).
 - **Module API** versioned separately with a deprecation window ([06 §10](06-module-and-extension-system.md)).
 - A **1.0** target is reached when P1–P5 are stable, the module API is frozen for a cycle, and privacy tests are comprehensive.
 

@@ -1,4 +1,4 @@
-"""Programmatic Alembic upgrade at startup (docs/13 §6).
+"""Programmatic Alembic upgrade at startup (docs/14 §6).
 
 The app brings the DB to `head` on boot so the **migration chain is the single source
 of truth** for schema — replacing the `create_all` bootstrap. Paths are resolved from the
