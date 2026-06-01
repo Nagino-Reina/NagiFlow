@@ -16,6 +16,7 @@ from ..repositories.affect import AffectStateRepository
 from ..repositories.characters import CharacterRepository
 from ..repositories.conversations import ConversationRepository, MessageRepository
 from ..repositories.media import MediaAssetRepository
+from ..repositories.usage import UsageRepository
 from ..repositories.users import SessionRepository, UserRepository
 from ..repositories.voice_models import VoiceModelRepository
 from ..services.affect import AffectService
@@ -23,6 +24,7 @@ from ..services.auth_service import AuthService, Principal
 from ..services.character_service import CharacterService
 from ..services.conversation_service import ConversationService
 from ..services.media_service import MediaService
+from ..services.usage_service import UsageService
 from ..services.voice_service import VoiceService
 
 COOKIE_NAME = "nf_session"
@@ -69,6 +71,13 @@ def get_media_service(session: Session) -> MediaService:
 Media = Annotated[MediaService, Depends(get_media_service)]
 
 
+def get_usage_service(session: Session) -> UsageService:
+    return UsageService(UsageRepository(session))
+
+
+Usage = Annotated[UsageService, Depends(get_usage_service)]
+
+
 def get_conversation_service(session: Session, registry: Registry) -> ConversationService:
     settings = get_settings()
     affect = AffectService(AffectStateRepository(session), registry, settings)
@@ -79,6 +88,7 @@ def get_conversation_service(session: Session, registry: Registry) -> Conversati
         settings.workspace_dir,
     )
     media = get_media_service(session)
+    usage = get_usage_service(session)
     return ConversationService(
         ConversationRepository(session),
         MessageRepository(session),
@@ -87,6 +97,7 @@ def get_conversation_service(session: Session, registry: Registry) -> Conversati
         affect,
         voice,
         media,
+        usage,
         synthesize_replies=settings.synthesize_replies,
     )
 

@@ -181,7 +181,20 @@
   },
   "dashboard": {
     "title": "儀表板",
-    "description": "系統健康、服務狀態、Token 用量與工作。"
+    "description": "系統健康、服務狀態、Token 用量與工作。",
+    "refresh": "重新整理",
+    "empty": "尚無資料。",
+    "system": "系統",
+    "services": "服務",
+    "usage": "Token 用量",
+    "cpu": "CPU",
+    "memory": "記憶體",
+    "disk": "磁碟",
+    "free": "可用",
+    "tokens": "Token",
+    "calls": "呼叫次數",
+    "audio": "音訊 (秒)",
+    "byProvider": "依供應商"
   },
   "modules": {
     "title": "模組",

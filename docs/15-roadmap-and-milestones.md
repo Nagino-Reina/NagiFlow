@@ -43,7 +43,7 @@ flowchart LR
 ### P1 — MVP (give a character a voice, and talk to it)
 **Goal:** the smallest end-to-end that demonstrates the product.
 - **Character management**: profile, **Big Five** + behavior mapping, **zero-shot voice** via **VoxCPM** ([08 §3–4](08-feature-character-management.md)).
-- **Single-user** local auth + **guest** session; basic chat with per-character **memory** (single user) via **Ollama** ([09](09-feature-multiuser-memory-and-privacy.md) subset).
+- **Single-user** local auth + **guest** session; basic chat via **Ollama** using the **recent-conversation window** as context. (Persistent, scope-aware per-character **memory** — FR-MM-6 — moves to **P3** with the rest of the memory/privacy subsystem.)
 - TTS playback of replies; **basic observability** (system + token totals) ([12](12-feature-observability.md) subset).
 - Official **Ollama** and **VoxCPM** provider modules ([06 §12](06-module-and-extension-system.md)).
 
@@ -104,7 +104,7 @@ flowchart LR
 | Phase | Theme | Headline FR families | Exit criterion (short) |
 |---|---|---|---|
 | P0 | Foundations | FR-SYS-1/8/9 | `nagiflow up` runs an empty app |
-| P1 | MVP | FR-CM-1/2/3/4, FR-MM-6, FR-OBS-1/3 | Voiced character you can chat with |
+| P1 | MVP | FR-CM-1/2/3/4, FR-OBS-1/3 | Voiced character you can chat with |
 | P2 | Scripts/Media | FR-SM-1…9, FR-RT-5 | Import→correct→render with subtitles |
 | P3 | Multi-user/Privacy | FR-MM-1…11, FR-CM-11/12 | Two users, no cross-leak; safe export |
 | P4 | Modules | FR-MOD-1…11 | 3rd-party skill+connector from SDK |

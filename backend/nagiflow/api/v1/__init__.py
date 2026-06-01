@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from . import auth, characters, conversations, health, media, system, voice
+from . import auth, characters, conversations, health, media, system, usage, voice
 
 api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(auth.router)
@@ -12,6 +12,7 @@ api_router.include_router(characters.router)
 api_router.include_router(voice.router)
 api_router.include_router(conversations.router)
 api_router.include_router(media.router)
+api_router.include_router(usage.router)
 api_router.include_router(system.router)
 
 # health/liveness endpoints sit at the root (no version prefix)
