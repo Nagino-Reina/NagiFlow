@@ -13,7 +13,7 @@
 
 ## 1. Approach
 
-NagiFlow is built by a small team (initially solo), so the plan is **iterative and milestone-driven**: ship a thin vertical slice early, then widen. Each phase ends with concrete **exit criteria** and a runnable build. Scope is deliberately ordered so the **local-first core** and the **provider/module seams** exist before breadth is added — this avoids rework when external services are swapped in later.
+The plan is **iterative and milestone-driven**: ship a thin vertical slice early, then widen. Each phase ends with concrete **exit criteria** and a runnable build. Scope is deliberately ordered so the **local-first core** and the **provider/module seams** exist before breadth is added — this avoids rework when external services are swapped in later.
 
 Pre-1.0 the project uses **SemVer 0.x**: minor bumps may carry breaking changes, documented in a changelog; the **module API** is versioned separately so extension authors get stability signals ([06 §10](06-module-and-extension-system.md)).
 
@@ -137,7 +137,6 @@ This sequencing front-loads the riskiest *integration* (Ollama + VoxCPM + memory
 | **Frontend module-federation / UI-extension complexity** | P4 slip | Start with backend skills/connectors; UI extensions can land incrementally |
 | **Avatar rendering integration** (formats, lip-sync mapping) + **Live2D licensing** | Avatar video/live slips; license friction | Default to **PNGTuber** (layered PNG, amplitude-driven lip-flap, MIT, no proprietary SDK/GPU) so the core ships clean; wrap everything behind `AvatarRenderProvider`. **Live2D's Cubism SDK is non-MIT** with redistribution/revenue terms, so Live2D ships as a **separate optional module** (the operator accepts its license), as do 3D/external; portrait/audio-only fallback always available ([11 §5/§7](11-feature-realtime-and-media-generation.md)) |
 | **Cross-user privacy bugs** | Serious trust failure | Enforce at **data layer** (namespaces + retrieval filter), test explicitly in P3 ([09](09-feature-multiuser-memory-and-privacy.md)) |
-| **Solo-dev bandwidth** | Everything slows | Strict phase gating; ship vertical slices; avoid premature breadth |
 | **Scope creep** | Never-ship | This roadmap + cut-lines (§4) as the contract; defer to later phases by default |
 | **Provider/API churn** (Ollama/VoxCPM changes) | Breakage | Adapter layer + capability flags + pinned versions ([06 §5](06-module-and-extension-system.md)) |
 
@@ -145,7 +144,7 @@ This sequencing front-loads the riskiest *integration* (Ollama + VoxCPM + memory
 
 ## 6. Testing strategy
 
-A pragmatic pyramid sized for a small team:
+A pragmatic test pyramid:
 
 | Layer | What | When |
 |---|---|---|
@@ -172,4 +171,4 @@ CI runs unit+integration+contract on each change; privacy tests are mandatory ga
 
 ## 8. Notes
 
-Timeframes are intentionally omitted — phases are sequenced by dependency and risk, not dates, which suits a solo/early-stage effort and lets the plan flex without churning the document. The ordering itself is the commitment.
+Timeframes are intentionally omitted — phases are sequenced by dependency and risk, not dates, which lets the plan flex without churning the document. The ordering itself is the commitment.

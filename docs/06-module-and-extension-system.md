@@ -13,13 +13,15 @@
 
 ## 1. Purpose & philosophy
 
-Modularity is a first-class requirement, not an afterthought. NagiFlow ships a small, opinionated **core** and pushes everything that touches the outside world — LLMs, speech engines, storage, live-chat platforms — behind extension points. The same mechanism the core team uses to ship the default Ollama and VoxCPM integrations is the mechanism third-party developers use to add their own. There is no privileged "internal" API that modules cannot reach (FR-MOD-1/6).
+Modularity is a first-class requirement, not an afterthought. NagiFlow ships a small, opinionated **core** and pushes everything that touches the outside world — LLMs, speech engines, storage, live-chat platforms — behind extension points. The same mechanism that ships the default Ollama and VoxCPM integrations is the one third-party developers use to add their own. There is no privileged "internal" API that modules cannot reach (FR-MOD-1/6).
 
 Three goals drive the design:
 
 1. **Parity** — official integrations are ordinary modules. If the extension system can express the defaults, it can express almost anything (FR-MOD-6).
 2. **Safety** — a module declares what it needs; the host grants only that. A misbehaving or malicious module should be containable and, at minimum, auditable (NFR-SEC-1/2/4).
 3. **Low ceremony** — a developer should be able to produce a working "Hello Skill" in minutes, in Python, without learning a bespoke build system (NFR-MAINT-1).
+
+This substrate is also the platform's **growth path beyond VTubing**: **Agent Skills** give a character actions/tools, **Connectors** give it senses and reach (live chat, on-screen content, external services), and **providers** keep every model swappable. Together they let NagiFlow extend toward broader **agentic** uses over time — a local AI agent that perceives and acts, or a character that autonomously plays a game (perceive → reason → act). These are **architecture-enabled future directions**, not committed near-term scope ([01 §2.1](01-vision-and-scope.md)).
 
 ---
 
@@ -223,7 +225,7 @@ class RollDice(AgentSkill):
 
 ### 6.1 Compatibility with the Agent-Skill Markdown convention
 
-Some NagiFlow content (and the maintainer's other projects) describe skills as **Markdown "SKILL" documents** with front-matter. NagiFlow supports loading such files from a module's `skills/` directory: the front-matter supplies `name`, `description`, and a parameter schema, and the body is treated as the skill's instruction/prompt fragment. These "declarative skills" need no Python and are ideal for prompt-only behaviors; "code skills" (above) subclass `AgentSkill` when logic or I/O is required. Both register through the same path (FR-MOD-2).
+Skills can also be authored as **Markdown "SKILL" documents** with front-matter. NagiFlow supports loading such files from a module's `skills/` directory: the front-matter supplies `name`, `description`, and a parameter schema, and the body is treated as the skill's instruction/prompt fragment. These "declarative skills" need no Python and are ideal for prompt-only behaviors; "code skills" (above) subclass `AgentSkill` when logic or I/O is required. Both register through the same path (FR-MOD-2).
 
 ---
 
@@ -263,7 +265,7 @@ The Vuetify frontend exposes **contribution points**; a UI extension supplies a 
 
 | Contribution point | Where it appears |
 |---|---|
-| `dashboard.widget` | A card on the observability dashboard |
+| `dashboard.widget` | A panel in the system status bar's expanded view ([13 §7.6](13-ui-ux-design.md)) |
 | `character.panel` | A tab/section in the character editor (e.g. a custom tuning panel) |
 | `script.tool` | A tool button in the script editor |
 | `nav.item` | A new left-nav destination + route |

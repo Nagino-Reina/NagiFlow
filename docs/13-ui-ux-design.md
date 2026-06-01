@@ -52,22 +52,26 @@ Audience: frontend engineers, designers, and module authors building `ui` contri
 
 ```mermaid
 flowchart TB
-    Landing[Landing / Guest chat] --> Chat[Conversations]
+    Landing[Landing → Conversation] --> Chat[Conversation & Live console]
     subgraph Nav[Left nav · user session]
       Characters
       Scripts
-      Live[Live / VTubing]
-      Dashboard[Observability]
-      Modules
       Settings
     end
+    Chat -. mode toggle .-> LiveMode[Live mode · P5]
     Characters --> CharEditor[Character editor]
     Scripts --> ScriptEditor[Script editor]
-    Live --> LiveConsole[Live session console]
-    Modules --> ModDetail[Module detail / config]
+    Settings --> Providers[Providers & Models]
+    Settings --> Modules[Modules]
 ```
 
-- **Guest** sees: the landing chat + a character picker (guest-visible only) + a persistent **"Log in"** affordance. Nav destinations that require a user are present but gated (clicking prompts login).
+The nav rail is deliberately **four destinations**: **Conversation** (chat, with a live-mode toggle), **Characters**, **Scripts**, **Settings**. Three former destinations were folded in to reduce surface:
+
+- **Live** is not a separate page — it is a **mode toggle inside the Conversation console** (§7.5), since chat and live share one shell.
+- **Observability** is not a page — system health/usage live in the always-on **system status bar** (§5).
+- **Modules** and **provider/model** configuration live under **Settings** (§7.8); there is no per-character model selection.
+
+- **Guest** sees: the landing conversation + a character picker (guest-visible only) + a persistent **"Register / Log in"** affordance that explains an account unlocks creating characters, voices, and history. Gated nav destinations prompt login on click.
 - **User** sees the full left nav. **Module `nav.item` contributions** append destinations dynamically ([06 §8](06-module-and-extension-system.md), [03 §3.4](03-system-architecture.md)).
 - Deep links map to the route table in [03 §3.4](03-system-architecture.md); every list→detail uses a master/detail or push-route pattern.
 
@@ -78,23 +82,22 @@ flowchart TB
 ```
 ┌───────────────────────────────────────────────────────────────┐
 │ App bar:  ☰  NagiFlow      [global search]   🌐zh/en  ◐theme  ⓘ │
-│                                  jobs▣   notifications🔔  user ▾ │
+│                                  notifications🔔   user ▾        │
 ├──────────┬────────────────────────────────────────────────────┤
 │ Nav rail │  Page content (router-view)                         │
-│  Chars   │                                                     │
-│  Scripts │   ┌── breadcrumb / page title / page actions ──┐    │
-│  Live    │   │                                            │    │
-│  Dash    │   │   content                                  │    │
-│  Modules │   │                                            │    │
-│  Settings│   └────────────────────────────────────────────┘   │
+│  Chat    │                                                     │
+│  Chars   │   ┌── breadcrumb / page title / page actions ──┐    │
+│  Scripts │   │                                            │    │
+│  Settings│   │   content                                  │    │
+│          │   └────────────────────────────────────────────┘   │
 ├──────────┴────────────────────────────────────────────────────┤
-│ Job tray (collapsible): ASR import 62% · Render queued · ⋯     │
+│ System bar:  🟢LLM 🟢TTS │ CPU 14% │ RAM 41% │ ⛁ 1.2k tok  ▲   │
 └───────────────────────────────────────────────────────────────┘
 ```
 
-- **App bar** — nav toggle, brand, optional global search, **locale switch** (zh-Hant/en), **theme toggle** (light/dark), info, **job tray** badge, **notifications**, and the **principal menu** (guest → "Log in / Register"; user → profile, logout, logout-all).
-- **Nav rail** — collapsible Vuetify navigation drawer; icons + labels; active-route highlight; extension destinations grouped below core.
-- **Job tray** — a persistent, collapsible strip listing active/recent **jobs** (ASR import, render, fine-tune, re-embed) with progress and cancel; clicking opens the Dashboard → Jobs panel ([12 §5](12-feature-observability.md)).
+- **App bar** — nav toggle, brand, optional global search, **locale switch** (zh-Hant/en), **theme toggle** (light/dark), info, **notifications**, and the **principal menu** (guest → **"Register / Log in"** with a one-line explainer; user → profile, logout, logout-all).
+- **Nav rail** — collapsible Vuetify navigation drawer; icons + labels; active-route highlight; extension destinations grouped below core. Core destinations: **Conversation · Characters · Scripts · Settings**.
+- **System status bar** — a slim, always-visible strip at the bottom of every route. It shows compact at-a-glance status: **LLM/TTS health dots** + active provider/model, **CPU/RAM** mini values, and the **token total**. Clicking it **expands a panel upward** with the detail (system resources §[12 §2.1](12-feature-observability.md), service health §2.2, token usage breakdown §3; **logs** and **jobs** panels are added later). Values refresh on a short auto-poll (manual refresh is a later optimization). This replaces the former standalone Observability page and the job tray.
 - **Notifications** — transient toasts (success/info) and a small inbox for budget alerts ([12 §3.2](12-feature-observability.md)) and finished jobs.
 - **Sensitive-mode indicator** — a global chip shows the effective sensitive-mode state in any conversation/live context ([09 §5](09-feature-multiuser-memory-and-privacy.md)).
 
@@ -250,7 +253,7 @@ Each screen below lists **purpose · layout · key components · states · prima
 ### 7.1 Landing / Guest chat (FR-MM-2)
 - **Purpose:** zero-setup conversation; the product's first impression.
 - **Layout:** centered character picker (guest-visible characters as cards: portrait, name, short bio) → on select, a chat surface.
-- **States:** no-guest-visible-characters (explmain empty state + "log in to create one"); provider down (chat disabled with reason).
+- **States:** no-guest-visible-characters (empty state + "**register or log in** to create one"); provider down (chat disabled with reason).
 - **Interactions:** send/receive turns (text + audio playback); reaching any advanced action → contextual **login upsell** dialog (§8.2 of [09](09-feature-multiuser-memory-and-privacy.md)).
 
 ### 7.2 Authentication
@@ -275,54 +278,45 @@ Each screen below lists **purpose · layout · key components · states · prima
 - **Validation panel** — issues list with severity (error blocks render/export; warning advisory) ([07 §8](07-feature-script-management.md)).
 - **Produce** — render to media (line range or whole), subtitle export, **training-dataset export** ([07 §5/§6](07-feature-script-management.md)). Renders run as jobs in the tray.
 
-### 7.5 Conversation (chat mode)
-- **Purpose:** 1:1 text+voice chat with one character.
-- **Layout:** message list (user / character / system / tool), composer, audio playback per character message, optional captions; conversation list in a side rail.
-- **States:** streaming (token captions appear, then audio); tool/skill call shown as an inline status chip; provider error → inline retry.
-
-### 7.6 Live session / VTubing console (FR-RT-2/9/10/11)
-The most complex screen — a "broadcast desk".
+### 7.5 Conversation & Live console (FR-RT-1/2/9/10/11)
+Chat and live VTubing share **one shell** with a **Live-mode toggle** — chat is the default
+(synchronous text+voice); live adds streaming, connectors, and broadcast controls (P5).
 
 ```
-┌─────────────────────────── Live console ───────────────────────────┐
-│ Cast: [Nagi ▾] [+ add character]   Sensitive 🔒 ON   ▢ Connectors    │
-├───────────────────────────┬─────────────────────────────────────────┤
-│   Avatar stage            │  Live transcript (speaker-tagged)        │
-│   ┌───────────────────┐   │  ▸ viewer42: hello!                      │
-│   │  PNGTuber render  │   │  ▸ Nagi (assigned): hi there…  ▮▮▯       │
-│   │  (mouth + expr)   │   │  ▸ Mei-bot → Nagi: nice one  (chain 1/2) │
-│   └───────────────────┘   │                                          │
-│   renderer: PNGTuber ▾    │  [ composer / push-to-talk 🎤 ]          │
-├───────────────────────────┴─────────────────────────────────────────┤
-│ Director: depth 2 · turns/input 3 · cooldown · selection: addressed  │
-│ Latency: first-audio 0.8s · RTF 0.6      [ ⏹ Interrupt ]  [ End ]     │
-└──────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────── Conversation ──────────────────────────────┐
+│ ┌── Sidebar ──────────┐ ┌──────────── Character stage ───────────────┐  │
+│ │ Nagi   😊 joy 0.4   │ │                                            │  │
+│ │ [switch] [🔊 auto]  │ │        PNGTuber / Live2D / 3D              │  │
+│ │ [○ Live mode · P5]  │ │        (portrait / audio-only fallback)    │  │
+│ │ ─── History ─────── │ │                                            │  │
+│ │ ▸ Today · Nagi      │ └────────────────────────────────────────────┘  │
+│ │ ▸ Yesterday · …     │ ┌──────────── Message thread ────────────────┐  │
+│ │ ▸ …                 │ │ user / character bubbles · audio · caption │  │
+│ │                     │ │ [ composer ......................  🎤  ▶ ] │  │
+│ └─────────────────────┘ └────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────────────────┘
 ```
 
-- **Cast selection** — start with one or **add characters** to form a *cast* (FR-RT-10). Each cast member has a color/badge used to tag transcript + avatar.
-- **Director controls** — surface `director_config` ([11 §4.5](11-feature-realtime-and-media-generation.md)): `max_chain_depth`, `max_character_turns_per_input`, cooldown, selection policy (addressed / relevance / round-robin). The transcript shows **`turn.assigned`** ("who the director picked") and **chain depth** so behavior is legible.
-- **Avatar stage** — renders the speaking character via the active `AvatarRenderProvider` (**PNGTuber default**; Live2D/3D/external selectable per character — [11 §5](11-feature-realtime-and-media-generation.md)). Renderer picker + "no avatar → portrait/audio-only" fallback indicator.
-- **Streaming** — text captions + audio play concurrently; amplitude/viseme drives the avatar mouth. **Interrupt/barge-in** button (and push-to-talk) cancels the in-flight turn (FR-RT-8).
-- **Connectors** — attach live-chat sources (Twitch/YouTube/Discord); incoming messages appear as viewer inputs; **sensitive mode defaults ON** for public streaming with a prominent, locked indicator ([11 §6](11-feature-realtime-and-media-generation.md), [09 §5.4](09-feature-multiuser-memory-and-privacy.md)).
-- **Resilience** — reconnect banner on socket loss; per-turn error chip; session summary on end.
+- **Sidebar — top (active conversation):** character identity, **current emotion** chip (label + intensity — [10 §9](10-feature-emotion-and-affect.md)), **switch character**, **autoplay voice** toggle (persisted in the UI store), and the **Live-mode** toggle (shown but disabled with a "P5" hint until live ships).
+- **Sidebar — bottom (history):** the user's past conversations, newest first; click to **load** an earlier conversation; rename / delete / search.
+- **Stage (right, primary):** the speaking character via the active `AvatarRenderProvider` (**PNGTuber default**; Live2D/3D/external per character — [11 §5](11-feature-realtime-and-media-generation.md)); with no avatar bundle it falls back to **portrait / audio-only**. **P1 ships the portrait fallback**; animated rendering arrives with live (P5).
+- **Message thread (right, below stage):** user/character/system/tool messages, **per-message audio playback** ([11 §4.6](11-feature-realtime-and-media-generation.md)) + optional captions, composer; provider error → inline retry ([05 §3](05-api-specification.md)).
+- **Chat mode (P1):** synchronous turn — text reply + synthesized audio; the emotion chip updates per reply.
+- **Live mode (P5):** streaming text+audio with amplitude/viseme-driven avatar, **cast** + **TurnDirector** controls, **connectors** (YouTube/Twitch/Discord) with **sensitive mode default-ON**, barge-in/interrupt, and **OBS browser-source** output ([11 §4–6](11-feature-realtime-and-media-generation.md)). Director / latency / interrupt controls surface in a collapsible toolbar over the stage; cast members carry a color/badge tagging transcript + avatar.
 
-### 7.7 Observability dashboard (FR-OBS-*)
-Vuetify cards ([12 §5](12-feature-observability.md)):
-- **System** — CPU/RAM/GPU/disk gauges + short trend (GPU card only when detected).
-- **Services** — provider/connector health (`up`/`degraded`/`down`, latency, last-checked).
-- **Usage** — token totals + breakdowns (per user/character/conversation/day/model) + trend; **budget status** if enabled; CSV/JSON export.
-- **Logs** — filterable, tailing log stream (level/component/correlation id), redacted.
-- **Jobs** — active/recent jobs with progress (shared with the global job tray).
-- Module `dashboard.widget` contributions append cards.
+### 7.6 System status bar (FR-OBS-*)
+Health and usage live in the always-on **system bar** (§5), not a page. Clicking it expands a panel ([12 §2–3, §5](12-feature-observability.md)):
+- **System** — CPU/RAM/disk values (GPU when detected); short trend later.
+- **Services** — provider health (`up`/`degraded`/`down`) + the active provider/model.
+- **Usage** — token totals + breakdowns (per character / provider / day); budget status + CSV/JSON export later.
+- **Logs / Jobs** — filterable log tail and active/recent jobs (added in a later phase).
+- Module `dashboard.widget` contributions append panels.
 
-### 7.8 Modules & providers (FR-MOD-4, [06](06-module-and-extension-system.md))
-- **Modules list** — installed modules with **official vs third-party trust badge**, version, enabled toggle, `app_compat` status.
-- **Install / detail** — install from folder/archive; **permission consent screen** that renders the manifest's requested `network`/`filesystem`/`subprocess`/`secrets` so the operator consents knowingly; quarantined-on-error state shown.
-- **Config** — auto-generated form from the module's `config_schema` (JSON-Schema → Vuetify form); secrets fields are write-only/masked.
-- **Providers** — per-capability (`llm`/`tts`/`asr`/`embedding`/`vector`/`storage`/`avatar`) list with **default + fallback order**, a **test/health** button, and capability-flag display so users see what each provider supports.
-
-### 7.9 Settings
-- **Providers & defaults**, **sensitive-mode global default** (recommended ON for public/streaming), **locale**, **theme/density**, **workspace info**, **config** (layered view; secrets from env shown as "set/unset", never values — [14 §4](14-runtime-and-deployment.md)).
+### 7.7 Settings (general · providers & models · modules)
+A single **tabbed** Settings screen. Providers/models are **system-wide — there is no per-character model selection**.
+- **General** — locale, theme/density, **sensitive-mode global default** (recommended ON for public/streaming), workspace info, layered **config** view (secrets from env shown as "set/unset", never values — [14 §4](14-runtime-and-deployment.md)).
+- **Providers & Models** — per-capability (`llm`/`tts`/`asr`/`embedding`/`vector`/`storage`/`avatar`) **active provider + model** with a **test/health** button and capability-flag display. **P1: read-only display** of the config/env-selected provider/model; runtime switching + default/fallback ordering arrive with provider configs (P4, [05 §4.5](05-api-specification.md)).
+- **Modules** — installed modules with **official vs third-party trust badge**, version, enabled toggle, `app_compat`; install from folder/archive with a **permission consent screen** (manifest `network`/`filesystem`/`subprocess`/`secrets`); auto-generated **config form** from `config_schema` (secrets write-only/masked); quarantined-on-error state ([06](06-module-and-extension-system.md)).
 
 ---
 

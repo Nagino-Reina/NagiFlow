@@ -108,19 +108,31 @@ Operators may set soft **budgets** (e.g. per day or per user) and get **alerts**
 
 ---
 
-## 5. The dashboard
+## 5. The system status bar
 
-A Vuetify view with cards/panels:
+Observability is surfaced through an always-on **system status bar** pinned to the bottom of
+every screen — not a separate page ([13 §5](13-ui-ux-design.md)). The bar shows compact
+at-a-glance status; **clicking it expands a panel upward** with the detail. Values refresh on a
+short auto-poll (manual refresh is a later optimization).
+
+**Collapsed bar (always visible):** LLM/TTS **health dots** + active provider/model · **CPU/RAM**
+mini values · **token total**. A degraded/down provider tints the bar.
+
+**Expanded panel:**
 
 | Panel | Shows |
 |---|---|
-| **System** | CPU/RAM/GPU/disk gauges + short trend (§2.1). |
+| **System** | CPU/RAM/GPU/disk values (§2.1); short trend later. GPU only when detected. |
 | **Services** | Provider/connector health + latency (§2.2). |
-| **Usage** | Token totals + breakdowns + trend; budget status if enabled (§3). |
-| **Logs** | Filterable recent log stream (§4). |
-| **Jobs** | Active/recent jobs (renders, imports, fine-tunes) with progress ([04 §6](04-data-model-and-storage.md)). |
+| **Usage** | Token totals + breakdowns (per character / provider / day); budget status if enabled (§3). |
+| **Logs** | Filterable recent log stream (§4) — later phase. |
+| **Jobs** | Active/recent jobs (renders, imports, fine-tunes) with progress — later phase ([04 §6](04-data-model-and-storage.md)). |
 
-UI extensions can contribute additional `dashboard.widget`s ([06 §8](06-module-and-extension-system.md)).
+UI extensions can contribute additional `dashboard.widget`s to the panel ([06 §8](06-module-and-extension-system.md)).
+
+**Phasing:** P1 ships the bar with **System / Services / Usage** (the data already exists —
+`/system/resources`, `/system/services`, `/usage:summary`). **Logs** and **Jobs** panels arrive
+with their subsystems.
 
 ---
 

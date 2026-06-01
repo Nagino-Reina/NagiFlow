@@ -141,8 +141,7 @@ erDiagram
 | persona | TEXT | system-prompt / behavioral description |
 | big_five | JSON | `{openness, conscientiousness, extraversion, agreeableness, neuroticism}` 0–100 |
 | default_language | TEXT | |
-| default_voice_model_id | TEXT FK→voice_model NULL | |
-| default_style | JSON | default pacing/emotion/style hints |
+| default_style | JSON | reserved for author style overrides; unused in P1 (reply style is derived at runtime from the Big Five mapping) |
 | portrait_key | TEXT NULL | storage key |
 | avatar_bundle_key | TEXT NULL | storage key for the avatar **bundle directory** (descriptor + assets): a PNGTuber sprite set by default; a Live2D or 3D model if used |
 | avatar_renderer | TEXT NULL | preferred renderer, e.g. `pngtuber` (default) \| `live2d` \| `3d` \| `external`; null = system default |
@@ -164,7 +163,7 @@ erDiagram
 | artifact_key | TEXT NULL | trained model artifact (fine-tune) |
 | params | JSON | cfg/timesteps/etc. defaults |
 | status | TEXT | `ready` \| `training` \| `failed` |
-| is_default | INTEGER | 0/1 |
+| is_default | INTEGER | 0/1 — **single source of truth** for the character's default voice |
 
 **`character_asset`**
 

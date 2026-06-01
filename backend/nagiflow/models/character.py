@@ -28,7 +28,9 @@ class Character(Base, TimestampMixin):
     persona: Mapped[str] = mapped_column(Text, default="", nullable=False)
     big_five: Mapped[dict] = mapped_column(JSON, default=_default_big_five, nullable=False)
     default_language: Mapped[str] = mapped_column(String, default="en", nullable=False)
-    default_voice_model_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    # The default voice is tracked by VoiceModel.is_default (single source of truth).
+    # `default_style` is reserved for future author style overrides; unused in P1 (reply
+    # style is derived at runtime from the Big Five mapping — see personality.resolve).
     default_style: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
     portrait_key: Mapped[str | None] = mapped_column(String, nullable=True)
     avatar_bundle_key: Mapped[str | None] = mapped_column(String, nullable=True)

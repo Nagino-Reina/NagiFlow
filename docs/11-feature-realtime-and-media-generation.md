@@ -275,21 +275,37 @@ Rules: every `layers[].group` has exactly one active member at a time; `default:
 
 ---
 
-## 6. Live-chat ingestion (streaming sources)
+### 5.4 Live output — OBS browser source (initial target)
 
-To VTube against a real audience, NagiFlow ingests platform chat through **Connectors** (FR-RT-4, FR-MOD-3):
+The first delivery target for live mode is an **OBS browser source**: NagiFlow serves a
+self-contained web view that renders the live **avatar** (default PNGTuber) driven by the turn's
+amplitude/viseme/expression stream, on a **transparent background** so OBS composites it over a
+scene. **Live subtitles** (from streaming `text.delta` / finalized spans) can render **combined**
+with the avatar or as a **separate** browser source (a standalone caption overlay), so the
+operator positions and styles them independently in OBS.
+
+This browser-source path needs **no external engine** — it is the simplest way to get a NagiFlow
+character on stream. The external-engine adapter that forwards events to OBS/VTube Studio (§5.2)
+remains an alternative for operators who prefer their own scene tooling. Live mode overall is **P5**.
+
+## 6. Live input sources (streaming)
+
+In live mode the character reacts to three kinds of input, all routed into the same orchestrator turn (§4): **(a) direct user dialogue** (text or push-to-talk → ASR), **(b) live-chat** from platforms, and **(c) on-screen content** the character can "see". All arrive through **Connectors** (FR-RT-4, FR-MOD-3):
 
 ```mermaid
 flowchart LR
-    TW[Twitch/YouTube/Discord<br/>via Connector] --> MOD[Moderation/filter<br/>optional hook]
-    MOD --> RT[Route as user input<br/>each viewer = a user]
+    U[User dialogue<br/>text / mic→ASR] --> RT
+    TW[Twitch/YouTube/Discord chat<br/>via Connector] --> MOD[Moderation/filter<br/>optional hook]
+    SC[Screen / window capture<br/>via Connector] --> VIS[Vision/OCR describe<br/>→ text context]
+    MOD --> RT[Route as turn input]
+    VIS --> RT
     RT --> O[Orchestrator turn]
     O --> OUT[Response + optional<br/>post-back to chat sink]
 ```
 
-- Incoming messages become **turn inputs**; an optional moderation hook can filter/transform first.
+- **Live-chat** messages become **turn inputs**; an optional moderation hook can filter/transform first. Sinks let the character (or a skill) post back to chat or trigger scene changes via Connector actions.
+- **Screen / window capture** lets the character comment on what's on screen (e.g. co-streaming a game or a page). Frames are turned into text context for the LLM either by a **vision-capable model** or an **OCR/caption** step, then routed like any other input. This is a **multimodal source — later phase** (needs a vision/OCR provider) and is **sampled/throttled** so it never floods the turn loop.
 - **Each viewer is a distinct (usually guest) user.** Therefore **sensitive mode defaults ON** for public streaming so the character never reveals one viewer's info to another ([09 §5.4](09-feature-multiuser-memory-and-privacy.md)) — a hard privacy requirement for this mode.
-- Sinks let the character (or a skill) post back to chat or trigger scene changes via Connector actions.
 
 ---
 
@@ -323,6 +339,7 @@ Graceful degradation across hardware tiers supports the local-first, broad-porta
 | FR-RT-2 (real-time WebSocket streaming) | §4, §4.1 |
 | FR-RT-3 (avatar-driving events: amplitude/viseme/timing/expression) | §4.1, §5 |
 | FR-RT-4 (live-chat ingestion via connectors) | §6 |
+| FR-RT-12 (on-screen/visual input — later) | §6 |
 | FR-RT-5 (offline/batch media from scripts) | §3 |
 | FR-RT-6 (media stored as assets, downloadable, tracked) | §3.1, §3.2 |
 | FR-RT-7 (voice input via ASR) | §4.1 |
