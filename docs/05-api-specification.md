@@ -84,16 +84,19 @@ Provider failures are isolated and surfaced (with which provider failed) rather 
 ### 4.1 Characters
 | Method | Path | Auth | Description |
 |---|---|---|---|
+| GET | `/characters/personality/schema` | any | The Big Five → behavior mapping spec, served once so the UI renders the explainability view client-side ([08 §3.2](08-feature-character-management.md)). |
 | GET | `/characters` | G* | List characters (guests see only `guest_visible`). |
 | POST | `/characters` | U | Create a character. |
 | GET | `/characters/{id}` | G* | Get a character (guests: guest-visible only). |
 | PATCH | `/characters/{id}` | U | Update profile/persona/Big Five/style/status. |
 | DELETE | `/characters/{id}` | U | Soft-delete/archive. |
 | POST | `/characters/{id}:duplicate` | U | Duplicate. |
+| GET | `/characters/voice/capabilities` | U | Active TTS provider capability flags (clone/design/fine-tune/sample-rate) so the UI hides unsupported flows ([06 §5.1](06-module-and-extension-system.md)). |
 | POST | `/characters/{id}/voice:preview` | U | Synthesize sample text with a voice config. |
-| GET/POST | `/characters/{id}/voice-models` | U | List / create voice models (zero-shot, voice design). |
-| POST | `/characters/{id}/voice-models:finetune` | U | Start a fine-tune **job**. |
-| POST | `/characters/{id}/voice-models/{vid}:setDefault` | U | Set default voice. |
+| GET/POST | `/characters/{id}/voice-models` | U | List / create voice models. POST creates a **voice-design** model from a description. |
+| POST | `/characters/{id}/voice-models:clone` | U | Create a **zero-shot** model from an uploaded reference clip (`multipart/form-data`). |
+| POST | `/characters/{id}/voice-models:finetune` | U | Start a fine-tune **job** (P6). |
+| POST | `/characters/{id}/voice-models/{vid}:setDefault` | U | Set default voice (toggles `voice_model.is_default`). |
 | GET/POST/DELETE | `/characters/{id}/assets` | U | Manage assets (portrait/images/audio). |
 | POST | `/characters/{id}:export` | U | Export a character **package** (privacy options). |
 | POST | `/characters:import` | U | Import a character package. |

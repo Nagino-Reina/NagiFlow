@@ -31,6 +31,17 @@ For privacy-conscious creators and small studios, sending scripts, voices, and v
 
 NagiFlow treats a **character** as a first-class, portable asset and gives creators an integrated workflow from *idea → script → voice → produced media → live interaction*, defaulting to lightweight local services and exposing every external integration point as a replaceable module.
 
+### 2.1 Two primary flows
+
+The product is organized around **two core user flows**; every other feature exists to support them.
+
+1. **Script production (offline/batch).** The user authors a script in a dedicated editor — or imports audio/video and uses **ASR segmentation** to bootstrap one — then renders it through the **TTS + animation** modules into finished multimedia (audio, optional video, subtitles) saved to the local workspace (or DB). Throughput-oriented; runs as a job.
+2. **Live streaming (realtime).** The character waits for input — **user dialogue or external sources** (live-chat such as YouTube, **on-screen content**) — the LLM responds with that context, and the response is turned into **voice + animation** presented in real time (e.g. an OBS browser source). Latency-oriented.
+
+These are **Mode A** and **Mode B** in [11 Realtime & Media](11-feature-realtime-and-media-generation.md); they share the same character, voice, personality, and emotion stack and the same provider seams.
+
+Beneath the two flows sits a **supporting layer**: characters, voice models, memory, emotion, and observability — plus the **extensibility substrate** of **modules, Agent Skills, Connectors, and provider adapters** ([06 Modules & Extensions](06-module-and-extension-system.md)). This substrate is deliberately general: **skills** give a character *actions/tools*, **connectors** give it *senses and reach* (live chat, on-screen content, external services), and **providers** keep every model swappable. The same machinery that powers VTubing therefore opens a path to broader **agentic** uses over time — e.g. a **local AI agent** that perceives context and acts, or a character that **autonomously plays a game** (see → reason → act). These are **architecture-enabled future directions**, not committed near-term scope; the two primary flows above remain the product's backbone.
+
 ## 3. Goals & objectives
 
 | ID | Goal | Objective (measurable intent) |

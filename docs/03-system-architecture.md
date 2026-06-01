@@ -182,8 +182,8 @@ The Vuetify SPA is organized for clarity and for hosting UI extensions ([06 §8]
 
 | Concern | Approach |
 |---|---|
-| **Routing** | Vue Router; top-level destinations — `characters`, `scripts`, `live`/`chat`, `dashboard`, `modules`, `settings`. Module `nav.item` contributions register routes dynamically. |
-| **State** | Pinia stores per domain (`auth`, `characters`, `scripts`, `conversations`, `modules`, `observability`); transient live-turn state kept in a session-scoped store. |
+| **Routing** | Vue Router; top-level destinations — `chat` (conversation + live-mode toggle), `characters`, `scripts`, `settings`. Module `nav.item` contributions register routes dynamically. System health/usage are in the always-on **system status bar**, not a route; modules + provider/model config live under `settings` ([13 §4–5](13-ui-ux-design.md)). |
+| **State** | Pinia stores per domain (`auth`, `ui`, `characters`, `scripts`, `conversation`, `modules`, `observability`); transient live-turn state kept in a session-scoped store. |
 | **API/WS clients** | A generated/typed REST client (from OpenAPI) and a thin WebSocket client wrapping the live-turn protocol ([05 §5](05-api-specification.md)); both attach the session token and surface the error envelope uniformly. |
 | **Extension host** | A `nagiflowUI` bridge dynamically imports module ES-module bundles into declared contribution points, passing scoped API client + theme tokens (never raw app internals — [06 §8](06-module-and-extension-system.md)). |
 | **i18n** | `vue-i18n` with `zh-Hant` / `en` message catalogs; the backend returns **stable codes/keys**, the frontend renders the localized string (so no localized text is hard-coded server-side). |

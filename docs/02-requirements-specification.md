@@ -139,6 +139,7 @@ See [01 §9](01-vision-and-scope.md). NagiFlow depends on the availability and l
 | FR-RT-9 | M | The platform provides a **built-in avatar renderer** behind a pluggable `AvatarRenderProvider` capability. The **default renderer is PNGTuber** (drives a character's layered-PNG sprite set from emitted amplitude/viseme/expression events to produce video and a live avatar); the capability is **extensible to Live2D, 3D-model renderers, and external engines** (OBS, VTube Studio). |
 | FR-RT-10 | S | A **live session may include multiple characters** (a *cast*); each character can respond to the user/viewers **and** to other characters' utterances. |
 | FR-RT-11 | M | When multiple characters are active, a **turn-arbitration director** serializes turns (one speaker at a time), selects responders, and **bounds character-to-character chains** (max chain depth, no immediate ping-pong, per-input turn budget) to prevent overlapping speech and infinite loops. |
+| FR-RT-12 | C | Live mode can take **on-screen content** (screen/window capture) as an input source: frames are turned into text context via a vision-capable model or an OCR/caption step and routed as a turn input, sampled/throttled to bound load. Multimodal — later phase. |
 
 ### 3.6 Observability (`OBS`) — see [12](12-feature-observability.md)
 

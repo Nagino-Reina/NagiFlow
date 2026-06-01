@@ -21,6 +21,8 @@ Three goals drive the design:
 2. **Safety** — a module declares what it needs; the host grants only that. A misbehaving or malicious module should be containable and, at minimum, auditable (NFR-SEC-1/2/4).
 3. **Low ceremony** — a developer should be able to produce a working "Hello Skill" in minutes, in Python, without learning a bespoke build system (NFR-MAINT-1).
 
+This substrate is also the platform's **growth path beyond VTubing**: **Agent Skills** give a character actions/tools, **Connectors** give it senses and reach (live chat, on-screen content, external services), and **providers** keep every model swappable. Together they let NagiFlow extend toward broader **agentic** uses over time — a local AI agent that perceives and acts, or a character that autonomously plays a game (perceive → reason → act). These are **architecture-enabled future directions**, not committed near-term scope ([01 §2.1](01-vision-and-scope.md)).
+
 ---
 
 ## 2. Module types
@@ -263,7 +265,7 @@ The Vuetify frontend exposes **contribution points**; a UI extension supplies a 
 
 | Contribution point | Where it appears |
 |---|---|
-| `dashboard.widget` | A card on the observability dashboard |
+| `dashboard.widget` | A panel in the system status bar's expanded view ([13 §7.6](13-ui-ux-design.md)) |
 | `character.panel` | A tab/section in the character editor (e.g. a custom tuning panel) |
 | `script.tool` | A tool button in the script editor |
 | `nav.item` | A new left-nav destination + route |
