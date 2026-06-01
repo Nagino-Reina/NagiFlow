@@ -37,6 +37,7 @@ async def services(_user: RequireUser, registry: Registry) -> dict[str, list[dic
             {
                 "capability": capability,
                 "name": provider.name,
+                "model": getattr(provider, "_model", None),
                 "status": "up" if healthy else "down",
             }
         )

@@ -38,7 +38,9 @@
     "language": "語言",
     "account": "帳號",
     "guest": "訪客",
-    "loginRequired": "請登入後使用"
+    "loginRequired": "請登入後使用",
+    "registerOrLogin": "註冊 / 登入",
+    "accountHint": "註冊帳號即可建立角色、語音與保存對話紀錄。"
   },
   "landing": {
     "title": "歡迎使用 NagiFlow",
@@ -206,11 +208,22 @@
   },
   "settings": {
     "title": "設定",
-    "description": "供應者、語言、主題、敏感模式與工作區資訊。",
+    "description": "一般偏好、供應商與模型、模組。",
     "theme": "主題",
     "themeLight": "淺色",
     "themeDark": "深色",
-    "language": "語言"
+    "language": "語言",
+    "tabs": {
+      "general": "一般",
+      "providers": "供應商與模型",
+      "modules": "模組"
+    },
+    "providersNote": "目前的供應商與模型透過 config/env 設定（系統層級）。執行期切換為後續階段。",
+    "capability": "能力",
+    "provider": "供應商",
+    "model": "模型",
+    "status": "狀態",
+    "modulesComingSoon": "模組安裝與管理為後續階段。"
   },
   "auth": {
     "title": "登入 NagiFlow",

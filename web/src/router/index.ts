@@ -18,7 +18,6 @@ const router = createRouter({
     { path: '/characters/:id', name: 'character-editor', component: () => import('@/pages/character-editor.vue') },
     { path: '/scripts', name: 'scripts', component: () => import('@/pages/scripts.vue') },
     { path: '/live', name: 'live', component: () => import('@/pages/live.vue') },
-    { path: '/modules', name: 'modules', component: () => import('@/pages/modules.vue') },
     { path: '/settings', name: 'settings', component: () => import('@/pages/settings.vue') },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
