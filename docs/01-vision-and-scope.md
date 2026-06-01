@@ -115,13 +115,11 @@ Lands on a running instance (e.g. a creator's local or shared instance) and just
 - **A4** Network access is optional; the default path works offline once models are present.
 - **C1** Core is constrained to **FastAPI** (backend) and **Vuetify** (frontend) per project direction.
 - **C2** Defaults must remain lightweight and locally runnable; heavy/cloud options are opt-in via modules.
-- **C3** The project is delivered by a small team / single maintainer; scope and sequencing in [15](15-roadmap-and-milestones.md) reflect this.
 
 ## 10. Stakeholders
 
 | Stakeholder | Interest |
 |---|---|
-| Maintainer / project owner | Product direction, architecture, official modules, releases. |
 | Creators / studios (P1, P2) | Reliable, private, integrated VTuber production & live tooling. |
 | Module developers (P3) | Stable, documented extension surface. |
 | Guests / viewers (P4) | Low-friction interaction. |

@@ -274,7 +274,7 @@ See [01 §9](01-vision-and-scope.md). NagiFlow depends on the availability and l
 ### 6.4 Usability
 - **NFR-UX-1 (M):** A non-developer can set up and reach a first conversation following the docs/launcher without editing code.
 - **NFR-UX-2 (M):** UI uses Vuetify/Material patterns consistently; long jobs show progress; errors are actionable.
-- **NFR-UX-3 (S):** UI supports **Traditional Chinese and English** (i18n-ready), reflecting the maintainer's locale and the global audience.
+- **NFR-UX-3 (S):** UI supports **Traditional Chinese and English** (i18n-ready), with the architecture ready for additional locales.
 
 ### 6.5 Security
 - **NFR-SEC-1 (M):** Authorization is enforced server-side for every protected operation (never trust the client).

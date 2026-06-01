@@ -391,7 +391,7 @@ flowchart LR
 
 > Full ADRs would live alongside the code; these summaries capture the key decisions and trade-offs.
 
-- **ADR-001 · Modular monolith over microservices.** *Decision:* single FastAPI deployable with internal boundaries. *Why:* local-first, single-machine simplicity; lower operational burden for a small team. *Trade-off:* scaling individual components requires later extraction — mitigated by clean service/provider seams.
+- **ADR-001 · Modular monolith over microservices.** *Decision:* single FastAPI deployable with internal boundaries. *Why:* local-first, single-machine simplicity; lower operational burden. *Trade-off:* scaling individual components requires later extraction — mitigated by clean service/provider seams.
 - **ADR-002 · SQLite + workspace folder as default store.** *Decision:* SQLite for relational data, FS for binaries/indices. *Why:* zero-config, portable, backup-friendly. *Trade-off:* concurrency/scale limits — mitigated by WAL and pluggable DB/storage seams.
 - **ADR-003 · Provider/adapter pattern for all external services.** *Decision:* typed interfaces + capability flags; defaults as modules. *Why:* swap any layer; defaults prove the extension model. *Trade-off:* abstraction overhead — justified by the product's extensibility goal.
 - **ADR-004 · In-process job runner, no mandatory broker.** *Decision:* async job runner with persisted state. *Why:* keep local install lightweight. *Trade-off:* not distributed — pluggable toward a real queue if needed.
