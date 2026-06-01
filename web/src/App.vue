@@ -53,7 +53,8 @@
           <template v-else>
             <v-list-item
               prepend-icon="mdi-login"
-              :title="t('common.action.login')"
+              :title="t('shell.registerOrLogin')"
+              :subtitle="t('shell.accountHint')"
               to="/login"
             />
           </template>

@@ -37,7 +37,7 @@
                 :key="s.capability"
                 class="d-flex align-center justify-space-between mb-1"
               >
-                <span class="text-caption">{{ s.capability.toUpperCase() }} · {{ s.name }}</span>
+                <span class="text-caption">{{ s.capability.toUpperCase() }} · {{ s.name }}{{ s.model ? ` (${s.model})` : '' }}</span>
                 <v-chip size="x-small" variant="tonal" :color="s.status === 'up' ? 'success' : 'error'">
                   {{ s.status }}
                 </v-chip>

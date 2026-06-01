@@ -213,6 +213,7 @@ export interface SendMessageResponse {
 export interface ServiceStatus {
   capability: string
   name: string
+  model: string | null
   status: string
 }
 

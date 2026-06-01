@@ -38,7 +38,9 @@
     "language": "Language",
     "account": "Account",
     "guest": "Guest",
-    "loginRequired": "Log in to use this"
+    "loginRequired": "Log in to use this",
+    "registerOrLogin": "Register / Log in",
+    "accountHint": "An account unlocks creating characters, voices, and history."
   },
   "landing": {
     "title": "Welcome to NagiFlow",
@@ -206,11 +208,22 @@
   },
   "settings": {
     "title": "Settings",
-    "description": "Providers, locale, theme, sensitive mode, and workspace info.",
+    "description": "General preferences, providers & models, and modules.",
     "theme": "Theme",
     "themeLight": "Light",
     "themeDark": "Dark",
-    "language": "Language"
+    "language": "Language",
+    "tabs": {
+      "general": "General",
+      "providers": "Providers & Models",
+      "modules": "Modules"
+    },
+    "providersNote": "Active providers and models are selected via config/env (system-wide). Runtime switching arrives in a later phase.",
+    "capability": "Capability",
+    "provider": "Provider",
+    "model": "Model",
+    "status": "Status",
+    "modulesComingSoon": "Install and manage modules here in a later phase."
   },
   "auth": {
     "title": "Sign in to NagiFlow",
