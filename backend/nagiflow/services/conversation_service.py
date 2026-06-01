@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from ..core import errors
 from ..core.ids import new_id
+from ..core.logging import get_correlation_id
 from ..models.character import Character
 from ..models.conversation import Conversation, ConversationParticipant, Message
 from ..providers.registry import ProviderRegistry
@@ -13,6 +14,7 @@ from . import personality
 from .affect import AffectService
 from .media_service import MediaService
 from .orchestrator import DialogueOrchestrator
+from .usage_service import UsageService
 from .voice_service import VoiceService
 
 
@@ -43,6 +45,7 @@ class ConversationService:
         affect: AffectService,
         voice: VoiceService,
         media: MediaService,
+        usage: UsageService,
         *,
         synthesize_replies: bool = True,
     ) -> None:
@@ -53,6 +56,7 @@ class ConversationService:
         self.affect = affect
         self.voice = voice
         self.media = media
+        self.usage = usage
         self.synthesize_replies = synthesize_replies
 
     async def create(
@@ -157,6 +161,20 @@ class ConversationService:
         # Flush so both messages' created_at populate before serialization (see create()).
         await self.messages.s.flush()
 
+        correlation_id = get_correlation_id()
+        # Account for the reply's LLM call (FR-OBS-3, docs/12 §3).
+        await self.usage.record(
+            kind="llm",
+            provider=result.provider,
+            model=result.model,
+            user_id=conversation.user_id,
+            character_id=character.id,
+            conversation_id=conversation.id,
+            prompt_tokens=result.usage.prompt_tokens if result.usage else None,
+            completion_tokens=result.usage.completion_tokens if result.usage else None,
+            correlation_id=correlation_id,
+        )
+
         # Synthesize reply audio for playback (docs/11 §4.6). Best-effort: a TTS failure
         # leaves media_asset_id null and never blocks the text reply.
         if self.synthesize_replies and result.text:
@@ -172,4 +190,13 @@ class ConversationService:
                 )
                 reply_msg.media_asset_id = asset.id
                 await self.messages.s.flush()
+                await self.usage.record(
+                    kind="tts",
+                    provider=self.registry.get_tts().name,
+                    user_id=conversation.user_id,
+                    character_id=character.id,
+                    conversation_id=conversation.id,
+                    audio_seconds=(asset.duration_ms or 0) / 1000.0,
+                    correlation_id=correlation_id,
+                )
         return user_msg, reply_msg

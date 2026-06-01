@@ -207,3 +207,42 @@ export interface SendMessageResponse {
   user_message: Message
   reply: Message
 }
+
+// --- observability (docs/05 §4.7, docs/12) ---
+
+export interface ServiceStatus {
+  capability: string
+  name: string
+  status: string
+}
+
+export interface SystemResources {
+  cpu_percent: number
+  cpu_count: number | null
+  memory: { used: number, total: number, percent: number }
+  disk: { used: number, total: number, free: number, percent: number }
+  process: { pid: number, rss: number }
+  gpus: Array<{ name: string, utilization_percent: number, memory_used: number, memory_total: number }>
+}
+
+export interface UsageTotals {
+  calls: number
+  prompt_tokens: number
+  completion_tokens: number
+  total_tokens: number
+  audio_seconds: number
+  est_cost: number
+}
+
+export interface UsageGroup {
+  key: string | null
+  calls: number
+  total_tokens: number
+}
+
+export interface UsageSummary {
+  totals: UsageTotals
+  by_character: UsageGroup[]
+  by_provider: UsageGroup[]
+  by_day: UsageGroup[]
+}

@@ -24,6 +24,8 @@ _HISTORY_LIMIT = 20
 class TurnResult:
     text: str
     usage: GenUsage | None
+    provider: str
+    model: str | None
 
 
 class DialogueOrchestrator:
@@ -64,4 +66,9 @@ class DialogueOrchestrator:
             # Surface a clean provider.* envelope instead of a raw 500 (docs/03 §6,
             # docs/05 §3) — e.g. Ollama unreachable or the configured model is missing.
             raise errors.provider_error(llm.name, str(exc)) from exc
-        return TurnResult(text="".join(parts).strip(), usage=usage)
+        return TurnResult(
+            text="".join(parts).strip(),
+            usage=usage,
+            provider=llm.name,
+            model=getattr(llm, "_model", None),
+        )

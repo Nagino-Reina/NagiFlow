@@ -341,7 +341,7 @@ erDiagram
 |---|---|---|
 | id | TEXT PK | |
 | kind | TEXT | `llm` \| `embedding` \| `tts` \| `asr` (units differ) |
-| provider_config_id | TEXT FK | |
+| provider | TEXT | provider name (e.g. `ollama`, `voxcpm`). Becomes a `provider_config_id` FK once provider configs land (P4). |
 | model | TEXT | |
 | user_id | TEXT FK→user NULL | |
 | character_id | TEXT FK→character NULL | |

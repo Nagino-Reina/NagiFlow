@@ -5,6 +5,7 @@ from .base import Base
 from .character import Character, VoiceModel
 from .conversation import Conversation, ConversationParticipant, Message
 from .media import MediaAsset
+from .usage import UsageRecord
 from .user import Session, User
 
 __all__ = [
@@ -18,4 +19,5 @@ __all__ = [
     "Message",
     "AffectState",
     "MediaAsset",
+    "UsageRecord",
 ]

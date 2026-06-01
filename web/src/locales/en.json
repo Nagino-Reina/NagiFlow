@@ -181,7 +181,20 @@
   },
   "dashboard": {
     "title": "Dashboard",
-    "description": "System health, service status, token usage, and jobs."
+    "description": "System health, service status, token usage, and jobs.",
+    "refresh": "Refresh",
+    "empty": "No data yet.",
+    "system": "System",
+    "services": "Services",
+    "usage": "Token usage",
+    "cpu": "CPU",
+    "memory": "Memory",
+    "disk": "Disk",
+    "free": "free",
+    "tokens": "Tokens",
+    "calls": "Calls",
+    "audio": "Audio (s)",
+    "byProvider": "By provider"
   },
   "modules": {
     "title": "Modules",
