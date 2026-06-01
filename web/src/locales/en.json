@@ -189,12 +189,16 @@
     "usage": "Token usage",
     "cpu": "CPU",
     "memory": "Memory",
+    "gpu": "GPU",
     "disk": "Disk",
     "free": "free",
     "tokens": "Tokens",
     "calls": "Calls",
     "audio": "Audio (s)",
     "byProvider": "By provider"
+  },
+  "systemBar": {
+    "toggle": "System status — click to expand"
   },
   "modules": {
     "title": "Modules",

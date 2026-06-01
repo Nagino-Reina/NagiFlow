@@ -81,6 +81,8 @@
     <v-main>
       <router-view />
     </v-main>
+
+    <SystemBar v-if="auth.isUser" />
   </v-app>
 </template>
 
@@ -89,6 +91,7 @@
   import { useI18n } from 'vue-i18n'
   import { useRoute, useRouter } from 'vue-router'
   import { useTheme } from 'vuetify'
+  import SystemBar from '@/components/SystemBar.vue'
   import { SUPPORTED_LOCALES, type AppLocale } from '@/plugins/i18n'
   import { NAV_DESTINATIONS, type NavDestination } from '@/shell/navigation'
   import { useAuthStore } from '@/stores/auth'
