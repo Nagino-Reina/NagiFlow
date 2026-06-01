@@ -54,6 +54,9 @@ class ConversationService:
             join_order=0,
         )
         self.conversations.s.add(participant)
+        # Flush so server/Python defaults (id wiring, created_at) populate before the
+        # response is serialized — the request's commit runs only at dependency teardown.
+        await self.conversations.s.flush()
         return conv
 
     async def get_owned(self, conversation_id: str, user_id: str) -> Conversation:
@@ -123,4 +126,6 @@ class ConversationService:
             },
         )
         self.messages.add(reply_msg)
+        # Flush so both messages' created_at populate before serialization (see create()).
+        await self.messages.s.flush()
         return user_msg, reply_msg

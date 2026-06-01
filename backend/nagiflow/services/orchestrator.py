@@ -10,9 +10,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from ..core import errors
 from ..models.character import Character
 from ..models.conversation import Message
-from ..providers.base import ChatMessage, GenRequest, GenUsage
+from ..providers.base import ChatMessage, GenRequest, GenUsage, ProviderError
 from ..providers.registry import ProviderRegistry
 from . import personality
 
@@ -53,9 +54,14 @@ class DialogueOrchestrator:
 
         parts: list[str] = []
         usage: GenUsage | None = None
-        async for chunk in llm.generate(req):
-            if chunk.delta:
-                parts.append(chunk.delta)
-            if chunk.usage is not None:
-                usage = chunk.usage
+        try:
+            async for chunk in llm.generate(req):
+                if chunk.delta:
+                    parts.append(chunk.delta)
+                if chunk.usage is not None:
+                    usage = chunk.usage
+        except ProviderError as exc:
+            # Surface a clean provider.* envelope instead of a raw 500 (docs/03 §6,
+            # docs/05 §3) — e.g. Ollama unreachable or the configured model is missing.
+            raise errors.provider_error(llm.name, str(exc)) from exc
         return TurnResult(text="".join(parts).strip(), usage=usage)
