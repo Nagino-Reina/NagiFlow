@@ -78,6 +78,36 @@ async def test_send_message_returns_reply_with_affect(client):
     assert history.status_code == 200 and len(history.json()) == 2
 
 
+async def test_reply_audio_is_synthesized_and_downloadable(client):
+    headers = await _auth_headers(client)
+    character_id = await _make_character(client, headers)
+    conv = (
+        await client.post(
+            f"{API}/conversations", headers=headers, json={"character_id": character_id}
+        )
+    ).json()
+
+    reply = (
+        await client.post(
+            f"{API}/conversations/{conv['id']}/messages", headers=headers, json={"text": "Hi!"}
+        )
+    ).json()["reply"]
+
+    media_id = reply["media_asset_id"]
+    assert media_id, "silent TTS always synthesizes reply audio (docs/11 §4.6)"
+
+    dl = await client.get(f"{API}/media/{media_id}:download", headers=headers)
+    assert dl.status_code == 200, dl.text
+    assert dl.headers["content-type"] == "audio/wav"
+    assert dl.content[:4] == b"RIFF"
+
+    # another user cannot download it
+    guest = await client.post(f"{API}/auth/guest")
+    guest_headers = {"Authorization": f"Bearer {guest.json()['token']}"}
+    forbidden = await client.get(f"{API}/media/{media_id}:download", headers=guest_headers)
+    assert forbidden.status_code == 403
+
+
 async def test_send_message_rejects_other_users_conversation(client):
     headers = await _auth_headers(client)
     character_id = await _make_character(client, headers)

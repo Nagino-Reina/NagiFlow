@@ -68,6 +68,9 @@ class Settings(BaseSettings):
     # deps. "voxcpm" = in-process generation (needs the [voxcpm] extra: torch + voxcpm);
     # "voxcpm_server" = a remote VoxCPM/OpenAI-compatible server.
     default_tts: str = "silent"  # "voxcpm" | "voxcpm_server" | "silent"
+    # Synthesize audio for each chat reply so it can be played back (docs/11 §4.6). Best-effort:
+    # a TTS failure never blocks the text reply. Disable to skip synthesis entirely.
+    synthesize_replies: bool = True
     voxcpm_model: str = "openbmb/VoxCPM2"  # HF id (in-process) or server model name
     voxcpm_load_denoiser: bool = False
     voxcpm_base_url: str = "http://127.0.0.1:9880"  # voxcpm_server only

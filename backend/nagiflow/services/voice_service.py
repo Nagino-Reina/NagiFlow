@@ -11,13 +11,16 @@ from pathlib import Path
 
 from ..core import errors
 from ..core.ids import new_id
-from ..models.character import VoiceModel
+from ..core.logging import get_logger
+from ..models.character import Character, VoiceModel
 from ..providers.base import ProviderError, VoiceRef
 from ..providers.registry import ProviderRegistry
 from ..repositories.characters import CharacterRepository
 from ..repositories.voice_models import VoiceModelRepository
 
 _SAMPLE_TEXT = "Hi, this is how I sound."
+
+log = get_logger("nagiflow.voice")
 
 
 class VoiceService:
@@ -142,6 +145,30 @@ class VoiceService:
             artifact_path=str(self.workspace_dir / model.artifact_key) if model.artifact_key else None,
             params=dict(model.params or {}),
         )
+
+    async def _default_voice_model(self, character_id: str) -> VoiceModel | None:
+        models = await self.voices.list_for_character(character_id)
+        return next((m for m in models if m.is_default), models[0] if models else None)
+
+    async def synthesize_reply(
+        self, character: Character, *, text: str, style: str | None = None, speech_rate: float = 1.0
+    ) -> bytes | None:
+        """Render a chat reply to WAV with the character's default voice (docs/11 §4.6).
+
+        Best-effort: returns None (logged) when there is nothing to say or the provider fails,
+        so a TTS problem never blocks the text reply.
+        """
+        if not text.strip():
+            return None
+        model = await self._default_voice_model(character.id)
+        provider = self.registry.get_tts(model.provider if model else None)
+        try:
+            return await provider.synthesize(
+                text=text, voice=self._voice_ref(model), style=style, speech_rate=speech_rate
+            )
+        except (ProviderError, OSError) as exc:
+            log.warning("reply TTS synthesis failed (character=%s): %s", character.id, exc)
+            return None
 
     async def preview(
         self,

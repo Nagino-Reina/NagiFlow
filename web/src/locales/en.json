@@ -54,6 +54,7 @@
     "empty": "Say hello to start the conversation.",
     "placeholder": "Type a message…",
     "send": "Send",
+    "play": "Play",
     "emotion": {
       "neutral": "Neutral",
       "joy": "Joyful",

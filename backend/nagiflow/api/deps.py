@@ -15,12 +15,14 @@ from ..providers.registry import ProviderRegistry
 from ..repositories.affect import AffectStateRepository
 from ..repositories.characters import CharacterRepository
 from ..repositories.conversations import ConversationRepository, MessageRepository
+from ..repositories.media import MediaAssetRepository
 from ..repositories.users import SessionRepository, UserRepository
 from ..repositories.voice_models import VoiceModelRepository
 from ..services.affect import AffectService
 from ..services.auth_service import AuthService, Principal
 from ..services.character_service import CharacterService
 from ..services.conversation_service import ConversationService
+from ..services.media_service import MediaService
 from ..services.voice_service import VoiceService
 
 COOKIE_NAME = "nf_session"
@@ -55,14 +57,37 @@ def get_character_service(session: Session) -> CharacterService:
 Characters = Annotated[CharacterService, Depends(get_character_service)]
 
 
+def get_media_service(session: Session) -> MediaService:
+    return MediaService(
+        MediaAssetRepository(session),
+        MessageRepository(session),
+        ConversationRepository(session),
+        get_settings().workspace_dir,
+    )
+
+
+Media = Annotated[MediaService, Depends(get_media_service)]
+
+
 def get_conversation_service(session: Session, registry: Registry) -> ConversationService:
-    affect = AffectService(AffectStateRepository(session), registry, get_settings())
+    settings = get_settings()
+    affect = AffectService(AffectStateRepository(session), registry, settings)
+    voice = VoiceService(
+        VoiceModelRepository(session),
+        CharacterRepository(session),
+        registry,
+        settings.workspace_dir,
+    )
+    media = get_media_service(session)
     return ConversationService(
         ConversationRepository(session),
         MessageRepository(session),
         CharacterRepository(session),
         registry,
         affect,
+        voice,
+        media,
+        synthesize_replies=settings.synthesize_replies,
     )
 
 
