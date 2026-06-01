@@ -4,12 +4,33 @@ from __future__ import annotations
 
 from ..core import errors
 from ..core.ids import new_id
+from ..models.character import Character
 from ..models.conversation import Conversation, ConversationParticipant, Message
 from ..providers.registry import ProviderRegistry
 from ..repositories.characters import CharacterRepository
 from ..repositories.conversations import ConversationRepository, MessageRepository
+from . import personality
 from .affect import AffectService
+from .media_service import MediaService
 from .orchestrator import DialogueOrchestrator
+from .voice_service import VoiceService
+
+
+def _style_hint(character: Character, affect_tags: list[str]) -> str | None:
+    """Merge personality voice-style tags with the turn's affect tags (docs/10 §7.2)."""
+    seen: set[str] = set()
+    tags: list[str] = []
+    for tag in (*personality.resolve(character.big_five).voice_style, *affect_tags):
+        if tag and tag not in seen:
+            seen.add(tag)
+            tags.append(tag)
+    return ", ".join(tags) or None
+
+
+def _reply_rate(character: Character, rate_delta: float) -> float:
+    """Personality speech rate nudged by affect, clamped to the personality band (docs/10 §7.2)."""
+    rate = personality.resolve(character.big_five).speech_rate + rate_delta
+    return max(0.85, min(1.15, rate))
 
 
 class ConversationService:
@@ -20,12 +41,19 @@ class ConversationService:
         characters: CharacterRepository,
         registry: ProviderRegistry,
         affect: AffectService,
+        voice: VoiceService,
+        media: MediaService,
+        *,
+        synthesize_replies: bool = True,
     ) -> None:
         self.conversations = conversations
         self.messages = messages
         self.characters = characters
         self.registry = registry
         self.affect = affect
+        self.voice = voice
+        self.media = media
+        self.synthesize_replies = synthesize_replies
 
     async def create(
         self, *, user_id: str, character_id: str, is_guest: bool, title: str | None
@@ -128,4 +156,20 @@ class ConversationService:
         self.messages.add(reply_msg)
         # Flush so both messages' created_at populate before serialization (see create()).
         await self.messages.s.flush()
+
+        # Synthesize reply audio for playback (docs/11 §4.6). Best-effort: a TTS failure
+        # leaves media_asset_id null and never blocks the text reply.
+        if self.synthesize_replies and result.text:
+            audio = await self.voice.synthesize_reply(
+                character,
+                text=reply_msg.content,
+                style=_style_hint(character, affect_result.voice_style),
+                speech_rate=_reply_rate(character, affect_result.speech_rate_delta),
+            )
+            if audio:
+                asset = await self.media.store_message_audio(
+                    message_id=reply_msg.id, audio=audio
+                )
+                reply_msg.media_asset_id = asset.id
+                await self.messages.s.flush()
         return user_msg, reply_msg

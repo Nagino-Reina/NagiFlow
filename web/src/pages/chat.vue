@@ -86,6 +86,17 @@
                 <v-icon :icon="emotionIcon(m.meta.affect.label)" size="x-small" />
                 {{ emotionLabel(m.meta.affect.label) }}
               </div>
+              <v-btn
+                v-if="m.role === 'character' && m.media_asset_id"
+                class="mt-1"
+                size="x-small"
+                variant="text"
+                density="comfortable"
+                prepend-icon="mdi-volume-high"
+                @click="playAudio(m.media_asset_id)"
+              >
+                {{ t('chat.play') }}
+              </v-btn>
             </div>
           </div>
         </div>
@@ -128,6 +139,7 @@
 <script lang="ts" setup>
   import { computed, nextTick, onMounted, ref, watch } from 'vue'
   import { useI18n } from 'vue-i18n'
+  import { mediaApi } from '@/api/media'
   import { useCharactersStore } from '@/stores/characters'
   import { useConversationStore } from '@/stores/conversation'
 
@@ -172,6 +184,13 @@
   function leave () {
     store.reset()
   }
+  let currentAudio: HTMLAudioElement | null = null
+  function playAudio (id: string) {
+    if (currentAudio) currentAudio.pause()
+    currentAudio = new Audio(mediaApi.downloadUrl(id))
+    // Autoplay may be blocked without a gesture; ignore — the play button still works.
+    currentAudio.play().catch(() => {})
+  }
   async function submit () {
     const text = draft.value.trim()
     if (!text) return
@@ -179,6 +198,8 @@
     try {
       await store.send(text)
       scrollToBottom()
+      const last = store.messages.at(-1)
+      if (last?.role === 'character' && last.media_asset_id) playAudio(last.media_asset_id)
     } catch (e) {
       draft.value = text // restore so the user doesn't lose their message
       error.value = (e as Error).message || t('error.generic')

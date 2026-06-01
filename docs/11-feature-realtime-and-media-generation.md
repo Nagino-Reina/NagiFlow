@@ -175,6 +175,17 @@ score(c) = w_addr · addressed(c)        # 1 if @-mention / name match, else 0
 
 Default `director_config`: `max_chain_depth = 2`, `max_character_turns_per_input = 3`, `cooldown_turns = 1`, `selection = "addressed→relevance→round_robin"`. Weights/thresholds are **tunable defaults**, surfaced in the live console ([13 §7.6](13-ui-ux-design.md)); the relevance term reuses the same embedding provider as memory ([04 §6](04-data-model-and-storage.md)). The cheap **engage/pass** gate (rule 5) is a final yes/no so a high-scoring-but-nothing-to-add character still declines.
 
+### 4.6 Synchronous (non-streaming) turn — the P1 slice
+
+Before the streaming pipeline (§4.1) lands in P5, P1 ships a **synchronous** form of the same turn over plain REST, so a character can be *heard* without the WebSocket machinery. `POST /conversations/{id}/messages` ([05 §4.3](05-api-specification.md)) runs the shared orchestration ([03 §4](03-system-architecture.md)) — persona + Big Five + the turn's affect directive ([10 §7.1](10-feature-emotion-and-affect.md)) → LLM reply text — and then, in the same request:
+
+1. **Resolve voice.** The character's **default voice model** ([08 §4](08-feature-character-management.md)) is resolved to a `VoiceRef`; if none exists the provider's design default is used. The synthesis **style/rate** merges the character's `default_style` with the turn's affect voice-style tag + speech-rate nudge ([10 §7.2](10-feature-emotion-and-affect.md)), clamped to the personality rate band.
+2. **Synthesize.** The full reply text is rendered to a complete WAV by the active `TTSProvider` ([06 §5.1](06-module-and-extension-system.md)) — no streaming, no visemes. The offline `silent` default emits a short tone so the path is demonstrable without VoxCPM.
+3. **Persist.** The audio is stored under `media/<id>/` and recorded as an audio **`MediaAsset`** (`source_type = message`, [04 §5.6](04-data-model-and-storage.md)); `message.media_asset_id` links it.
+4. **Return.** The reply carries `media_asset_id`; the client fetches the bytes from `GET /media/{id}:download` ([05 §4.6](05-api-specification.md)) and plays them.
+
+Synthesis is **best-effort and non-blocking-of-text**: a TTS failure (provider down, no voice) is logged and the turn still returns its text reply with `media_asset_id = null`. It can be disabled wholesale via `synthesize_replies = false` (config). **Streaming audio, amplitude/viseme/timing events, and barge-in (§4.1–4.2, §5) remain P5** — this slice produces one finished audio asset per turn, not a live stream.
+
 ---
 
 ## 5. Avatar rendering (default PNGTuber), viseme & timing

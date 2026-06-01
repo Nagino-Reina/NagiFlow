@@ -120,7 +120,7 @@ Provider failures are isolated and surfaced (with which provider failed) rather 
 | GET | `/conversations` | any | List own conversations. |
 | GET | `/conversations/{id}` | owner | Get a conversation. |
 | GET | `/conversations/{id}/messages` | owner | List messages in a conversation. |
-| POST | `/conversations/{id}/messages` | owner | Send a message (synchronous reply: text now; audio ref with the voice path). |
+| POST | `/conversations/{id}/messages` | owner | Send a message; synchronous reply with text + `media_asset_id` for the synthesized audio when available ([11 §4.6](11-feature-realtime-and-media-generation.md)). |
 | WS | `/conversations/{id}/stream` | owner | **Streaming turn** (see §5). |
 | PATCH | `/conversations/{id}` | owner | Update (e.g. end, toggle sensitive mode if permitted). |
 | DELETE | `/conversations/{id}` | owner | Delete conversation. |
@@ -153,7 +153,7 @@ Provider failures are isolated and surfaced (with which provider failed) rather 
 |---|---|---|---|
 | GET | `/media` | U | List media assets (filters). |
 | GET | `/media/{id}` | owner | Metadata. |
-| GET | `/media/{id}:download` | owner | Stream/download bytes. |
+| GET | `/media/{id}:download` | owner | Stream/download bytes (P1: reply audio playback; ownership via the linked message's conversation). |
 | GET | `/jobs` | U | List jobs (type/status filters). |
 | GET | `/jobs/{id}` | owner | Job status + progress + result/error. |
 | GET | `/jobs/{id}/events` | owner | Job progress/log stream (SSE) or paged events. |

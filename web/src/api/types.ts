@@ -182,6 +182,7 @@ export interface Message {
   role: MessageRole
   speaker_character_id: string | null
   content: string
+  media_asset_id: string | null
   created_at: string
   meta: MessageMeta
 }

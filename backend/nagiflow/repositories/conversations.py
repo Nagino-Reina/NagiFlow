@@ -34,6 +34,9 @@ class MessageRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.s = session
 
+    async def get(self, message_id: str) -> Message | None:
+        return await self.s.get(Message, message_id)
+
     async def list_for_conversation(
         self, conversation_id: str, *, limit: int = 100
     ) -> list[Message]:
