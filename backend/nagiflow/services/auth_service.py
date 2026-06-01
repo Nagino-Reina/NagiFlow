@@ -1,4 +1,4 @@
-"""Authentication & session service (docs/05 §2, docs/09 §2, docs/15 §3).
+"""Authentication & session service (docs/05 §2, docs/09 §2, docs/16 §3).
 
 Opaque hashed session tokens, Argon2id passwords, no silent account creation.
 Returns the clear token only at issue time; only the hash is persisted.

@@ -6,7 +6,7 @@
 | **Doc ID** | NF-07 |
 | **Version** | 0.1 (Draft) |
 | **Last updated** | 2026-05-30 |
-| **Related** | [02 SRS](02-requirements-specification.md), [04 Data](04-data-model-and-storage.md), [08 Characters](08-feature-character-management.md), [10 Realtime/Media](10-feature-realtime-and-media-generation.md) |
+| **Related** | [02 SRS](02-requirements-specification.md), [04 Data](04-data-model-and-storage.md), [08 Characters](08-feature-character-management.md), [11 Realtime/Media](11-feature-realtime-and-media-generation.md) |
 | **Traces** | FR-SM-1 … FR-SM-12, FR-MOD-5, NFR-PERF-2 |
 
 ---
@@ -119,7 +119,7 @@ flowchart LR
 
 ## 5. Production: script → media
 
-Rendering is covered in depth in [10 §3](10-feature-realtime-and-media-generation.md); from the script's perspective (FR-SM-8):
+Rendering is covered in depth in [11 §3](11-feature-realtime-and-media-generation.md); from the script's perspective (FR-SM-8):
 
 - **Batch render** — synthesize every line with its speaker's voice + per-line direction, then assemble into a continuous track honoring timestamps and `pause_after_ms`.
 - **Subtitle export** — because lines carry timing, NagiFlow can emit **SRT/VTT** subtitles alongside the audio (FR-SM-9).
@@ -170,7 +170,7 @@ Validation produces a list of issues with severity (`error` blocks render/export
 
 ## 9. Permissions
 
-Script management is an **advanced** capability: it requires an authenticated (non-guest) user (see [09 §3 permission matrix](09-feature-multiuser-memory-and-privacy.md)). Guests cannot create, import, render, or export scripts. Import jobs and renders run under the requesting user and are attributed in usage accounting ([11 §3](11-feature-observability.md)).
+Script management is an **advanced** capability: it requires an authenticated (non-guest) user (see [09 §3 permission matrix](09-feature-multiuser-memory-and-privacy.md)). Guests cannot create, import, render, or export scripts. Import jobs and renders run under the requesting user and are attributed in usage accounting ([12 §3](12-feature-observability.md)).
 
 ---
 

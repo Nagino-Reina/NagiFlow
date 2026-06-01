@@ -46,6 +46,26 @@
     "empty": "尚無訪客可見的角色，登入後即可建立。",
     "chatPlaceholder": "對話體驗將於 P1 里程碑推出。"
   },
+  "chat": {
+    "title": "對話",
+    "description": "與角色對話——它的語氣會隨情緒而變化。",
+    "switch": "切換角色",
+    "noCharacters": "目前沒有可對話的角色。",
+    "empty": "打聲招呼開始對話吧。",
+    "placeholder": "輸入訊息…",
+    "send": "送出",
+    "emotion": {
+      "neutral": "平靜",
+      "joy": "喜悅",
+      "affection": "親切",
+      "curiosity": "好奇",
+      "surprise": "驚訝",
+      "sadness": "難過",
+      "anger": "生氣",
+      "fear": "害怕",
+      "disgust": "厭惡"
+    }
+  },
   "characters": {
     "title": "角色",
     "description": "建立與配音角色、設定個性、管理語音模型。",

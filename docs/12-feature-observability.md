@@ -1,12 +1,12 @@
-# 11 · Feature — Observability (Monitoring & Logging)
+# 12 · Feature — Observability (Monitoring & Logging)
 
 | | |
 |---|---|
 | **Document** | Feature Spec — Observability |
-| **Doc ID** | NF-11 |
+| **Doc ID** | NF-12 |
 | **Version** | 0.1 (Draft) |
 | **Last updated** | 2026-05-30 |
-| **Related** | [03 Architecture](03-system-architecture.md), [04 Data](04-data-model-and-storage.md), [05 API](05-api-specification.md), [06 Modules](06-module-and-extension-system.md), [10 Realtime](10-feature-realtime-and-media-generation.md) |
+| **Related** | [03 Architecture](03-system-architecture.md), [04 Data](04-data-model-and-storage.md), [05 API](05-api-specification.md), [06 Modules](06-module-and-extension-system.md), [11 Realtime](11-feature-realtime-and-media-generation.md) |
 | **Traces** | FR-OBS-1 … FR-OBS-6, NFR-OBS-1, NFR-PRIV-4, NFR-SEC-2 |
 
 ---
@@ -102,7 +102,7 @@ Operators may set soft **budgets** (e.g. per day or per user) and get **alerts**
 
 - **Format** — structured (JSON-capable) log records with level, timestamp, component, message, and a **`correlation_id`** linking a request → its WS turn → its jobs → its usage records ([05 §1](05-api-specification.md)).
 - **Levels** — standard `DEBUG`…`ERROR`; configurable per component.
-- **Location** — `<workspace>/logs/` with rotation; the **one-click launcher multiplexes backend + frontend logs into a single terminal** ([13 §3](13-runtime-and-deployment.md)).
+- **Location** — `<workspace>/logs/` with rotation; the **one-click launcher multiplexes backend + frontend logs into a single terminal** ([14 §3](14-runtime-and-deployment.md)).
 - **Tailing** — recent logs are viewable via API/UI (filter by level/component/correlation id) without opening files (FR-OBS-4).
 - **Redaction (NFR-SEC-2, NFR-PRIV-4)** — secrets and sensitive payloads are redacted; module loggers are namespaced and pass through the same redaction ([06 §11](06-module-and-extension-system.md)). User message content is not logged at info level by default.
 

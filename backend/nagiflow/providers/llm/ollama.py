@@ -11,7 +11,7 @@ from collections.abc import AsyncIterator
 
 import httpx
 
-from ..base import ChatMessage, GenChunk, GenRequest, GenUsage, LLMCaps
+from ..base import ChatMessage, GenChunk, GenRequest, GenUsage, LLMCaps, ProviderError
 
 
 class OllamaLLM:
@@ -31,27 +31,40 @@ class OllamaLLM:
         }
 
     async def generate(self, req: GenRequest) -> AsyncIterator[GenChunk]:
-        async with httpx.AsyncClient(timeout=httpx.Timeout(120.0, connect=5.0)) as client:
-            async with client.stream(
-                "POST", f"{self._base_url}/api/chat", json=self._payload(req)
-            ) as resp:
-                resp.raise_for_status()
-                async for line in resp.aiter_lines():
-                    if not line.strip():
-                        continue
-                    data = json.loads(line)
-                    if data.get("done"):
-                        yield GenChunk(
-                            done=True,
-                            usage=GenUsage(
-                                prompt_tokens=data.get("prompt_eval_count"),
-                                completion_tokens=data.get("eval_count"),
-                            ),
+        try:
+            async with httpx.AsyncClient(timeout=httpx.Timeout(120.0, connect=5.0)) as client:
+                async with client.stream(
+                    "POST", f"{self._base_url}/api/chat", json=self._payload(req)
+                ) as resp:
+                    if resp.status_code >= 400:
+                        # Read the body for a useful message (e.g. model-not-found 404).
+                        body = (await resp.aread()).decode("utf-8", "replace").strip()
+                        raise ProviderError(
+                            f"Ollama /api/chat returned {resp.status_code}: {body[:200]}"
                         )
-                        return
-                    delta = data.get("message", {}).get("content", "")
-                    if delta:
-                        yield GenChunk(delta=delta)
+                    async for line in resp.aiter_lines():
+                        if not line.strip():
+                            continue
+                        try:
+                            data = json.loads(line)
+                        except json.JSONDecodeError as exc:
+                            raise ProviderError(f"Ollama sent invalid JSON: {exc}") from exc
+                        if data.get("done"):
+                            yield GenChunk(
+                                done=True,
+                                usage=GenUsage(
+                                    prompt_tokens=data.get("prompt_eval_count"),
+                                    completion_tokens=data.get("eval_count"),
+                                ),
+                            )
+                            return
+                        delta = data.get("message", {}).get("content", "")
+                        if delta:
+                            yield GenChunk(delta=delta)
+        except httpx.HTTPError as exc:
+            raise ProviderError(
+                f"Could not reach Ollama at {self._base_url} (model '{self._model}'): {exc}"
+            ) from exc
 
     async def list_models(self) -> list[str]:
         async with httpx.AsyncClient(timeout=5.0) as client:

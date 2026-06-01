@@ -1,7 +1,7 @@
-"""Structured logging + correlation IDs (docs/05 §1, docs/11 §4).
+"""Structured logging + correlation IDs (docs/05 §1, docs/12 §4).
 
 A `correlation_id` threads request → WS turn → jobs → usage/log records. Secrets and
-user message content are not logged at info level by default (docs/15 §3.3).
+user message content are not logged at info level by default (docs/16 §3.3).
 """
 
 from __future__ import annotations

@@ -1,12 +1,12 @@
-# 15 · Security & Threat Model
+# 16 · Security & Threat Model
 
 | | |
 |---|---|
 | **Document** | Security & Threat Model |
-| **Doc ID** | NF-15 |
+| **Doc ID** | NF-16 |
 | **Version** | 0.1 (Draft) |
 | **Last updated** | 2026-05-31 |
-| **Related** | [02 SRS §6.5](02-requirements-specification.md), [05 API §2](05-api-specification.md), [06 Modules §11](06-module-and-extension-system.md), [09 Privacy](09-feature-multiuser-memory-and-privacy.md), [13 Runtime §4](13-runtime-and-deployment.md) |
+| **Related** | [02 SRS §6.5](02-requirements-specification.md), [05 API §2](05-api-specification.md), [06 Modules §11](06-module-and-extension-system.md), [09 Privacy](09-feature-multiuser-memory-and-privacy.md), [14 Runtime §4](14-runtime-and-deployment.md) |
 | **Traces** | NFR-SEC-1/2/3/4, NFR-PRIV-1/2/3/4, FR-MM-11, FR-MOD-8/10 |
 
 ---
@@ -26,7 +26,7 @@ NagiFlow's stance reflects its nature: a **local-first, single-operator** applic
 | **Server-side authorization, always** | Every protected route/WS action checks the permission matrix; the client never decides access ([05 §2](05-api-specification.md), [09 §3](09-feature-multiuser-memory-and-privacy.md), NFR-SEC-1). |
 | **Privacy at the data layer, not the prompt** | Memory scoping + sensitive-mode retrieval filtering prevent leakage structurally ([09 §4–5](09-feature-multiuser-memory-and-privacy.md), ADR-005, NFR-PRIV-1). |
 | **Least privilege for modules** | A module gets only what its manifest declares; everything else is denied ([06 §11](06-module-and-extension-system.md), NFR-SEC-3). |
-| **No ambient secrets** | Secrets come from env / OS store, are never logged, committed, or embedded in URLs ([13 §4](13-runtime-and-deployment.md), NFR-SEC-2). |
+| **No ambient secrets** | Secrets come from env / OS store, are never logged, committed, or embedded in URLs ([14 §4](14-runtime-and-deployment.md), NFR-SEC-2). |
 | **Local by default** | No content leaves the machine except what a user-configured provider/connector must transmit; no telemetry without opt-in (NFR-PRIV-1/4). |
 | **No silent account creation** | Accounts/credentials are always user-initiated; NagiFlow never logs in on a user's behalf (NFR-SEC-3). |
 
@@ -41,9 +41,9 @@ Specified in [05 §2](05-api-specification.md): two principal kinds (**guest**, 
 The **permission matrix** ([09 §3](09-feature-multiuser-memory-and-privacy.md), FR-MM-11) is the source of truth, enforced server-side on every request and WebSocket action. Guests are confined to basic conversation with guest-visible characters; everything that creates, reveals, or configures is user/admin-gated. **Module install + permission grants are admin-only.**
 
 ### 3.3 Secrets handling
-- Provider/connector credentials are supplied by the **user**, read from **environment / OS secret store**, never written to the repo or the shareable workspace config ([13 §4](13-runtime-and-deployment.md)).
-- Secrets are **redacted** from all logs (core + module loggers pass through the same redaction — [11 §4](11-feature-observability.md)); never placed in URLs or query strings.
-- In the UI, secret fields are **write-only/masked**; settings show env secrets as "set/unset", never values ([12 §7.9](12-ui-ux-design.md)).
+- Provider/connector credentials are supplied by the **user**, read from **environment / OS secret store**, never written to the repo or the shareable workspace config ([14 §4](14-runtime-and-deployment.md)).
+- Secrets are **redacted** from all logs (core + module loggers pass through the same redaction — [12 §4](12-feature-observability.md)); never placed in URLs or query strings.
+- In the UI, secret fields are **write-only/masked**; settings show env secrets as "set/unset", never values ([13 §7.9](13-ui-ux-design.md)).
 - Modules read only their **declared** secrets via `host.secret(k)`; undeclared keys return `None` ([06 §11](06-module-and-extension-system.md)).
 
 ---
@@ -53,12 +53,12 @@ The **permission matrix** ([09 §3](09-feature-multiuser-memory-and-privacy.md),
 Modules are the largest attack surface (third-party code in-process). Controls ([06 §11](06-module-and-extension-system.md), NFR-SEC-3, FR-MOD-8/10):
 
 - **Manifest-declared least privilege** — `network` / `filesystem` / `subprocess` / `secrets` allowlists; anything unlisted is denied by the guarded `host` clients.
-- **Trust signaling & consent** — official vs third-party badge; the requested permission set is shown for explicit operator consent at install/enable ([12 §7.8](12-ui-ux-design.md)).
+- **Trust signaling & consent** — official vs third-party badge; the requested permission set is shown for explicit operator consent at install/enable ([13 §7.8](13-ui-ux-design.md)).
 - **Quarantine** — a module that throws on load/registration is disabled and reported, not allowed to crash the host (NFR-REL-2).
 - **Auditing** — install, enable/disable, config and permission-grant changes are written to the audit log (§9).
 - **Known limitation (honest):** Python cannot perfectly sandbox in-process code — the allowlists are *least-privilege-by-contract plus auditing*, not a hard jail.
   - **Trust boundary for shared/public instances:** an instance exposed to guests/the public must run **only official/trusted modules**; installing third-party modules is an **admin action for the operator's own machine**.
-  - **Extension space (future hardening):** true isolation of untrusted modules (subprocess / WASM / container) is the planned upgrade before any "run untrusted modules on a shared instance" use case ([14 risks](14-roadmap-and-milestones.md)).
+  - **Extension space (future hardening):** true isolation of untrusted modules (subprocess / WASM / container) is the planned upgrade before any "run untrusted modules on a shared instance" use case ([15 risks](15-roadmap-and-milestones.md)).
 
 ---
 
@@ -86,10 +86,10 @@ The privacy-critical surface; specified in [09](09-feature-multiuser-memory-and-
 
 ## 7. Supply chain & dependencies
 
-- **Pinned versions** for integrated AI components (LLM/TTS/ASR runtimes) behind the provider contract; provider/API churn is a tracked risk ([14 §5](14-roadmap-and-milestones.md)).
-- **License hygiene** — integrated OSS licenses honored and surfaced (e.g. VoxCPM Apache-2.0); **non-MIT** optional renderer modules (Live2D Cubism SDK) ship **separately** so the MIT core stays unencumbered ([14 §7](14-roadmap-and-milestones.md)).
+- **Pinned versions** for integrated AI components (LLM/TTS/ASR runtimes) behind the provider contract; provider/API churn is a tracked risk ([15 §5](15-roadmap-and-milestones.md)).
+- **License hygiene** — integrated OSS licenses honored and surfaced (e.g. VoxCPM Apache-2.0); **non-MIT** optional renderer modules (Live2D Cubism SDK) ship **separately** so the MIT core stays unencumbered ([15 §7](15-roadmap-and-milestones.md)).
 - **Misuse guidance** — upstream voice-cloning/deepfake warnings are preserved in product guidance (NFR-COMP-1/2).
-- **No telemetry** — nothing is sent to a third party unless an operator configures a provider/connector that requires it; that surface is visible in observability ([11](11-feature-observability.md), NFR-PRIV-4).
+- **No telemetry** — nothing is sent to a third party unless an operator configures a provider/connector that requires it; that surface is visible in observability ([12](12-feature-observability.md), NFR-PRIV-4).
 
 ---
 
@@ -99,7 +99,7 @@ The privacy-critical surface; specified in [09](09-feature-multiuser-memory-and-
 |---|---|---|---|
 | Other users' memories | Cross-user leak in conversation | Namespace isolation + scope-aware retrieval; sensitive mode | [09 §4–5](09-feature-multiuser-memory-and-privacy.md) |
 | Advanced operations | Guest privilege escalation | Server-side permission matrix on every request/WS action | [09 §3](09-feature-multiuser-memory-and-privacy.md) |
-| Credentials | Theft / leak via logs/URLs/repo | Env/OS-store secrets, redaction, masked UI, never committed | §3.3, [13 §4](13-runtime-and-deployment.md) |
+| Credentials | Theft / leak via logs/URLs/repo | Env/OS-store secrets, redaction, masked UI, never committed | §3.3, [14 §4](14-runtime-and-deployment.md) |
 | Host machine / data | Malicious or buggy module | Manifest least-privilege + guarded host + consent + quarantine; trusted-only on shared instances | §4, [06 §11](06-module-and-extension-system.md) |
 | Local accounts | Password compromise | Argon2id hashing; no plaintext; revocable sessions | [05 §2](05-api-specification.md) |
 | Shared character file | Embedded user data | Export strips `user_scoped` by default; import quarantine | [08 §6](08-feature-character-management.md) |
@@ -112,7 +112,7 @@ The privacy-critical surface; specified in [09](09-feature-multiuser-memory-and-
 ## 9. Auditing & traceability
 
 - **Audit log** records security-relevant actions — permission changes, sensitive-mode toggles, memory deletions, module enable/disable & permission grants ([04 §5.8](04-data-model-and-storage.md), NFR-SEC-2), distinct from operational logs.
-- **Correlation IDs** thread request → WS turn → jobs → usage/log records for after-the-fact tracing ([05 §1](05-api-specification.md), [11 §4](11-feature-observability.md)).
+- **Correlation IDs** thread request → WS turn → jobs → usage/log records for after-the-fact tracing ([05 §1](05-api-specification.md), [12 §4](12-feature-observability.md)).
 - **Redaction** applies uniformly to core and module loggers; user message content is not logged at info level by default.
 
 ---

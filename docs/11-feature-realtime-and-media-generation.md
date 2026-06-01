@@ -1,9 +1,9 @@
-# 10 · Feature — Realtime Interaction & Media Generation
+# 11 · Feature — Realtime Interaction & Media Generation
 
 | | |
 |---|---|
 | **Document** | Feature Spec — Realtime Interaction & Media Generation |
-| **Doc ID** | NF-10 |
+| **Doc ID** | NF-11 |
 | **Version** | 0.1 (Draft) |
 | **Last updated** | 2026-05-30 |
 | **Related** | [03 Architecture](03-system-architecture.md), [05 API](05-api-specification.md), [06 Modules](06-module-and-extension-system.md), [07 Scripts](07-feature-script-management.md), [08 Characters](08-feature-character-management.md), [09 Privacy](09-feature-multiuser-memory-and-privacy.md) |
@@ -113,7 +113,7 @@ sequenceDiagram
 5. **LLM streaming** — tokens stream out as `text.delta`; tool/skill calls are executed mid-stream and results fed back (FR-RT-2, FR-MOD-2).
 6. **TTS streaming** — finalized text spans are streamed to TTS; **audio chunks** stream to the client as they're produced, with **amplitude/viseme/timing** events for lip-sync (FR-RT-2/3). Low-latency streaming keeps perceived latency down (NFR-PERF-1).
 7. **Memory write** — candidate memories extracted and stored with scope/importance ([09 §4.3](09-feature-multiuser-memory-and-privacy.md)).
-8. **Persist & account** — append messages; write a `usage_record` (tokens, audio seconds, est. cost — [11 §3](11-feature-observability.md)).
+8. **Persist & account** — append messages; write a `usage_record` (tokens, audio seconds, est. cost — [12 §3](12-feature-observability.md)).
 
 ### 4.2 Barge-in & interruption (FR-RT-8)
 
@@ -128,7 +128,7 @@ A `control.interrupt` from the client (or a higher-priority input) **cancels** i
 | First token → first audio chunk | low hundreds of ms (streaming TTS) |
 | Steady-state | audio keeps pace with speech in real time (RTF < 1 on adequate hardware) |
 
-Targets degrade gracefully on weaker hardware; NagiFlow surfaces latency in observability ([11 §2](11-feature-observability.md)).
+Targets degrade gracefully on weaker hardware; NagiFlow surfaces latency in observability ([12 §2](12-feature-observability.md)).
 
 ### 4.4 Reconnection & resilience (FR-RT-8)
 
@@ -173,7 +173,7 @@ score(c) = w_addr · addressed(c)        # 1 if @-mention / name match, else 0
 # defaults: w_addr 1.0 (hard win), w_rel 0.5, w_fair 0.2, w_cool 0.3; engage threshold 0.35
 ```
 
-Default `director_config`: `max_chain_depth = 2`, `max_character_turns_per_input = 3`, `cooldown_turns = 1`, `selection = "addressed→relevance→round_robin"`. Weights/thresholds are **tunable defaults**, surfaced in the live console ([12 §7.6](12-ui-ux-design.md)); the relevance term reuses the same embedding provider as memory ([04 §6](04-data-model-and-storage.md)). The cheap **engage/pass** gate (rule 5) is a final yes/no so a high-scoring-but-nothing-to-add character still declines.
+Default `director_config`: `max_chain_depth = 2`, `max_character_turns_per_input = 3`, `cooldown_turns = 1`, `selection = "addressed→relevance→round_robin"`. Weights/thresholds are **tunable defaults**, surfaced in the live console ([13 §7.6](13-ui-ux-design.md)); the relevance term reuses the same embedding provider as memory ([04 §6](04-data-model-and-storage.md)). The cheap **engage/pass** gate (rule 5) is a final yes/no so a high-scoring-but-nothing-to-add character still declines.
 
 ---
 
@@ -260,7 +260,7 @@ A PNGTuber avatar bundle is a directory (the `avatar_bundle_key` target — [04 
 }
 ```
 
-Rules: every `layers[].group` has exactly one active member at a time; `default: true` marks the resting member. The renderer **validates** the descriptor on load (missing images, unknown groups) and reports a clear error; a malformed bundle falls back to the static portrait (§5.2). `idle.sway`/`talk_bounce` honor `prefers-reduced-motion` ([12 §10](12-ui-ux-design.md)). Fields a future renderer doesn't understand are ignored — **forward-compatible extension space**.
+Rules: every `layers[].group` has exactly one active member at a time; `default: true` marks the resting member. The renderer **validates** the descriptor on load (missing images, unknown groups) and reports a clear error; a malformed bundle falls back to the static portrait (§5.2). `idle.sway`/`talk_bounce` honor `prefers-reduced-motion` ([13 §10](13-ui-ux-design.md)). Fields a future renderer doesn't understand are ignored — **forward-compatible extension space**.
 
 ---
 
@@ -299,7 +299,7 @@ Graceful degradation across hardware tiers supports the local-first, broad-porta
 ## 8. Permissions
 
 - **Live chat** with a **guest-visible** character is available to guests ([09 §3](09-feature-multiuser-memory-and-privacy.md)); chatting with non-visible characters and all of Mode A (media generation) require an authenticated user.
-- Renders and live turns are attributed to the requesting user in usage accounting ([11 §3](11-feature-observability.md)).
+- Renders and live turns are attributed to the requesting user in usage accounting ([12 §3](12-feature-observability.md)).
 - Configuring live-chat Connectors (credentials) is a user/admin action; NagiFlow never supplies third-party credentials itself ([09 §6](09-feature-multiuser-memory-and-privacy.md)).
 
 ---

@@ -150,3 +150,59 @@ export interface ErrorEnvelope {
     correlation_id?: string
   }
 }
+
+// --- conversations & chat (docs/05 §4.3, docs/10) ---
+
+export type MessageRole = 'user' | 'character' | 'system' | 'tool'
+
+/** Short-term emotion carried on a character reply (docs/10 §2, §9). */
+export interface AffectVAD {
+  v: number
+  a: number
+  d: number
+}
+
+export interface Affect {
+  vad: AffectVAD
+  label: string
+  intensity: number
+  source: string
+}
+
+export interface MessageMeta {
+  usage?: { prompt_tokens: number | null, completion_tokens: number | null }
+  affect?: Affect
+  expression?: string
+  voice_style?: string[]
+}
+
+export interface Message {
+  id: string
+  conversation_id: string
+  role: MessageRole
+  speaker_character_id: string | null
+  content: string
+  created_at: string
+  meta: MessageMeta
+}
+
+export interface Conversation {
+  id: string
+  character_id: string
+  user_id: string
+  mode: string
+  sensitive_mode: boolean
+  title: string | null
+  status: string
+  created_at: string
+}
+
+export interface ConversationCreate {
+  character_id: string
+  title?: string
+}
+
+export interface SendMessageResponse {
+  user_message: Message
+  reply: Message
+}

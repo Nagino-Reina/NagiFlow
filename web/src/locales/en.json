@@ -46,6 +46,26 @@
     "empty": "No guest-visible characters yet. Log in to create one.",
     "chatPlaceholder": "Chat experience arrives in the P1 milestone."
   },
+  "chat": {
+    "title": "Chat",
+    "description": "Talk with a character — its tone shifts with how it feels.",
+    "switch": "Switch character",
+    "noCharacters": "No characters available to chat with yet.",
+    "empty": "Say hello to start the conversation.",
+    "placeholder": "Type a message…",
+    "send": "Send",
+    "emotion": {
+      "neutral": "Neutral",
+      "joy": "Joyful",
+      "affection": "Affectionate",
+      "curiosity": "Curious",
+      "surprise": "Surprised",
+      "sadness": "Sad",
+      "anger": "Angry",
+      "fear": "Afraid",
+      "disgust": "Disgusted"
+    }
+  },
   "characters": {
     "title": "Characters",
     "description": "Create and voice characters, set personality, and manage voice models.",

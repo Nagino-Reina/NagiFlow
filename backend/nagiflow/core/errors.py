@@ -1,4 +1,4 @@
-"""Consistent error envelope with stable machine codes (docs/05 §3, docs/15 §6).
+"""Consistent error envelope with stable machine codes (docs/05 §3, docs/16 §6).
 
 Domain/service code raises `AppError(code=...)`; the API layer renders it as:
     {"error": {"code", "message", "details", "correlation_id"}}

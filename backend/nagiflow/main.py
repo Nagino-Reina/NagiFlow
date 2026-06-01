@@ -2,7 +2,7 @@
 
 Wires middleware (correlation, CORS), routers, the error envelope, providers, and the
 DB lifespan. In prod the built SPA is served by this same process (docs/03 ADR-006) — that
-static mount lands with the runtime/launcher work (docs/13).
+static mount lands with the runtime/launcher work (docs/14).
 """
 
 from __future__ import annotations

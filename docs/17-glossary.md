@@ -1,9 +1,9 @@
-# 16 · Glossary & References
+# 17 · Glossary & References
 
 | | |
 |---|---|
 | **Document** | Glossary & References |
-| **Doc ID** | NF-16 |
+| **Doc ID** | NF-17 |
 | **Version** | 0.1 (Draft) |
 | **Last updated** | 2026-05-30 |
 | **Related** | All NagiFlow documents |
@@ -27,10 +27,10 @@
 | **Sensitive mode** | A setting that prevents a character from revealing/referencing **other users**, enforced primarily at memory retrieval ([09 §5](09-feature-multiuser-memory-and-privacy.md)). |
 | **Guest** | An anonymous, no-login session limited to basic conversation with guest-visible characters ([09 §2](09-feature-multiuser-memory-and-privacy.md)). |
 | **Workspace** | The local folder holding NagiFlow's data: SQLite DB, config, characters, scripts, media, memory index, modules, jobs, backups, logs ([04 §2](04-data-model-and-storage.md)). |
-| **MediaAsset** | A rendered output (audio and/or video, with subtitles) linked to a script ([10 §3](10-feature-realtime-and-media-generation.md)). |
-| **Dialogue Orchestrator** | The runtime component that assembles context, retrieves memory, calls the LLM (with skills), streams TTS, and writes memory/usage ([03 §5](03-system-architecture.md), [10 §4](10-feature-realtime-and-media-generation.md)). |
-| **Cast** | The set of characters active in a single (multi-character) live session; for ordinary chat the cast is one character ([10 §4.5](10-feature-realtime-and-media-generation.md)). |
-| **Turn director / Conversation director** | The scheduler that, in a multi-character session, serializes turns (one speaker at a time), selects the next responder, and bounds character-to-character chains to prevent overlap and infinite loops ([10 §4.5](10-feature-realtime-and-media-generation.md)). |
+| **MediaAsset** | A rendered output (audio and/or video, with subtitles) linked to a script ([11 §3](11-feature-realtime-and-media-generation.md)). |
+| **Dialogue Orchestrator** | The runtime component that assembles context, retrieves memory, calls the LLM (with skills), streams TTS, and writes memory/usage ([03 §5](03-system-architecture.md), [11 §4](11-feature-realtime-and-media-generation.md)). |
+| **Cast** | The set of characters active in a single (multi-character) live session; for ordinary chat the cast is one character ([11 §4.5](11-feature-realtime-and-media-generation.md)). |
+| **Turn director / Conversation director** | The scheduler that, in a multi-character session, serializes turns (one speaker at a time), selects the next responder, and bounds character-to-character chains to prevent overlap and infinite loops ([11 §4.5](11-feature-realtime-and-media-generation.md)). |
 | **Avatar bundle** | The directory (descriptor + assets) holding a character's avatar — a PNGTuber sprite set by default, or a Live2D / 3D model — referenced by a single storage key ([04 §5.2](04-data-model-and-storage.md)). |
 
 ---
@@ -78,16 +78,16 @@
 | **RAG** | Retrieval-Augmented Generation — injecting retrieved context (here, memories) into the prompt. |
 | **WebSocket** | The bidirectional protocol carrying live conversation turns (streaming text/audio/visemes) ([05 §8](05-api-specification.md)). |
 | **SSE** | Server-Sent Events — an optional one-way streaming transport alternative. |
-| **Token** | The unit LLMs process text in; counted for usage/cost accounting ([11 §3](11-feature-observability.md)). |
+| **Token** | The unit LLMs process text in; counted for usage/cost accounting ([12 §3](12-feature-observability.md)). |
 | **RTF** | Real-Time Factor — synthesis time ÷ audio duration; < 1 means faster-than-real-time (needed for smooth live TTS). |
-| **Viseme** | A visual mouth-shape unit; NagiFlow emits visemes/timing for avatar lip-sync ([10 §5](10-feature-realtime-and-media-generation.md)). |
-| **Avatar renderer** | A provider (`AvatarRenderProvider`) that animates a character's avatar bundle from emitted amplitude/viseme/timing/expression events to produce video and live avatars. **Default: PNGTuber**; pluggable to Live2D, 3D, and external engines ([10 §5](10-feature-realtime-and-media-generation.md)). |
+| **Viseme** | A visual mouth-shape unit; NagiFlow emits visemes/timing for avatar lip-sync ([11 §5](11-feature-realtime-and-media-generation.md)). |
+| **Avatar renderer** | A provider (`AvatarRenderProvider`) that animates a character's avatar bundle from emitted amplitude/viseme/timing/expression events to produce video and live avatars. **Default: PNGTuber**; pluggable to Live2D, 3D, and external engines ([11 §5](11-feature-realtime-and-media-generation.md)). |
 | **PNGTuber** | NagiFlow's **default** avatar renderer: a **layered-PNG sprite set** (mouth states + expression layers + optional blink/sway) driven by audio amplitude / visemes / expression events. Fully MIT, no proprietary runtime, no GPU required. |
 | **Live2D** | A 2D model/animation technology for expressive avatars; available in NagiFlow as an **optional** `AvatarRenderProvider` module (`kind="live2d"`). Ships separately because its Cubism SDK carries non-MIT licensing terms. |
 | **3D model (avatar)** | A spatial avatar model (e.g. glTF/VRM-class) rendered by an optional 3D `AvatarRenderProvider` module — an extension path beyond the default PNGTuber renderer. |
 | **OBS / VTube Studio** | External streaming/avatar tools that can act as alternative avatar renderers via adapter modules/connectors. |
 | **ffmpeg** | The media toolkit used for audio extraction, assembly, and transcoding. |
-| **CLI** | Command-Line Interface — here, the `nagiflow` launcher/commands ([13 §3](13-runtime-and-deployment.md)). |
+| **CLI** | Command-Line Interface — here, the `nagiflow` launcher/commands ([14 §3](14-runtime-and-deployment.md)). |
 
 ---
 
@@ -107,7 +107,7 @@
 
 ## 5. References
 
-> Informational pointers to the principal external technologies. Versions/details evolve; consult upstream docs for current specifics. (Verify before implementation; see [14 §5 risks](14-roadmap-and-milestones.md) on provider churn.)
+> Informational pointers to the principal external technologies. Versions/details evolve; consult upstream docs for current specifics. (Verify before implementation; see [15 §5 risks](15-roadmap-and-milestones.md) on provider churn.)
 
 | Component | What to consult | Note |
 |---|---|---|
@@ -118,7 +118,7 @@
 | **Vuetify / Vue / Vite** | Respective official docs | Frontend stack. |
 | **SQLAlchemy / Alembic** | Respective official docs | ORM + migrations. |
 | **ffmpeg** | ffmpeg documentation | Media processing. |
-| **psutil / pynvml** | Respective project docs | System + GPU metrics ([11 §2](11-feature-observability.md)). |
+| **psutil / pynvml** | Respective project docs | System + GPU metrics ([12 §2](12-feature-observability.md)). |
 
 ---
 

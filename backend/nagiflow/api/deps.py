@@ -12,10 +12,12 @@ from ..config import get_settings
 from ..core import errors
 from ..core.database import get_session
 from ..providers.registry import ProviderRegistry
+from ..repositories.affect import AffectStateRepository
 from ..repositories.characters import CharacterRepository
 from ..repositories.conversations import ConversationRepository, MessageRepository
 from ..repositories.users import SessionRepository, UserRepository
 from ..repositories.voice_models import VoiceModelRepository
+from ..services.affect import AffectService
 from ..services.auth_service import AuthService, Principal
 from ..services.character_service import CharacterService
 from ..services.conversation_service import ConversationService
@@ -54,11 +56,13 @@ Characters = Annotated[CharacterService, Depends(get_character_service)]
 
 
 def get_conversation_service(session: Session, registry: Registry) -> ConversationService:
+    affect = AffectService(AffectStateRepository(session), registry, get_settings())
     return ConversationService(
         ConversationRepository(session),
         MessageRepository(session),
         CharacterRepository(session),
         registry,
+        affect,
     )
 
 

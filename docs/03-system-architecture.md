@@ -6,7 +6,7 @@
 | **Doc ID** | NF-03 |
 | **Version** | 0.1 (Draft) |
 | **Last updated** | 2026-05-30 |
-| **Related** | [02 SRS](02-requirements-specification.md), [04 Data](04-data-model-and-storage.md), [05 API](05-api-specification.md), [06 Modules](06-module-and-extension-system.md), [10 Realtime](10-feature-realtime-and-media-generation.md), [13 Runtime](13-runtime-and-deployment.md) |
+| **Related** | [02 SRS](02-requirements-specification.md), [04 Data](04-data-model-and-storage.md), [05 API](05-api-specification.md), [06 Modules](06-module-and-extension-system.md), [11 Realtime](11-feature-realtime-and-media-generation.md), [14 Runtime](14-runtime-and-deployment.md) |
 
 ---
 
@@ -111,7 +111,7 @@ flowchart TB
 | **Vector index** | Local (pluggable) | Embedding similarity search for memory retrieval. |
 | **External services** | Ollama, VoxCPM, ASR, connectors | Generation/transcription/integration; managed by user/official modules. |
 
-In **production mode** the backend also **serves the built SPA's static assets**, so a single process serves both UI and API (see [13](13-runtime-and-deployment.md)).
+In **production mode** the backend also **serves the built SPA's static assets**, so a single process serves both UI and API (see [14](14-runtime-and-deployment.md)).
 
 ### 3.3 Backend component view
 
@@ -126,6 +126,7 @@ flowchart TB
       CHAR[CharacterService]
       SCRIPT[ScriptService]
       MEM[MemoryService]
+      AFF[AffectService]
       CONV[ConversationService]
       ORCH[DialogueOrchestrator]
       MEDIA[MediaService]
@@ -170,13 +171,14 @@ flowchart TB
 - **API layer** — routing, request/response schemas (Pydantic), middleware (auth/session resolution, error envelope, correlation IDs, CORS), and the WebSocket gateway for live sessions.
 - **Domain services** — encapsulate business rules per area; depend on providers and repositories, not on transport.
 - **DialogueOrchestrator** — the conversational "brain" (see §4); assembles context, calls LLM/TTS, manages memory I/O, emits stream events.
+- **AffectService** — computes the character's short-term **emotion** each turn (appraisal of partner + content + memory), maintains per-relationship **mood**, and exposes the emotion as a prompt directive, voice-style/rate nudge, and avatar expression event ([10 Emotion & Affect](10-feature-emotion-and-affect.md)).
 - **ModuleManager** — discovers/loads modules, registers their contributions (providers, skills, connectors, routes, hooks, UI metadata), and enforces capabilities.
 - **Provider abstraction** — typed interfaces with capability flags; concrete implementations (default + module-supplied) are selected via configuration.
 - **Infrastructure** — `JobRunner` (background work), repositories + Unit-of-Work over SQLAlchemy, an event bus exposing lifecycle/domain hooks for modules, and structured logging.
 
 ### 3.4 Frontend architecture (SPA)
 
-The Vuetify SPA is organized for clarity and for hosting UI extensions ([06 §8](06-module-and-extension-system.md)). The full screen-level UI/UX specification — navigation, shell, key screens, accessibility, i18n — is in [12 UI/UX Design](12-ui-ux-design.md).
+The Vuetify SPA is organized for clarity and for hosting UI extensions ([06 §8](06-module-and-extension-system.md)). The full screen-level UI/UX specification — navigation, shell, key screens, accessibility, i18n — is in [13 UI/UX Design](13-ui-ux-design.md).
 
 | Concern | Approach |
 |---|---|
@@ -189,7 +191,7 @@ The Vuetify SPA is organized for clarity and for hosting UI extensions ([06 §8]
 
 ## 4. Dialogue orchestration pipeline
 
-The orchestrator turns an inbound message into a character's spoken response. It is provider-agnostic and identical for sync chat and live streaming (streaming simply emits incremental events). For **multi-character live sessions** a **TurnDirector** sits in front of the orchestrator and decides *which* character handles each turn and whether a character may respond to another (see [10 §4.5](10-feature-realtime-and-media-generation.md)); the per-character turn it dispatches is the same pipeline below.
+The orchestrator turns an inbound message into a character's spoken response. It is provider-agnostic and identical for sync chat and live streaming (streaming simply emits incremental events). For **multi-character live sessions** a **TurnDirector** sits in front of the orchestrator and decides *which* character handles each turn and whether a character may respond to another (see [11 §4.5](11-feature-realtime-and-media-generation.md)); the per-character turn it dispatches is the same pipeline below.
 
 ```mermaid
 sequenceDiagram
@@ -225,17 +227,18 @@ sequenceDiagram
 
 1. **Resolve context** — character, user (or guest), conversation, sensitive-mode flag, active skills/connectors.
 2. **Memory retrieval** — `MemoryService` returns scope-filtered entries (vector similarity + recency + importance); sensitive mode excludes other-user memory at this layer ([09](09-feature-multiuser-memory-and-privacy.md)).
-3. **Prompt assembly** — persona + Big Five → behavior directives ([08 §3](08-feature-character-management.md)) + retrieved memory + recent history + tool/skill specifications + guardrails. **Context-budget management:** the assembler fits everything within the LLM's advertised `context_window` — recent turns are kept verbatim while older history is replaced by a rolling **conversation summary**, and retrieved-memory `top-K` is trimmed to the remaining budget. The policy is provider-capability-aware (uses the advertised window) and bounded so prompts never overflow.
-4. **LLM generation** — streaming tokens; tool/function calls dispatched to **Agent Skills** and results fed back.
-5. **Speech synthesis** — `TTSProvider` renders the response with the character's voice and per-turn/line style; streamed chunks plus optional viseme/timing events.
-6. **Memory write** — salient information summarized and stored under the correct scope per write policy. In **live mode** this runs **off the response path** (deferred/async after `turn.end`, or batched on a summarization pass) so the extra extraction call never adds to first-audio latency ([NFR-PERF-2](02-requirements-specification.md)); a cheap heuristic gate skips extraction for low-salience turns.
-7. **Persist & account** — messages, media references, and **token usage** recorded ([11](11-feature-observability.md)).
+3. **Affect appraisal** — `AffectService` appraises the turn (partner + content + memory), updates the per-relationship mood, and produces the current **emotion** (VAD + label) that feeds the prompt, voice, and avatar ([10 Emotion & Affect](10-feature-emotion-and-affect.md)); bounded/off-path in live mode so it never delays first-audio (NFR-PERF-2).
+4. **Prompt assembly** — persona + Big Five → behavior directives ([08 §3](08-feature-character-management.md)) + the current **emotion directive** ([10 §7.1](10-feature-emotion-and-affect.md)) + retrieved memory + recent history + tool/skill specifications + guardrails. **Context-budget management:** the assembler fits everything within the LLM's advertised `context_window` — recent turns are kept verbatim while older history is replaced by a rolling **conversation summary**, and retrieved-memory `top-K` is trimmed to the remaining budget. The policy is provider-capability-aware (uses the advertised window) and bounded so prompts never overflow.
+5. **LLM generation** — streaming tokens; tool/function calls dispatched to **Agent Skills** and results fed back.
+6. **Speech synthesis** — `TTSProvider` renders the response with the character's voice and per-turn/line style **merged with the current emotion's style/rate** ([10 §7.2](10-feature-emotion-and-affect.md)); streamed chunks plus optional viseme/timing events, including an **expression** event from the emotion label ([10 §7.3](10-feature-emotion-and-affect.md)).
+7. **Memory write** — salient information summarized and stored under the correct scope per write policy. In **live mode** this runs **off the response path** (deferred/async after `turn.end`, or batched on a summarization pass) so the extra extraction call never adds to first-audio latency ([NFR-PERF-2](02-requirements-specification.md)); a cheap heuristic gate skips extraction for low-salience turns.
+8. **Persist & account** — messages, media references, and **token usage** recorded ([12](12-feature-observability.md)).
 
 ## 5. Cross-cutting concerns
 
 | Concern | Approach |
 |---|---|
-| **Configuration** | Layered config (defaults → workspace config file → environment → runtime overrides) via `ConfigService`; provider selection and module settings live here. ([13 §config](13-runtime-and-deployment.md)) |
+| **Configuration** | Layered config (defaults → workspace config file → environment → runtime overrides) via `ConfigService`; provider selection and module settings live here. ([14 §config](14-runtime-and-deployment.md)) |
 | **Dependency injection** | Services and providers resolved through a container/factory so implementations (incl. module-supplied) are swappable and testable. |
 | **AuthN/Z** | Session-based: guest sessions auto-issued; local-account login upgrades capabilities. Authorization enforced in middleware/services against the permission matrix ([09](09-feature-multiuser-memory-and-privacy.md)). |
 | **Error handling** | Consistent error envelope + stable codes ([05 §errors](05-api-specification.md)); provider failures isolated and surfaced. |
@@ -243,7 +246,7 @@ sequenceDiagram
 | **Concurrency** | Async request handling; CPU/GPU-bound work offloaded to worker tasks/threads/processes to avoid blocking the event loop. |
 | **Streaming** | WebSocket for live turns (bidirectional, event-typed); SSE optionally for one-way token streaming. |
 | **Events / hooks** | An event bus exposes lifecycle and domain events (e.g. `conversation.turn`, `media.rendered`, `incoming.message`) that modules subscribe to. |
-| **Observability** | Structured logs with correlation IDs; counters/metrics; token accounting; local-only by default ([11](11-feature-observability.md)). |
+| **Observability** | Structured logs with correlation IDs; counters/metrics; token accounting; local-only by default ([12](12-feature-observability.md)). |
 | **i18n** | Backend returns codes/keys; frontend localizes (zh-Hant / en). |
 
 ## 6. Provider abstraction (the external seams)
@@ -344,7 +347,7 @@ sequenceDiagram
     API-->>U: media asset + download
 ```
 
-### 7.3 Live streaming turn — see [10](10-feature-realtime-and-media-generation.md) for the detailed protocol and §4 above for the orchestration sequence.
+### 7.3 Live streaming turn — see [11](11-feature-realtime-and-media-generation.md) for the detailed protocol and §4 above for the orchestration sequence.
 
 ## 8. Technology stack & rationale
 
@@ -366,7 +369,7 @@ sequenceDiagram
 
 - **Dev mode:** Vite dev server (HMR) for the SPA, proxied to the FastAPI backend; both processes launched and log-multiplexed by the one-click launcher.
 - **Prod (local) mode:** SPA is built to static assets and served by FastAPI; a single backend process serves UI + API.
-- **Process management:** the launcher owns child processes (frontend in dev, backend) and shuts them down on exit, **without** stopping external services like Ollama ([13](13-runtime-and-deployment.md)).
+- **Process management:** the launcher owns child processes (frontend in dev, backend) and shuts them down on exit, **without** stopping external services like Ollama ([14](14-runtime-and-deployment.md)).
 - **Future:** containerized deployment and cloud storage/DB/provider modules — enabled by the existing abstractions, not requiring core changes.
 
 ```mermaid
