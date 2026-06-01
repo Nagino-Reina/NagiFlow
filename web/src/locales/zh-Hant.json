@@ -189,12 +189,16 @@
     "usage": "Token 用量",
     "cpu": "CPU",
     "memory": "記憶體",
+    "gpu": "GPU",
     "disk": "磁碟",
     "free": "可用",
     "tokens": "Token",
     "calls": "呼叫次數",
     "audio": "音訊 (秒)",
     "byProvider": "依供應商"
+  },
+  "systemBar": {
+    "toggle": "系統狀態 — 點擊展開"
   },
   "modules": {
     "title": "模組",
