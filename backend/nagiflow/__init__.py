@@ -3,4 +3,4 @@
 Modular monolith (FastAPI): API ⟂ services ⟂ providers ⟂ persistence (docs/03).
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

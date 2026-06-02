@@ -31,7 +31,7 @@ flowchart LR
 
 ## 2. Phases
 
-### P0 — Foundations
+### P0 — Foundations · ✅ Complete
 **Goal:** the skeleton everything else hangs on.
 - Repo scaffold; FastAPI backend + Vuetify SPA shell; brand theme.
 - Config layering, **workspace** layout, **SQLite + ORM + Alembic** ([04](04-data-model-and-storage.md)).
@@ -40,7 +40,7 @@ flowchart LR
 
 **Exit:** `nagiflow up` starts an empty-but-running app; migrations apply; provider interfaces compile with a stub provider.
 
-### P1 — MVP (give a character a voice, and talk to it)
+### P1 — MVP (give a character a voice, and talk to it) · ✅ Complete
 **Goal:** the smallest end-to-end that demonstrates the product.
 - **Character management**: profile, **Big Five** + behavior mapping, **zero-shot voice** via **VoxCPM** ([08 §3–4](08-feature-character-management.md)).
 - **Single-user** local auth + **guest** session; basic chat via **Ollama** using the **recent-conversation window** as context. (Persistent, scope-aware per-character **memory** — FR-MM-6 — moves to **P3** with the rest of the memory/privacy subsystem.)
@@ -101,15 +101,15 @@ flowchart LR
 
 ## 3. Milestone summary
 
-| Phase | Theme | Headline FR families | Exit criterion (short) |
-|---|---|---|---|
-| P0 | Foundations | FR-SYS-1/8/9 | `nagiflow up` runs an empty app |
-| P1 | MVP | FR-CM-1/2/3/4, FR-OBS-1/3 | Voiced character you can chat with |
-| P2 | Scripts/Media | FR-SM-1…9, FR-RT-5 | Import→correct→render with subtitles |
-| P3 | Multi-user/Privacy | FR-MM-1…11, FR-CM-11/12 | Two users, no cross-leak; safe export |
-| P4 | Modules | FR-MOD-1…11 | 3rd-party skill+connector from SDK |
-| P5 | Realtime | FR-RT-1…11 | Live chat-driven, multi-character, lip-synced session |
-| P6 | Depth/Scale/Polish | FR-CM-5/6, FR-OBS-4/5, NFR-SCALE-* | Fine-tuned voice; budgets; external storage |
+| Phase | Theme | Headline FR families | Exit criterion (short) | Status |
+|---|---|---|---|---|
+| P0 | Foundations | FR-SYS-1/8/9 | `nagiflow up` runs an empty app | ✅ Complete |
+| P1 | MVP | FR-CM-1/2/3/4, FR-OBS-1/3 | Voiced character you can chat with | ✅ Complete |
+| P2 | Scripts/Media | FR-SM-1…9, FR-RT-5 | Import→correct→render with subtitles | Next |
+| P3 | Multi-user/Privacy | FR-MM-1…11, FR-CM-11/12 | Two users, no cross-leak; safe export | Planned |
+| P4 | Modules | FR-MOD-1…11 | 3rd-party skill+connector from SDK | Planned |
+| P5 | Realtime | FR-RT-1…11 | Live chat-driven, multi-character, lip-synced session | Planned |
+| P6 | Depth/Scale/Polish | FR-CM-5/6, FR-OBS-4/5, NFR-SCALE-* | Fine-tuned voice; budgets; external storage | Planned |
 
 ---
 
