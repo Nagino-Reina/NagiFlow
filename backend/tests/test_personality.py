@@ -16,11 +16,16 @@ def _profile(**overrides: int) -> dict[str, int]:
 @pytest.mark.parametrize(
     ("score", "band"),
     [
-        (0, "very_low"), (19, "very_low"),
-        (20, "low"), (39, "low"),
-        (40, "moderate"), (59, "moderate"),
-        (60, "high"), (79, "high"),
-        (80, "very_high"), (100, "very_high"),
+        (0, "very_low"),
+        (19, "very_low"),
+        (20, "low"),
+        (39, "low"),
+        (40, "moderate"),
+        (59, "moderate"),
+        (60, "high"),
+        (79, "high"),
+        (80, "very_high"),
+        (100, "very_high"),
     ],
 )
 def test_band_thresholds(score: int, band: str) -> None:
@@ -84,9 +89,15 @@ def test_spec_is_self_consistent() -> None:
     cfg = spec["params"]["temperature"]
     profile = _profile(openness=80, conscientiousness=20)
     expected = round(
-        max(cfg["min"], min(cfg["max"], cfg["base"]
-            + cfg["coefficients"]["openness"] * (80 - 50) / 50
-            + cfg["coefficients"]["conscientiousness"] * (20 - 50) / 50)),
+        max(
+            cfg["min"],
+            min(
+                cfg["max"],
+                cfg["base"]
+                + cfg["coefficients"]["openness"] * (80 - 50) / 50
+                + cfg["coefficients"]["conscientiousness"] * (20 - 50) / 50,
+            ),
+        ),
         3,
     )
     assert expected == p.temperature_for(profile)

@@ -1,13 +1,14 @@
 <template>
   <v-container class="py-8">
     <div class="d-flex align-center mb-2">
-      <v-icon :icon="icon" size="28" class="me-3 text-primary" />
+      <v-icon class="me-3 text-primary" :icon="icon" size="28" />
       <h1 class="text-h5 font-weight-medium">{{ title }}</h1>
     </div>
+
     <p class="text-body-2 text-medium-emphasis mb-6">{{ description }}</p>
 
-    <v-card variant="flat" color="surface-container" class="pa-8 text-center">
-      <v-icon icon="mdi-progress-wrench" size="40" class="mb-3 text-medium-emphasis" />
+    <v-card class="pa-8 text-center" color="surface-container" variant="flat">
+      <v-icon class="mb-3 text-medium-emphasis" icon="mdi-progress-wrench" size="40" />
       <div class="text-body-1 text-medium-emphasis">{{ t('common.state.comingSoon') }}</div>
     </v-card>
   </v-container>

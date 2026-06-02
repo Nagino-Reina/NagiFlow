@@ -6,16 +6,18 @@
  * that surfaces the same error envelope (docs/05 §3).
  */
 
+import type { TTSCaps, VoiceModel } from './types'
 import { ApiError, http } from './http'
 import { getToken } from './session'
-import type { TTSCaps, VoiceModel } from './types'
 
 const BASE = '/api/v1'
 
 async function authed (path: string, init: RequestInit): Promise<Response> {
   const token = getToken()
   const headers = new Headers(init.headers)
-  if (token) headers.set('Authorization', `Bearer ${token}`)
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`)
+  }
   let res: Response
   try {
     res = await fetch(`${BASE}${path}`, { ...init, headers })
@@ -26,7 +28,7 @@ async function authed (path: string, init: RequestInit): Promise<Response> {
     const env = await res.json().catch(() => null)
     const e = env?.error
     throw new ApiError(e?.code ?? 'internal.error', e?.message ?? res.statusText, res.status,
-                       e?.details, e?.correlation_id)
+      e?.details, e?.correlation_id)
   }
   return res
 }
@@ -54,7 +56,9 @@ export const voiceApi = {
   async clone (characterId: string, reference: File, sampleText?: string): Promise<VoiceModel> {
     const form = new FormData()
     form.append('reference', reference)
-    if (sampleText) form.append('sample_text', sampleText)
+    if (sampleText) {
+      form.append('sample_text', sampleText)
+    }
     const res = await authed(`/characters/${characterId}/voice-models:clone`, {
       method: 'POST', body: form,
     })

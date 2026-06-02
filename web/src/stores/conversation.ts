@@ -5,9 +5,9 @@
  * its messages; each character reply carries the character's current emotion (docs/10).
  */
 
+import type { Conversation, Message } from '@/api/types'
 import { defineStore } from 'pinia'
 import { conversationsApi } from '@/api/conversations'
-import type { Conversation, Message } from '@/api/types'
 
 export const useConversationStore = defineStore('conversation', {
   state: () => ({
@@ -27,7 +27,9 @@ export const useConversationStore = defineStore('conversation', {
     lastAffect: state => {
       for (let i = state.messages.length - 1; i >= 0; i--) {
         const msg = state.messages[i]
-        if (msg && msg.role === 'character' && msg.meta?.affect) return msg.meta.affect
+        if (msg && msg.role === 'character' && msg.meta?.affect) {
+          return msg.meta.affect
+        }
       }
       return null
     },
@@ -55,9 +57,13 @@ export const useConversationStore = defineStore('conversation', {
       }
     },
     async send (text: string) {
-      if (this.sending) return
+      if (this.sending) {
+        return
+      }
       let conv = this.conversation
-      if (!conv && this.pendingCharacterId === null) return
+      if (!conv && this.pendingCharacterId === null) {
+        return
+      }
       this.sending = true
       try {
         // Create the conversation on the first message only (no empty conversations).
@@ -67,7 +73,9 @@ export const useConversationStore = defineStore('conversation', {
           this.pendingCharacterId = null
           this.history = [conv, ...this.history]
         }
-        if (!conv) return
+        if (!conv) {
+          return
+        }
         const res = await conversationsApi.send(conv.id, text)
         this.messages.push(res.user_message, res.reply)
       } finally {

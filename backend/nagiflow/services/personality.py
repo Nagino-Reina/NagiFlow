@@ -69,17 +69,20 @@ _PARAMS: dict[str, dict] = {
     "temperature": {
         "base": 0.7,
         "coefficients": {"openness": 0.25, "conscientiousness": -0.25},
-        "min": 0.2, "max": 1.2,
+        "min": 0.2,
+        "max": 1.2,
     },
     "top_p": {
         "base": 0.9,
         "coefficients": {"openness": 0.1},
-        "min": 0.7, "max": 1.0,
+        "min": 0.7,
+        "max": 1.0,
     },
     "speech_rate": {
         "base": 1.0,
         "coefficients": {"extraversion": 0.15},
-        "min": 0.85, "max": 1.15,
+        "min": 0.85,
+        "max": 1.15,
     },
 }
 

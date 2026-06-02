@@ -1,25 +1,31 @@
 <template>
-  <svg :viewBox="`0 0 ${W} ${H}`" class="bigfive-radar" role="img" :aria-label="ariaLabel">
+  <svg :aria-label="ariaLabel" class="bigfive-radar" role="img" :viewBox="`0 0 ${W} ${H}`">
     <!-- grid rings + spokes -->
-    <polygon v-for="(ring, i) in rings" :key="`r${i}`" :points="ring" class="radar-grid" />
+    <polygon v-for="(ring, i) in rings" :key="`r${i}`" class="radar-grid" :points="ring" />
+
     <line
       v-for="(p, i) in axisPoints"
       :key="`s${i}`"
-      :x1="cx" :y1="cy" :x2="p.x" :y2="p.y"
       class="radar-grid"
+      :x1="cx"
+      :x2="p.x"
+      :y1="cy"
+      :y2="p.y"
     />
 
     <!-- default (50) reference, semi-transparent grey -->
-    <polygon :points="baselinePolygon" class="radar-baseline" />
+    <polygon class="radar-baseline" :points="baselinePolygon" />
 
     <!-- actual values -->
-    <polygon :points="valuePolygon" class="radar-value" />
+    <polygon class="radar-value" :points="valuePolygon" />
 
     <!-- vertices coloured by deviation from default: red above, blue below -->
     <circle
       v-for="(v, i) in vertices"
       :key="`v${i}`"
-      :cx="v.x" :cy="v.y" :r="v.r"
+      :cx="v.x"
+      :cy="v.y"
+      :r="v.r"
       :style="{ fill: v.color }"
     />
 
@@ -27,8 +33,10 @@
     <text
       v-for="(l, i) in axisLabels"
       :key="`l${i}`"
-      :x="l.x" :y="l.y" :text-anchor="l.anchor"
       class="radar-label"
+      :text-anchor="l.anchor"
+      :x="l.x"
+      :y="l.y"
     >{{ l.text }}</text>
   </svg>
 </template>
@@ -37,7 +45,7 @@
   import { computed } from 'vue'
 
   const props = withDefaults(defineProps<{
-    data: { label: string; value: number }[]
+    data: { label: string, value: number }[]
     baseline?: number
     ariaLabel?: string
   }>(), { baseline: 50, ariaLabel: 'Big Five radar chart' })
@@ -52,12 +60,13 @@
   const angle = (i: number) => -Math.PI / 2 + (i * 2 * Math.PI) / n.value
   const clamp = (v: number) => Math.max(0, Math.min(100, v))
 
-  const at = (value: number, i: number) => {
+  function at (value: number, i: number) {
     const r = (maxR * clamp(value)) / 100
     return { x: cx + r * Math.cos(angle(i)), y: cy + r * Math.sin(angle(i)) }
   }
-  const toPoints = (pts: { x: number; y: number }[]) =>
-    pts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
+  function toPoints (pts: { x: number, y: number }[]) {
+    return pts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
+  }
 
   const rings = computed(() =>
     [25, 50, 75, 100].map(level =>
@@ -76,9 +85,9 @@
     const p = at(d.value, i)
     const color = diff > 0
       ? 'rgb(var(--v-theme-error))'
-      : diff < 0
+      : (diff < 0
         ? 'rgb(var(--v-theme-info))'
-        : 'rgb(var(--v-theme-on-surface-variant))'
+        : 'rgb(var(--v-theme-on-surface-variant))')
     return { ...p, r: 2.4 + Math.min(4, Math.abs(diff) / 14), color }
   }))
 
@@ -87,7 +96,7 @@
     const r = maxR + 16
     const x = cx + r * Math.cos(a)
     const y = cy + r * Math.sin(a) + 3
-    const anchor = x < cx - 4 ? 'end' : x > cx + 4 ? 'start' : 'middle'
+    const anchor = x < cx - 4 ? 'end' : (x > cx + 4 ? 'start' : 'middle')
     return { text: d.label, x, y, anchor }
   }))
 </script>

@@ -80,7 +80,9 @@ def build_registry(settings: Settings) -> ProviderRegistry:
     elif settings.default_tts == "voxcpm_server":
         reg.register_tts(
             VoxCPMServerTTS(
-                settings.voxcpm_base_url, settings.voxcpm_model, settings.tts_sample_rate,
+                settings.voxcpm_base_url,
+                settings.voxcpm_model,
+                settings.tts_sample_rate,
             ),
             default=True,
         )

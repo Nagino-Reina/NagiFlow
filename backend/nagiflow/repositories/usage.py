@@ -72,9 +72,7 @@ class UsageRepository:
         ).group_by(key)
         stmt = stmt.order_by(key.asc()) if order_by_key else stmt.order_by(total.desc())
         rows = (await self.s.execute(stmt)).all()
-        return [
-            {"key": r[0], "calls": int(r[1]), "total_tokens": int(r[2])} for r in rows
-        ]
+        return [{"key": r[0], "calls": int(r[1]), "total_tokens": int(r[2])} for r in rows]
 
     async def recent(self, user_id: str, *, limit: int = 100, **filters) -> list[UsageRecord]:
         stmt = self._scope(select(UsageRecord), user_id, **filters)

@@ -99,6 +99,9 @@ class Settings(BaseSettings):
     # --- roleplay / dialogue (docs/03 §4, docs/08 §4) ---
     # System default; the runtime override lives in `app_setting` and is edited in Settings.
     roleplay_prompt: str = DEFAULT_ROLEPLAY_PROMPT
+    # Recent-turn window sent to the LLM as context (docs/03 §4). P1 keeps the last N turns
+    # verbatim; a rolling summary for older history lands later.
+    chat_history_window: int = 20
 
     # --- observability (docs/12 §2) ---
     # Push interval (seconds) for the system-status WebSocket (docs/05 §5.1). The client

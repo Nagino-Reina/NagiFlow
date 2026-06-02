@@ -6,8 +6,8 @@
  * creates the account but does not start a session (the store logs in afterwards).
  */
 
-import { http } from './http'
 import type { Principal, RegisterResponse, SessionResponse } from './types'
+import { http } from './http'
 
 export interface LoginBody {
   username: string

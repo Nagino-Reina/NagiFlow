@@ -6,8 +6,8 @@
  * polling. Reconnects with exponential backoff; a 1008 close (auth refused) stops retrying.
  */
 
-import { getToken } from '@/api/session'
 import type { ServiceStatus, SystemResources, UsageSummary } from '@/api/types'
+import { getToken } from '@/api/session'
 
 export interface SystemStatus {
   type: 'system.status'
@@ -34,6 +34,16 @@ export class SystemStatusClient {
     this.open()
   }
 
+  stop (): void {
+    this.stopped = true
+    if (this.timer) {
+      clearTimeout(this.timer)
+    }
+    this.socket?.close()
+    this.socket = null
+    this.handler = null
+  }
+
   private open (): void {
     const proto = location.protocol === 'https:' ? 'wss' : 'ws'
     const url = `${proto}://${location.host}/api/v1/system/stream`
@@ -48,10 +58,14 @@ export class SystemStatusClient {
       this.retry = 0
     })
     socket.addEventListener('message', event => {
-      if (typeof event.data !== 'string') return
+      if (typeof event.data !== 'string') {
+        return
+      }
       try {
         const msg = JSON.parse(event.data) as SystemStatus
-        if (msg.type === 'system.status') this.handler?.(msg)
+        if (msg.type === 'system.status') {
+          this.handler?.(msg)
+        }
       } catch {
         // ignore malformed frames
       }
@@ -59,7 +73,9 @@ export class SystemStatusClient {
     socket.addEventListener('close', event => {
       this.socket = null
       // 1008 = auth refused; reconnecting would just be refused again.
-      if (this.stopped || event.code === 1008) return
+      if (this.stopped || event.code === 1008) {
+        return
+      }
       this.scheduleReconnect()
     })
   }
@@ -68,13 +84,5 @@ export class SystemStatusClient {
     const delay = Math.min(MAX_BACKOFF_MS, 1000 * 2 ** this.retry)
     this.retry++
     this.timer = window.setTimeout(() => this.open(), delay)
-  }
-
-  stop (): void {
-    this.stopped = true
-    if (this.timer) clearTimeout(this.timer)
-    this.socket?.close()
-    this.socket = null
-    this.handler = null
   }
 }

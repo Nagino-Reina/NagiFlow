@@ -1,5 +1,11 @@
 <template>
-  <v-footer app order="2" height="34" color="surface-container-low" class="pa-0 system-bar">
+  <v-footer
+    app
+    class="pa-0 system-bar"
+    color="surface-container-low"
+    height="34"
+    order="2"
+  >
     <!-- Expandable detail panel (overlays upward; does not shift page layout) -->
     <v-expand-transition>
       <v-sheet v-if="expanded" class="system-bar__panel" color="surface-container-low" elevation="6">
@@ -7,41 +13,49 @@
           <v-row dense>
             <v-col cols="12" md="4">
               <div class="text-subtitle-2 mb-2">{{ t('dashboard.system') }}</div>
+
               <div v-if="resources">
                 <div v-for="bar in resourceBars" :key="bar.label" class="mb-2">
                   <div class="d-flex justify-space-between text-caption mb-1">
                     <span>{{ bar.label }}</span>
                     <span class="text-medium-emphasis">{{ bar.caption }}</span>
                   </div>
-                  <v-progress-linear :model-value="bar.percent" height="6" rounded color="primary" />
+
+                  <v-progress-linear color="primary" height="6" :model-value="bar.percent" rounded />
                 </div>
+
                 <div
-                  v-for="gpu in resources.gpus"
-                  :key="gpu.name"
+                  v-for="g in resources.gpus"
+                  :key="g.name"
                   class="d-flex justify-space-between text-caption mt-1"
                 >
-                  <span>{{ gpu.name }}</span>
+                  <span>{{ g.name }}</span>
+
                   <span class="text-medium-emphasis">
-                    {{ Math.round(gpu.utilization_percent) }}% ·
-                    {{ fmtBytes(gpu.memory_used) }} / {{ fmtBytes(gpu.memory_total) }}
+                    {{ Math.round(g.utilization_percent) }}% ·
+                    {{ fmtBytes(g.memory_used) }} / {{ fmtBytes(g.memory_total) }}
                   </span>
                 </div>
               </div>
+
               <div v-else class="text-caption text-medium-emphasis">{{ t('dashboard.empty') }}</div>
             </v-col>
 
             <v-col cols="12" md="4">
               <div class="text-subtitle-2 mb-2">{{ t('dashboard.services') }}</div>
+
               <div
                 v-for="s in services"
                 :key="s.capability"
                 class="d-flex align-center justify-space-between mb-1"
               >
                 <span class="text-caption">{{ s.capability.toUpperCase() }} · {{ s.name }}{{ s.model ? ` (${s.model})` : '' }}</span>
-                <v-chip size="x-small" variant="tonal" :color="s.status === 'up' ? 'success' : 'error'">
+
+                <v-chip :color="s.status === 'up' ? 'success' : 'error'" size="x-small" variant="tonal">
                   {{ s.status }}
                 </v-chip>
               </div>
+
               <div v-if="services.length === 0" class="text-caption text-medium-emphasis">
                 {{ t('dashboard.empty') }}
               </div>
@@ -49,20 +63,25 @@
 
             <v-col cols="12" md="4">
               <div class="text-subtitle-2 mb-2">{{ t('dashboard.usage') }}</div>
+
               <div v-if="usage">
                 <div class="d-flex justify-space-between text-caption">
                   <span>{{ t('dashboard.tokens') }}</span>
                   <span class="text-medium-emphasis">{{ usage.totals.total_tokens.toLocaleString() }}</span>
                 </div>
+
                 <div class="d-flex justify-space-between text-caption">
                   <span>{{ t('dashboard.calls') }}</span>
                   <span class="text-medium-emphasis">{{ usage.totals.calls.toLocaleString() }}</span>
                 </div>
+
                 <div class="d-flex justify-space-between text-caption mb-1">
                   <span>{{ t('dashboard.audio') }}</span>
                   <span class="text-medium-emphasis">{{ usage.totals.audio_seconds.toFixed(1) }}s</span>
                 </div>
+
                 <div class="text-caption font-weight-medium mt-1">{{ t('dashboard.byProvider') }}</div>
+
                 <div
                   v-for="g in usage.by_provider"
                   :key="g.key ?? 'unknown'"
@@ -72,6 +91,7 @@
                   <span class="text-medium-emphasis">{{ g.total_tokens.toLocaleString() }} · {{ g.calls }}</span>
                 </div>
               </div>
+
               <div v-else class="text-caption text-medium-emphasis">{{ t('dashboard.empty') }}</div>
             </v-col>
           </v-row>
@@ -81,23 +101,23 @@
 
     <!-- Collapsed always-on bar -->
     <div
+      :aria-label="t('systemBar.toggle')"
       class="d-flex align-center w-100 px-3 text-caption system-bar__strip"
       role="button"
-      :aria-label="t('systemBar.toggle')"
       @click="expanded = !expanded"
     >
       <span v-for="s in services" :key="s.capability" class="d-flex align-center mr-3">
-        <v-icon :color="s.status === 'up' ? 'success' : 'error'" icon="mdi-circle" size="8" class="mr-1" />
+        <v-icon class="mr-1" :color="s.status === 'up' ? 'success' : 'error'" icon="mdi-circle" size="8" />
         {{ s.capability.toUpperCase() }}
       </span>
 
-      <v-divider vertical class="mx-2 my-1" />
+      <v-divider class="mx-2 my-1" vertical />
       <span class="mr-3">{{ t('dashboard.cpu') }} {{ cpuPct }}%</span>
       <span :class="gpu ? 'mr-3' : ''">{{ t('dashboard.memory') }} {{ memPct }}%</span>
       <span v-if="gpu">{{ t('dashboard.gpu') }} {{ gpuPct }}%</span>
 
       <v-spacer />
-      <v-icon icon="mdi-database-outline" size="13" class="mr-1" />
+      <v-icon class="mr-1" icon="mdi-database-outline" size="13" />
       <span class="mr-2">{{ tokenTotal }}</span>
       <v-icon :icon="expanded ? 'mdi-chevron-down' : 'mdi-chevron-up'" size="16" />
     </div>
@@ -105,10 +125,10 @@
 </template>
 
 <script lang="ts" setup>
+  import type { ServiceStatus, SystemResources, UsageSummary } from '@/api/types'
   import { computed, onMounted, onUnmounted, ref } from 'vue'
   import { useI18n } from 'vue-i18n'
   import { SystemStatusClient } from '@/realtime/systemClient'
-  import type { ServiceStatus, SystemResources, UsageSummary } from '@/api/types'
 
   const { t } = useI18n()
 

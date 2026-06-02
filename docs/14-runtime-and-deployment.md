@@ -156,6 +156,10 @@ Distribution keeps the **local-first** stance: external heavyweight services (Ol
 - **Hardware tiers** — runs CPU-only (lighter models, possibly non-streaming TTS) or with a GPU (faster, streaming, fine-tune training). Capabilities are detected and the UI adapts ([11 §7](11-feature-realtime-and-media-generation.md)). A **CUDA-enabled NVIDIA GPU is optional but recommended**: the in-process VoxCPM TTS is impractically slow on CPU (minutes per reply), so voicing needs GPU-enabled torch — otherwise disable reply synthesis and run text-only ([08 §4.2](08-feature-character-management.md)).
 - **Paths/encoding** — workspace paths are handled portably; the DB stores **storage keys**, not absolute paths, so a workspace can move between machines ([04 §2](04-data-model-and-storage.md)).
 
+## 8.1 Code style
+
+Style is owned by the formatters/linters, not by hand-formatting: **`ruff format`** + `ruff check` for the Python backend (line length 100, target `py312`) and **`eslint`** via `eslint-config-vuetify` for the TS/Vue frontend (formatting + import order). Run `ruff format . && ruff check . && pytest` (backend) and `pnpm lint:fix && pnpm build` (frontend) before committing; see the README *Development* section.
+
 ---
 
 ## 9. Requirements coverage

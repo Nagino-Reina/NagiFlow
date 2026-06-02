@@ -1,8 +1,8 @@
 <template>
   <PagePlaceholder
-    :title="t('scripts.title')"
     :description="t('scripts.description')"
     icon="mdi-script-text-outline"
+    :title="t('scripts.title')"
   />
 </template>
 

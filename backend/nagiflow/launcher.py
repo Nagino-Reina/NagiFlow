@@ -87,15 +87,27 @@ def check_prerequisites(*, need_frontend: bool) -> list[Prereq]:
     ollama = shutil.which("ollama")
     return [
         Prereq("Python", True, sys.version.split()[0], required=True),
-        Prereq("Node.js", node is not None, node or "install Node 18+ - https://nodejs.org",
-               required=need_frontend),
-        Prereq("pnpm", pnpm is not None, pnpm or "install pnpm - `npm i -g pnpm`",
-               required=need_frontend),
-        Prereq("ffmpeg", ffmpeg is not None, ffmpeg or "optional - media/ASR (P2+)",
-               required=False),
-        Prereq("Ollama", ollama is not None,
-               ollama or "optional - local LLM; offline echo provider used otherwise",
-               required=False),
+        Prereq(
+            "Node.js",
+            node is not None,
+            node or "install Node 18+ - https://nodejs.org",
+            required=need_frontend,
+        ),
+        Prereq(
+            "pnpm",
+            pnpm is not None,
+            pnpm or "install pnpm - `npm i -g pnpm`",
+            required=need_frontend,
+        ),
+        Prereq(
+            "ffmpeg", ffmpeg is not None, ffmpeg or "optional - media/ASR (P2+)", required=False
+        ),
+        Prereq(
+            "Ollama",
+            ollama is not None,
+            ollama or "optional - local LLM; offline echo provider used otherwise",
+            required=False,
+        ),
     ]
 
 
@@ -186,8 +198,7 @@ def _pump(child: Child) -> threading.Thread:
 
 def _taskkill_tree(pid: int) -> None:
     with suppress(OSError):
-        subprocess.run(["taskkill", "/F", "/T", "/PID", str(pid)],
-                       capture_output=True, check=False)
+        subprocess.run(["taskkill", "/F", "/T", "/PID", str(pid)], capture_output=True, check=False)
 
 
 def _terminate(child: Child) -> None:
@@ -282,11 +293,23 @@ def up(*, prod: bool = False, open_browser: bool = True) -> int:
 
     children: list[Child] = []
 
-    backend = Child("backend", _popen(
-        [sys.executable, "-m", "uvicorn", "nagiflow.main:app",
-         "--host", settings.host, "--port", str(settings.port)],
-        cwd=_BACKEND_ROOT,
-    ), _C.BACKEND)
+    backend = Child(
+        "backend",
+        _popen(
+            [
+                sys.executable,
+                "-m",
+                "uvicorn",
+                "nagiflow.main:app",
+                "--host",
+                settings.host,
+                "--port",
+                str(settings.port),
+            ],
+            cwd=_BACKEND_ROOT,
+        ),
+        _C.BACKEND,
+    )
     children.append(backend)
     _pump(backend)
 
@@ -294,8 +317,9 @@ def up(*, prod: bool = False, open_browser: bool = True) -> int:
     if not prod:
         pnpm = shutil.which("pnpm")
         assert pnpm is not None  # guaranteed by the prerequisite check above
-        frontend = Child("frontend", _popen([pnpm, "dev"], cwd=_WEB_DIR), _C.FRONTEND,
-                         force_kill=True)
+        frontend = Child(
+            "frontend", _popen([pnpm, "dev"], cwd=_WEB_DIR), _C.FRONTEND, force_kill=True
+        )
         children.append(frontend)
         _pump(frontend)
         app_url = f"http://localhost:{_VITE_PORT}"
@@ -325,8 +349,10 @@ def _run_until_exit(children: list[Child]) -> int:
     while not stop.is_set():
         for child in children:
             if child.proc.poll() is not None:
-                print(f"{child.color}[{child.name}]{_C.RESET} "
-                      f"{_C.WARN}exited (code {child.proc.returncode}); shutting down.{_C.RESET}")
+                print(
+                    f"{child.color}[{child.name}]{_C.RESET} "
+                    f"{_C.WARN}exited (code {child.proc.returncode}); shutting down.{_C.RESET}"
+                )
                 exit_code = child.proc.returncode or 0
                 stop.set()
                 break

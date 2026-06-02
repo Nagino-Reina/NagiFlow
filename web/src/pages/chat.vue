@@ -1,35 +1,37 @@
 <template>
-  <v-container fluid class="pa-0 fill-height align-stretch">
-    <v-row no-gutters class="fill-height">
+  <v-container class="pa-0 fill-height align-stretch" fluid>
+    <v-row class="fill-height" no-gutters>
       <!-- Sidebar -->
-      <v-col cols="12" md="3" class="d-flex flex-column border-e" style="min-height: 0;">
+      <v-col class="d-flex flex-column border-e" cols="12" md="3" style="min-height: 0;">
         <!-- Active conversation info + actions -->
         <div class="pa-3">
           <template v-if="store.conversation">
             <div class="d-flex align-center mb-2">
-              <v-avatar color="primary-container" icon="mdi-robot-outline" size="32" class="mr-2" />
+              <v-avatar class="mr-2" color="primary-container" icon="mdi-robot-outline" size="32" />
               <div class="font-weight-medium text-truncate">{{ activeName }}</div>
             </div>
+
             <v-chip
               v-if="store.lastAffect"
-              size="small"
-              variant="tonal"
               class="mb-3"
               :color="emotionColor(store.lastAffect.label)"
               :prepend-icon="emotionIcon(store.lastAffect.label)"
+              size="small"
+              variant="tonal"
             >
               {{ emotionLabel(store.lastAffect.label) }}
               <span class="ml-1 text-medium-emphasis">{{ Math.round(store.lastAffect.intensity * 100) }}%</span>
             </v-chip>
           </template>
+
           <div v-else class="text-subtitle-2 mb-2">{{ t('chat.title') }}</div>
 
           <v-btn
             block
-            variant="tonal"
-            size="small"
-            prepend-icon="mdi-account-switch"
             class="mb-2"
+            prepend-icon="mdi-account-switch"
+            size="small"
+            variant="tonal"
             @click="switchCharacter"
           >
             {{ store.conversation ? t('chat.switch') : t('chat.newConversation') }}
@@ -37,24 +39,25 @@
 
           <div class="d-flex align-center">
             <v-switch
-              :model-value="ui.autoplayVoice"
               color="primary"
               density="compact"
               hide-details
               :label="t('chat.autoplay')"
+              :model-value="ui.autoplayVoice"
               @update:model-value="ui.setAutoplayVoice(!!$event)"
             />
           </div>
-          <v-tooltip :text="t('chat.liveSoon')" location="bottom">
+
+          <v-tooltip location="bottom" :text="t('chat.liveSoon')">
             <template #activator="{ props }">
               <div v-bind="props" class="d-inline-block">
                 <v-switch
-                  :model-value="false"
-                  disabled
-                  density="compact"
-                  hide-details
                   color="primary"
+                  density="compact"
+                  disabled
+                  hide-details
                   :label="t('chat.liveMode')"
+                  :model-value="false"
                 />
               </div>
             </template>
@@ -65,26 +68,28 @@
 
         <!-- History -->
         <div class="text-overline px-3 pt-2 text-medium-emphasis">{{ t('chat.history') }}</div>
-        <v-list density="compact" class="overflow-y-auto flex-grow-1" style="min-height: 0;">
+
+        <v-list class="overflow-y-auto flex-grow-1" density="compact" style="min-height: 0;">
           <v-list-item
             v-for="conv in store.history"
             :key="conv.id"
             :active="conv.id === store.conversation?.id"
-            :title="charName(conv.character_id)"
-            :subtitle="formatDate(conv.created_at)"
             prepend-icon="mdi-message-outline"
+            :subtitle="formatDate(conv.created_at)"
+            :title="charName(conv.character_id)"
             @click="selectHistory(conv)"
           >
             <template #append>
               <v-btn
+                :aria-label="t('chat.deleteConversation')"
                 icon="mdi-delete-outline"
                 size="x-small"
                 variant="text"
-                :aria-label="t('chat.deleteConversation')"
                 @click.stop="confirmDeleteId = conv.id"
               />
             </template>
           </v-list-item>
+
           <v-list-item v-if="store.history.length === 0" class="text-medium-emphasis text-caption">
             {{ t('chat.noHistory') }}
           </v-list-item>
@@ -92,28 +97,37 @@
       </v-col>
 
       <!-- Main: stage + thread, or picker -->
-      <v-col cols="12" md="9" class="d-flex flex-column" style="min-height: 0; height: calc(100vh - 64px - 34px);">
+      <v-col class="d-flex flex-column" cols="12" md="9" style="min-height: 0; height: calc(100vh - 64px - 34px);">
         <!-- Character picker -->
         <template v-if="showPicker">
           <div class="pa-6 overflow-y-auto">
             <h2 class="text-h6 mb-4">{{ t('chat.pickCharacter') }}</h2>
             <v-skeleton-loader v-if="characters.status === 'loading'" type="card, card" />
+
             <v-card
               v-else-if="visible.length === 0"
-              variant="flat"
-              color="surface-container"
               class="pa-8 text-center"
+              color="surface-container"
+              variant="flat"
             >
-              <v-icon icon="mdi-account-off-outline" size="40" class="mb-3 text-medium-emphasis" />
+              <v-icon class="mb-3 text-medium-emphasis" icon="mdi-account-off-outline" size="40" />
               <div class="text-body-1">{{ t('chat.noCharacters') }}</div>
             </v-card>
+
             <v-row v-else>
-              <v-col v-for="c in visible" :key="c.id" cols="12" sm="6" lg="4">
-                <v-card :elevation="1" class="h-100" @click="begin(c.id)">
+              <v-col
+                v-for="c in visible"
+                :key="c.id"
+                cols="12"
+                lg="4"
+                sm="6"
+              >
+                <v-card class="h-100" :elevation="1" @click="begin(c.id)">
                   <v-card-item>
                     <template #prepend>
                       <v-avatar color="primary-container" icon="mdi-robot-outline" />
                     </template>
+
                     <v-card-title>{{ c.name || t('characters.untitled') }}</v-card-title>
                     <v-card-subtitle class="text-truncate">{{ c.description }}</v-card-subtitle>
                   </v-card-item>
@@ -128,9 +142,10 @@
           <!-- Character stage (P1: portrait / audio-only fallback) -->
           <div class="d-flex flex-column align-center justify-center bg-surface-container" style="height: 38%;">
             <v-avatar color="primary-container" size="96">
-              <v-img v-if="stagePortraitUrl" :src="stagePortraitUrl" alt="" cover />
+              <v-img v-if="stagePortraitUrl" alt="" cover :src="stagePortraitUrl" />
               <v-icon v-else icon="mdi-robot-outline" />
             </v-avatar>
+
             <div class="text-body-2 text-medium-emphasis mt-2">{{ activeName }}</div>
           </div>
 
@@ -138,6 +153,7 @@
             <div v-if="store.messages.length === 0" class="text-center text-medium-emphasis py-8">
               {{ t('chat.empty') }}
             </div>
+
             <div
               v-for="m in store.messages"
               :key="m.id"
@@ -146,10 +162,11 @@
             >
               <div
                 class="pa-3 rounded-lg"
-                style="max-width: 78%; white-space: pre-wrap;"
                 :class="m.role === 'user' ? 'bg-primary text-on-primary' : 'bg-surface-container'"
+                style="max-width: 78%; white-space: pre-wrap;"
               >
                 <div>{{ m.content }}</div>
+
                 <div
                   v-if="m.role === 'character' && m.meta?.affect && m.meta.affect.label !== 'neutral'"
                   class="text-caption text-medium-emphasis mt-1"
@@ -157,13 +174,14 @@
                   <v-icon :icon="emotionIcon(m.meta.affect.label)" size="x-small" />
                   {{ emotionLabel(m.meta.affect.label) }}
                 </div>
+
                 <v-btn
                   v-if="m.role === 'character' && m.media_asset_id"
                   class="mt-1"
-                  size="x-small"
-                  variant="text"
                   density="comfortable"
                   prepend-icon="mdi-volume-high"
+                  size="x-small"
+                  variant="text"
                   @click="playAudio(m.media_asset_id)"
                 >
                   {{ t('chat.play') }}
@@ -176,20 +194,21 @@
             <div class="d-flex ga-2">
               <v-text-field
                 v-model="draft"
+                autofocus
+                density="comfortable"
+                :disabled="store.sending"
+                hide-details
                 :placeholder="t('chat.placeholder')"
                 variant="outlined"
-                density="comfortable"
-                hide-details
-                :disabled="store.sending"
-                autofocus
               />
+
               <v-btn
-                type="submit"
+                :aria-label="t('chat.send')"
                 color="primary"
+                :disabled="!draft.trim()"
                 icon="mdi-send"
                 :loading="store.sending"
-                :disabled="!draft.trim()"
-                :aria-label="t('chat.send')"
+                type="submit"
               />
             </div>
           </v-form>
@@ -197,10 +216,11 @@
       </v-col>
     </v-row>
 
-    <v-dialog :model-value="!!confirmDeleteId" max-width="360" @update:model-value="confirmDeleteId = null">
+    <v-dialog max-width="360" :model-value="!!confirmDeleteId" @update:model-value="confirmDeleteId = null">
       <v-card>
         <v-card-title class="text-subtitle-1">{{ t('chat.deleteConversation') }}</v-card-title>
         <v-card-text class="text-body-2">{{ t('chat.deleteConfirm') }}</v-card-text>
+
         <v-card-actions>
           <v-spacer />
           <v-btn variant="text" @click="confirmDeleteId = null">{{ t('common.action.cancel') }}</v-btn>
@@ -209,18 +229,18 @@
       </v-card>
     </v-dialog>
 
-    <v-snackbar :model-value="!!error" color="error" :timeout="6000" @update:model-value="error = ''">
+    <v-snackbar color="error" :model-value="!!error" :timeout="6000" @update:model-value="error = ''">
       {{ error }}
     </v-snackbar>
   </v-container>
 </template>
 
 <script lang="ts" setup>
+  import type { Conversation } from '@/api/types'
   import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
   import { useI18n } from 'vue-i18n'
   import { charactersApi } from '@/api/characters'
   import { mediaApi } from '@/api/media'
-  import type { Conversation } from '@/api/types'
   import { useCharactersStore } from '@/stores/characters'
   import { useConversationStore } from '@/stores/conversation'
   import { useUiStore } from '@/stores/ui'
@@ -238,8 +258,9 @@
 
   const visible = computed(() => characters.items.filter(c => c.status !== 'archived'))
   const showPicker = computed(() => (!store.conversation && !store.pendingCharacterId) || pickingManual.value)
-  const charName = (id: string | null) =>
-    characters.items.find(c => c.id === id)?.name || t('characters.untitled')
+  function charName (id: string | null) {
+    return characters.items.find(c => c.id === id)?.name || t('characters.untitled')
+  }
   const activeName = computed(() => charName(store.activeCharacterId ?? null))
 
   // Stage portrait: fetched with the session token (a native <img src> can't carry it).
@@ -286,8 +307,8 @@
       await store.open(conv)
       pickingManual.value = false
       scrollToBottom()
-    } catch (e) {
-      error.value = (e as Error).message || t('error.generic')
+    } catch (error_) {
+      error.value = (error_ as Error).message || t('error.generic')
     }
   }
   async function doDelete () {
@@ -296,8 +317,8 @@
     if (!id) return
     try {
       await store.remove(id)
-    } catch (e) {
-      error.value = (e as Error).message || t('error.generic')
+    } catch (error_) {
+      error.value = (error_ as Error).message || t('error.generic')
     }
   }
 
@@ -329,9 +350,9 @@
       if (ui.autoplayVoice && last?.role === 'character' && last.media_asset_id) {
         playAudio(last.media_asset_id)
       }
-    } catch (e) {
+    } catch (error_) {
       draft.value = text // restore so the user doesn't lose their message
-      error.value = (e as Error).message || t('error.generic')
+      error.value = (error_ as Error).message || t('error.generic')
     }
   }
   function scrollToBottom () {

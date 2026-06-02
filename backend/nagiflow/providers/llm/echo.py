@@ -17,9 +17,7 @@ class EchoLLM:
     capabilities = LLMCaps(streaming=True, tools=False, context_window=8192)
 
     async def generate(self, req: GenRequest) -> AsyncIterator[GenChunk]:
-        last_user = next(
-            (m.content for m in reversed(req.messages) if m.role == "user"), ""
-        )
+        last_user = next((m.content for m in reversed(req.messages) if m.role == "user"), "")
         reply = f"(echo) You said: {last_user}" if last_user else "(echo) Hello!"
         for word in reply.split(" "):
             yield GenChunk(delta=word + " ")

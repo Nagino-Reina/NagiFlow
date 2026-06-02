@@ -50,9 +50,7 @@ class AuthService:
         self.users.add(user)
         return self._issue(user, kind="guest", ttl=settings.guest_ttl)
 
-    async def register(
-        self, username: str, password: str, display_name: str | None
-    ) -> User:
+    async def register(self, username: str, password: str, display_name: str | None) -> User:
         existing = await self.users.get_by_username(username)
         if existing is not None:
             raise errors.conflict("auth.username_taken", "Username already taken.")

@@ -85,6 +85,21 @@ Start with [docs/01 Vision](docs/01-vision-and-scope.md) and
 [docs/03 Architecture](docs/03-system-architecture.md); the
 [Roadmap](docs/15-roadmap-and-milestones.md) tracks phase scope and exit criteria.
 
+## Development
+
+Code style is enforced by the formatters/linters — run them before committing:
+
+```bash
+# Backend (from backend/)
+uv run ruff format . && uv run ruff check . && uv run pytest
+
+# Frontend (from web/)
+pnpm lint:fix && pnpm build
+```
+
+`ruff format` (Python) and `eslint` via `eslint-config-vuetify` (TS/Vue) are the single source
+of truth for formatting and import order — let them resolve style rather than hand-formatting.
+
 ## License
 
 [MIT](LICENSE). Integrated third-party components keep their own licenses; optional

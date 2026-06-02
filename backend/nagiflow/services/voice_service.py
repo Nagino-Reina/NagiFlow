@@ -142,7 +142,9 @@ class VoiceService:
             kind=model.kind,
             reference_paths=[str(self.workspace_dir / k) for k in (model.reference_keys or [])],
             design_description=model.design_description,
-            artifact_path=str(self.workspace_dir / model.artifact_key) if model.artifact_key else None,
+            artifact_path=str(self.workspace_dir / model.artifact_key)
+            if model.artifact_key
+            else None,
             params=dict(model.params or {}),
         )
 

@@ -10,11 +10,11 @@ import { getToken } from '@/api/session'
 
 /** Server→client event shapes (docs/05 §5). Narrowed per-type as features land. */
 export interface LiveEvent {
+  [key: string]: unknown
   type: string
   turn_id?: string
   character_id?: string
   text?: string
-  [key: string]: unknown
 }
 
 export type LiveEventHandler = (event: LiveEvent) => void
@@ -38,7 +38,9 @@ export class LiveClient {
     this.socket = new WebSocket(url, protocols)
     this.socket.binaryType = 'arraybuffer'
     this.socket.addEventListener('message', event => {
-      if (typeof event.data !== 'string') return // binary audio frames handled in P1+
+      if (typeof event.data !== 'string') {
+        return
+      } // binary audio frames handled in P1+
       try {
         this.dispatch(JSON.parse(event.data) as LiveEvent)
       } catch {
@@ -67,6 +69,8 @@ export class LiveClient {
   }
 
   private dispatch (event: LiveEvent): void {
-    for (const handler of this.handlers) handler(event)
+    for (const handler of this.handlers) {
+      handler(event)
+    }
   }
 }

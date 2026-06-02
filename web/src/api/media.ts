@@ -18,7 +18,9 @@ export const mediaApi = {
     const res = await fetch(`${BASE}/media/${id}:download`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
-    if (!res.ok) throw new Error(`media download failed (${res.status})`)
+    if (!res.ok) {
+      throw new Error(`media download failed (${res.status})`)
+    }
     return URL.createObjectURL(await res.blob())
   },
 }

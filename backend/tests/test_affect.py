@@ -15,8 +15,20 @@ from nagiflow.services.affect import (
     voice_style_for,
 )
 
-_CALM = {"openness": 50, "conscientiousness": 70, "extraversion": 40, "agreeableness": 60, "neuroticism": 10}
-_VOLATILE = {"openness": 50, "conscientiousness": 40, "extraversion": 60, "agreeableness": 80, "neuroticism": 90}
+_CALM = {
+    "openness": 50,
+    "conscientiousness": 70,
+    "extraversion": 40,
+    "agreeableness": 60,
+    "neuroticism": 10,
+}
+_VOLATILE = {
+    "openness": 50,
+    "conscientiousness": 40,
+    "extraversion": 60,
+    "agreeableness": 80,
+    "neuroticism": 90,
+}
 
 
 def test_dynamics_reactivity_tracks_neuroticism():
