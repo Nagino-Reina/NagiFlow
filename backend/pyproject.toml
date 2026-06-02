@@ -1,6 +1,6 @@
 [project]
 name = "nagiflow-backend"
-version = "0.1.0"
+version = "0.2.0"
 description = "NagiFlow backend — local-first, modular AI VTuber platform (FastAPI)."
 requires-python = ">=3.12,<3.13"
 dependencies = [

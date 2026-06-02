@@ -11,10 +11,10 @@ Everything else — characters, voice, personality, emotion, memory, observabili
 these two flows, and every external service (LLM, TTS, ASR, storage) sits behind a swappable
 provider seam.
 
-> Status: **P0 — Foundations** complete. The skeleton runs end to end (FastAPI backend +
-> Vuetify SPA shell + brand theme, SQLite/ORM/Alembic, provider interfaces with a stub
-> provider, and a one-click launcher). Feature work (character voicing, chat, scripts,
-> live) lands in P1+ — see [docs/15 Roadmap](docs/15-roadmap-and-milestones.md).
+> Status: **P1 — MVP** complete. You can create a character (profile, Big Five personality,
+> portrait, zero-shot voice via VoxCPM), then hold a voiced text-chat with it through Ollama —
+> with token/usage accounting and a live system-status bar. Next up is **P2** (scripts, ASR
+> import, batch media) — see [docs/15 Roadmap](docs/15-roadmap-and-milestones.md).
 
 ---
 
