@@ -93,6 +93,12 @@
     "emptyHint": "Create your first character to give it a personality and voice.",
     "guestVisible": "Guest-visible",
     "untitled": "Untitled character",
+    "portrait": {
+      "label": "Portrait image",
+      "hint": "PNG, JPEG, or WebP · up to 5 MB",
+      "saveFirst": "Save the character first to add a portrait",
+      "remove": "Remove portrait"
+    },
     "status": {
       "draft": "Draft",
       "active": "Active",
@@ -175,8 +181,10 @@
       },
       "clone": {
         "title": "Clone from a clip",
-        "hint": "Upload a short reference recording.",
+        "hint": "Upload a short reference recording and its transcript.",
         "file": "Reference clip",
+        "transcript": "Reference transcript",
+        "transcriptHint": "Exact words spoken in the clip (required for zero-shot cloning).",
         "create": "Clone"
       }
     },
@@ -232,7 +240,13 @@
     "provider": "Provider",
     "model": "Model",
     "status": "Status",
-    "modulesComingSoon": "Install and manage modules here in a later phase."
+    "modulesComingSoon": "Install and manage modules here in a later phase.",
+    "saved": "Saved",
+    "roleplay": {
+      "title": "Roleplay prompt",
+      "hint": "Base instruction prepended to every character. Keeps replies in-character; actions written in parentheses are stripped from speech so TTS skips them.",
+      "reset": "Reset to default"
+    }
   },
   "auth": {
     "title": "Sign in to NagiFlow",

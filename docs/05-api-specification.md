@@ -97,7 +97,7 @@ Provider failures are isolated and surfaced (with which provider failed) rather 
 | POST | `/characters/{id}/voice-models:clone` | U | Create a **zero-shot** model from an uploaded reference clip (`multipart/form-data`). |
 | POST | `/characters/{id}/voice-models:finetune` | U | Start a fine-tune **job** (P6). |
 | POST | `/characters/{id}/voice-models/{vid}:setDefault` | U | Set default voice (toggles `voice_model.is_default`). |
-| GET/POST/DELETE | `/characters/{id}/assets` | U | Manage assets (portrait/images/audio). |
+| PUT/GET/DELETE | `/characters/{id}/portrait` | U / owner | Upload (multipart `file`; PNG/JPEG/WebP, ≤5 MB), fetch, or clear the character **portrait** image; stored under `characters/<id>/` and tracked by `character.portrait_key`. General asset management (extra images/audio) lands later. |
 | POST | `/characters/{id}:export` | U | Export a character **package** (privacy options). |
 | POST | `/characters:import` | U | Import a character package. |
 
@@ -171,6 +171,7 @@ Provider failures are isolated and surfaced (with which provider failed) rather 
 | GET | `/usage:summary` | U | Aggregated dashboards data. |
 | GET | `/logs:tail` | U | Recent structured logs (redacted), optional follow. |
 | WS | `/system/stream` | U | Live system status (resources + service health + usage) pushed on an interval (see §5.1). |
+| GET/PUT/DELETE | `/settings/roleplay-prompt` | U | Read / update / reset the global **roleplay prompt** — the per-install base instruction prepended to every character ([08 §4](08-feature-character-management.md)); a blank `PUT` or `DELETE` resets to the system default. |
 | GET | `/system/info` | any | App/version/workspace info. |
 | GET | `/healthz` / `/readyz` | none | Liveness / readiness. |
 

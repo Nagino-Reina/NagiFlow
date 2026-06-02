@@ -34,7 +34,7 @@ async def _service_statuses(registry: ProviderRegistry) -> list[dict]:
         {
             "capability": cap,
             "name": provider.name,
-            "model": getattr(provider, "_model", None),
+            "model": getattr(provider, "model", None),
             "status": "up" if up else "down",
         }
         for cap, provider, up in (("llm", llm, llm_up), ("tts", tts, tts_up))

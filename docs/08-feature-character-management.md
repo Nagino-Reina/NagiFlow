@@ -132,7 +132,7 @@ A character has one or more **voice models**; one is marked **active**. NagiFlow
 
 | Kind (`voice_model.kind`) | How it's created | When to use |
 |---|---|---|
-| **`zero_shot`** | Provide a short **reference audio** clip; the provider clones the timbre on the fly (controllable voice cloning). | Fast setup; "sounds like this sample". |
+| **`zero_shot`** | Provide a short **reference audio** clip **plus its transcript** (the words spoken); the provider clones the timbre on the fly (controllable voice cloning). The transcript is required — VoxCPM pairs the reference waveform with its text. | Fast setup; "sounds like this sample". |
 | **`voice_design`** | Describe the voice in **natural language** (e.g. "a bright young female voice, slightly husky"); the provider designs it. | No reference available; craft a voice from scratch. |
 | **`fine_tuned`** | Train a model from a **dataset** (text+audio pairs) for a durable, higher-fidelity custom voice. | A recurring character you'll reuse heavily. |
 
@@ -161,6 +161,8 @@ flowchart LR
 ### 4.2 Voice behavior at runtime
 
 The active voice plus per-line/per-turn **style** and **speech rate** (from scripts §[07], or from personality mapping in live chat) are passed to the provider. If the active model is a `fine_tuned` artifact unavailable to the current provider, the orchestrator falls back to zero-shot from a stored reference (if any) and warns.
+
+**Roleplay framing & spoken text.** Every live reply is generated under a global **roleplay prompt** — an editable base instruction (Settings → General; `GET/PUT/DELETE /settings/roleplay-prompt`, [05 §4.7](05-api-specification.md)) prepended to the character's persona and Big Five directives ([03 §4](03-system-architecture.md)). It keeps replies in-character and instructs the model to write physical actions in parentheses, e.g. `(smiles)`. Those action/stage directions are **stripped before synthesis**, so TTS speaks only the dialogue while the chat transcript still shows them.
 
 The in-process **VoxCPM** provider runs on the GPU when CUDA-enabled PyTorch is installed; on CPU, generation is impractically slow (minutes per reply). A CUDA-enabled NVIDIA GPU is therefore **optional but strongly recommended** for voicing — without one, keep reply synthesis disabled (`NAGIFLOW_SYNTHESIZE_REPLIES=false`) and run text-only. Reply synthesis is best-effort and runs outside the turn's database transaction, so a slow or failed synthesis never blocks the text reply or holds the SQLite writer ([04 §3](04-data-model-and-storage.md), [11 §4.6](11-feature-realtime-and-media-generation.md)).
 

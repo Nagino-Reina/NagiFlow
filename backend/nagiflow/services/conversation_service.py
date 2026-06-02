@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from ..core import errors
 from ..core.ids import new_id
 from ..core.logging import get_correlation_id
@@ -14,8 +16,18 @@ from . import personality
 from .affect import AffectService
 from .media_service import MediaService
 from .orchestrator import DialogueOrchestrator
+from .settings_service import SettingsService
 from .usage_service import UsageService
 from .voice_service import VoiceService
+
+# Roleplay action/stage directions the model is told to wrap in parentheses (or markdown
+# asterisks); stripped before TTS so the voice speaks only the dialogue (docs/08 §4).
+_ACTION_RE = re.compile(r"\([^()]*\)|（[^（）]*）|\*[^*\n]+\*")
+
+
+def spoken_text(text: str) -> str:
+    """Reply text with action/stage directions removed, for speech synthesis only."""
+    return re.sub(r"\s{2,}", " ", _ACTION_RE.sub("", text)).strip()
 
 
 def _style_hint(character: Character, affect_tags: list[str]) -> str | None:
@@ -46,6 +58,7 @@ class ConversationService:
         voice: VoiceService,
         media: MediaService,
         usage: UsageService,
+        settings: SettingsService,
         *,
         synthesize_replies: bool = True,
     ) -> None:
@@ -57,6 +70,7 @@ class ConversationService:
         self.voice = voice
         self.media = media
         self.usage = usage
+        self.settings = settings
         self.synthesize_replies = synthesize_replies
 
     async def create(
@@ -117,6 +131,7 @@ class ConversationService:
             raise errors.not_found("character", conversation.character_id)
 
         history = await self.messages.list_for_conversation(conversation.id)
+        roleplay_prompt = await self.settings.roleplay_prompt()
 
         # Compute phase — appraisal, LLM, and TTS are slow (network / model inference, and a
         # first TTS run may download a model for minutes). Keep them OUT of an open write
@@ -138,19 +153,22 @@ class ConversationService:
                 character=character,
                 history=history,
                 user_text=text,
+                roleplay_prompt=roleplay_prompt,
                 affect_directive=affect_result.directive,
             )
 
-            # Synthesize reply audio for playback (docs/11 §4.6). Best-effort: a TTS failure
-            # leaves audio None and never blocks the text reply.
+            # Synthesize reply audio for playback (docs/11 §4.6). Action/stage directions are
+            # stripped so TTS speaks only the dialogue. Best-effort: a failure (or text that is
+            # all stage directions) leaves audio None and never blocks the text reply.
+            spoken = spoken_text(result.text) if result.text else ""
             audio = (
                 await self.voice.synthesize_reply(
                     character,
-                    text=result.text,
+                    text=spoken,
                     style=_style_hint(character, affect_result.voice_style),
                     speech_rate=_reply_rate(character, affect_result.speech_rate_delta),
                 )
-                if self.synthesize_replies and result.text
+                if self.synthesize_replies and spoken
                 else None
             )
 

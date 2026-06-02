@@ -207,7 +207,7 @@ sequenceDiagram
     API->>O: handle_turn(ctx)
     O->>M: retrieve(character, user, query, sensitive_mode)
     M-->>O: scoped memory + summaries
-    O->>O: assemble prompt(persona + BigFive mapping + memory + skills + history)
+    O->>O: assemble prompt(roleplay framing + persona + BigFive mapping + memory + skills + history)
     O->>LLM: generate(stream=true, tools=skills)
     loop streaming
         LLM-->>O: token delta (and/or tool call)

@@ -20,6 +20,21 @@ from pydantic_settings import (
 
 _WORKSPACE_CONFIG = Path("workspace") / "config" / "app.toml"
 
+# System default roleplay framing prepended to every character's persona (docs/03 §4, docs/08
+# §4). Editable at runtime via the settings API (stored in `app_setting`); this is the fallback
+# when no override is set. Actions are wrapped in parentheses so TTS can skip them.
+DEFAULT_ROLEPLAY_PROMPT = (
+    "You are this character in a live roleplay. Stay fully in character at all times and "
+    "speak in the first person as them, never as an assistant. Reply in the user's language, "
+    "naturally and conversationally, letting personality show through word choice and rhythm.\n\n"
+    "Put physical actions, gestures, and expressions in parentheses, e.g. (smiles softly) or "
+    "(glances away) — keep them short and only when they add to the moment. Everything outside "
+    "parentheses is spoken aloud, so write it as natural speech.\n\n"
+    "Never break character: do not mention being an AI, a model, or a prompt; add no "
+    "disclaimers, no meta-commentary, no out-of-character notes. Keep replies focused and "
+    "human-length — a few sentences unless the moment genuinely calls for more."
+)
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -80,6 +95,10 @@ class Settings(BaseSettings):
     # Emotion & affect (docs/10). Appraisal engine: "hybrid" (LLM with deterministic
     # fallback), "deterministic" (lexicon/heuristic only — offline, reproducible), or "off".
     affect_appraisal: str = "hybrid"
+
+    # --- roleplay / dialogue (docs/03 §4, docs/08 §4) ---
+    # System default; the runtime override lives in `app_setting` and is edited in Settings.
+    roleplay_prompt: str = DEFAULT_ROLEPLAY_PROMPT
 
     # --- observability (docs/12 §2) ---
     # Push interval (seconds) for the system-status WebSocket (docs/05 §5.1). The client

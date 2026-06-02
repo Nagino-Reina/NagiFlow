@@ -11,9 +11,22 @@ offline silent stub until VoxCPM is wanted. For a remote engine instead, see
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import io
+import os
 
 from ..base import ProviderError, TTSCaps, VoiceRef
+
+
+@contextlib.contextmanager
+def _silence_stdio():  # noqa: ANN202
+    """VoxCPM and tqdm print model-load notices and per-step progress bars straight to
+    stdout/stderr, flooding the app log. Redirect both to devnull around load + generation.
+    Logging is unaffected: its handler holds the original stderr from app startup."""
+    with open(os.devnull, "w") as devnull, contextlib.redirect_stdout(
+        devnull
+    ), contextlib.redirect_stderr(devnull):
+        yield
 
 
 class VoxCPMTTS:
@@ -29,11 +42,12 @@ class VoxCPMTTS:
         inference_timesteps: int = 10,
     ) -> None:
         self.model_id = model_id
+        self.model = model_id  # public model name (docs/05 §4.7); _engine is the loaded object
         self.load_denoiser = load_denoiser
         self.cfg_value = cfg_value
         self.inference_timesteps = inference_timesteps
         self._sample_rate = sample_rate
-        self._model = None  # lazily loaded on first synthesis
+        self._engine = None  # lazily loaded on first synthesis
         # VoxCPM clones from a reference clip + transcript; it has no text-only voice design
         # and the simple API returns a full waveform (no streaming).
         self.capabilities = TTSCaps(
@@ -42,7 +56,8 @@ class VoxCPMTTS:
         )
 
     def _load(self):  # noqa: ANN202 - third-party model object
-        if self._model is None:
+        if self._engine is None:
+            os.environ.setdefault("TQDM_DISABLE", "1")  # belt-and-suspenders with _silence_stdio
             try:
                 from voxcpm import VoxCPM
             except ImportError as exc:
@@ -50,8 +65,11 @@ class VoxCPMTTS:
                     "VoxCPM is not installed. Install the optional extra: "
                     "`uv pip install -e '.[voxcpm]'` (requires PyTorch + CUDA)."
                 ) from exc
-            self._model = VoxCPM.from_pretrained(self.model_id, load_denoiser=self.load_denoiser)
-        return self._model
+            with _silence_stdio():
+                self._engine = VoxCPM.from_pretrained(
+                    self.model_id, load_denoiser=self.load_denoiser
+                )
+        return self._engine
 
     def _synthesize_sync(self, text: str, voice: VoiceRef) -> bytes:
         try:
@@ -75,7 +93,8 @@ class VoxCPMTTS:
                 kwargs["prompt_text"] = transcript
 
         try:
-            wav = model.generate(**kwargs)
+            with _silence_stdio():
+                wav = model.generate(**kwargs)
         except Exception as exc:  # noqa: BLE001 - isolate any model/runtime failure
             raise ProviderError(f"VoxCPM generation failed: {exc}") from exc
 

@@ -43,6 +43,33 @@
             </v-btn>
           </v-btn-toggle>
         </v-card>
+
+        <v-card variant="flat" color="surface-container" class="pa-4 mt-4">
+          <div class="text-subtitle-2 mb-1">{{ t('settings.roleplay.title') }}</div>
+          <p class="text-caption text-medium-emphasis mb-3">{{ t('settings.roleplay.hint') }}</p>
+          <v-textarea
+            v-model="rolePrompt"
+            variant="outlined"
+            rows="8"
+            auto-grow
+            :disabled="promptBusy"
+            hide-details
+            class="mb-3"
+          />
+          <div class="d-flex ga-2">
+            <v-btn
+              color="primary"
+              :loading="promptBusy"
+              :disabled="!rolePrompt.trim()"
+              @click="savePrompt"
+            >{{ t('common.action.save') }}</v-btn>
+            <v-btn
+              variant="text"
+              :disabled="promptBusy || rolePrompt === rolePromptDefault"
+              @click="resetPrompt"
+            >{{ t('settings.roleplay.reset') }}</v-btn>
+          </div>
+        </v-card>
       </v-window-item>
 
       <!-- Providers & Models -->
@@ -87,6 +114,9 @@
     <v-snackbar :model-value="!!error" color="error" :timeout="6000" @update:model-value="error = ''">
       {{ error }}
     </v-snackbar>
+    <v-snackbar :model-value="saved" color="success" :timeout="2500" @update:model-value="saved = false">
+      {{ t('settings.saved') }}
+    </v-snackbar>
   </v-container>
 </template>
 
@@ -94,6 +124,7 @@
   import { onMounted, ref } from 'vue'
   import { useI18n } from 'vue-i18n'
   import { observabilityApi } from '@/api/observability'
+  import { settingsApi } from '@/api/settings'
   import type { ServiceStatus } from '@/api/types'
   import { SUPPORTED_LOCALES } from '@/plugins/i18n'
   import { useUiStore } from '@/stores/ui'
@@ -104,6 +135,11 @@
   const tab = ref('general')
   const services = ref<ServiceStatus[]>([])
   const error = ref('')
+  const saved = ref(false)
+
+  const rolePrompt = ref('')
+  const rolePromptDefault = ref('')
+  const promptBusy = ref(false)
 
   async function loadProviders () {
     try {
@@ -114,5 +150,44 @@
     }
   }
 
-  onMounted(loadProviders)
+  async function loadPrompt () {
+    try {
+      const r = await settingsApi.getRoleplayPrompt()
+      rolePrompt.value = r.roleplay_prompt
+      rolePromptDefault.value = r.default
+    } catch (e) {
+      error.value = (e as Error).message || t('error.generic')
+    }
+  }
+
+  async function savePrompt () {
+    promptBusy.value = true
+    try {
+      const r = await settingsApi.setRoleplayPrompt(rolePrompt.value)
+      rolePrompt.value = r.roleplay_prompt
+      saved.value = true
+    } catch (e) {
+      error.value = (e as Error).message || t('error.generic')
+    } finally {
+      promptBusy.value = false
+    }
+  }
+
+  async function resetPrompt () {
+    promptBusy.value = true
+    try {
+      const r = await settingsApi.resetRoleplayPrompt()
+      rolePrompt.value = r.roleplay_prompt
+      saved.value = true
+    } catch (e) {
+      error.value = (e as Error).message || t('error.generic')
+    } finally {
+      promptBusy.value = false
+    }
+  }
+
+  onMounted(() => {
+    loadProviders()
+    loadPrompt()
+  })
 </script>

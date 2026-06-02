@@ -38,9 +38,12 @@ class DialogueOrchestrator:
         character: Character,
         history: list[Message],
         user_text: str,
+        roleplay_prompt: str = "",
         affect_directive: str | None = None,
     ) -> TurnResult:
-        system = personality.build_system_prompt(character.persona, character.big_five)
+        system = personality.build_system_prompt(
+            roleplay_prompt, character.persona, character.big_five
+        )
         if affect_directive:
             system = f"{system}\n\n{affect_directive}"
         temperature = personality.temperature_for(character.big_five)
@@ -70,5 +73,5 @@ class DialogueOrchestrator:
             text="".join(parts).strip(),
             usage=usage,
             provider=llm.name,
-            model=getattr(llm, "_model", None),
+            model=getattr(llm, "model", None),
         )

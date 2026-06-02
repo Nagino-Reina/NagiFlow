@@ -20,11 +20,11 @@ class OllamaLLM:
 
     def __init__(self, base_url: str, model: str) -> None:
         self._base_url = base_url.rstrip("/")
-        self._model = model
+        self.model = model  # public: the configured model name (docs/05 §4.7)
 
     def _payload(self, req: GenRequest) -> dict:
         return {
-            "model": req.model or self._model,
+            "model": req.model or self.model,
             "messages": [{"role": _role(m), "content": m.content} for m in req.messages],
             "stream": True,
             "options": {"temperature": req.temperature},
@@ -63,7 +63,7 @@ class OllamaLLM:
                             yield GenChunk(delta=delta)
         except httpx.HTTPError as exc:
             raise ProviderError(
-                f"Could not reach Ollama at {self._base_url} (model '{self._model}'): {exc}"
+                f"Could not reach Ollama at {self._base_url} (model '{self.model}'): {exc}"
             ) from exc
 
     async def list_models(self) -> list[str]:
