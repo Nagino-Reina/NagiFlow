@@ -19,7 +19,10 @@ class VoxCPMServerTTS:
         self.base_url = base_url.rstrip("/")
         self.model = model
         self.capabilities = TTSCaps(
-            streaming=True, voice_clone=True, voice_design=False, fine_tune=False,
+            streaming=True,
+            voice_clone=True,
+            voice_design=False,
+            fine_tune=False,
             sample_rate=sample_rate,
         )
 
@@ -44,7 +47,9 @@ class VoxCPMServerTTS:
                     with open(voice.reference_paths[0], "rb") as ref:
                         files = {"reference": ("reference.wav", ref, "audio/wav")}
                         resp = await client.post(
-                            f"{self.base_url}/v1/audio/speech", data=payload, files=files,
+                            f"{self.base_url}/v1/audio/speech",
+                            data=payload,
+                            files=files,
                         )
                 else:
                     resp = await client.post(f"{self.base_url}/v1/audio/speech", json=payload)

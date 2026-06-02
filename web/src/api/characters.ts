@@ -5,8 +5,6 @@
  * preview that powers the editor's read-only "resulting directives" panel (FR-CM-4).
  */
 
-import { http } from './http'
-import { getToken } from './session'
 import type {
   Character,
   CharacterCreate,
@@ -14,6 +12,8 @@ import type {
   Page,
   PersonalitySchema,
 } from './types'
+import { http } from './http'
+import { getToken } from './session'
 
 const BASE = '/api/v1'
 
@@ -37,7 +37,9 @@ export const charactersApi = {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: form,
     })
-    if (!res.ok) throw new Error(`portrait upload failed (${res.status})`)
+    if (!res.ok) {
+      throw new Error(`portrait upload failed (${res.status})`)
+    }
     return res.json() as Promise<Character>
   },
 
@@ -50,7 +52,9 @@ export const charactersApi = {
     const res = await fetch(`${BASE}/characters/${id}/portrait`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
-    if (!res.ok) return null
+    if (!res.ok) {
+      return null
+    }
     return URL.createObjectURL(await res.blob())
   },
 }

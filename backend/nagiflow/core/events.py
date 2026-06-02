@@ -30,9 +30,7 @@ class EventBus:
             except Exception:  # noqa: BLE001 - isolation by design
                 import logging
 
-                logging.getLogger("nagiflow.events").exception(
-                    "event handler failed for %s", event
-                )
+                logging.getLogger("nagiflow.events").exception("event handler failed for %s", event)
 
 
 event_bus = EventBus()

@@ -30,9 +30,7 @@ def configure_logging(level: str = "INFO") -> None:
     handler = logging.StreamHandler()
     handler.addFilter(_CorrelationFilter())
     handler.setFormatter(
-        logging.Formatter(
-            "%(asctime)s %(levelname)-5s [%(correlation_id)s] %(name)s: %(message)s"
-        )
+        logging.Formatter("%(asctime)s %(levelname)-5s [%(correlation_id)s] %(name)s: %(message)s")
     )
     root = logging.getLogger()
     root.handlers.clear()

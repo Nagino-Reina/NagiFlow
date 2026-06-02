@@ -23,9 +23,11 @@ def _silence_stdio():  # noqa: ANN202
     """VoxCPM and tqdm print model-load notices and per-step progress bars straight to
     stdout/stderr, flooding the app log. Redirect both to devnull around load + generation.
     Logging is unaffected: its handler holds the original stderr from app startup."""
-    with open(os.devnull, "w") as devnull, contextlib.redirect_stdout(
-        devnull
-    ), contextlib.redirect_stderr(devnull):
+    with (
+        open(os.devnull, "w") as devnull,
+        contextlib.redirect_stdout(devnull),
+        contextlib.redirect_stderr(devnull),
+    ):
         yield
 
 
@@ -51,7 +53,10 @@ class VoxCPMTTS:
         # VoxCPM clones from a reference clip + transcript; it has no text-only voice design
         # and the simple API returns a full waveform (no streaming).
         self.capabilities = TTSCaps(
-            streaming=False, voice_clone=True, voice_design=False, fine_tune=False,
+            streaming=False,
+            voice_clone=True,
+            voice_design=False,
+            fine_tune=False,
             sample_rate=sample_rate,
         )
 

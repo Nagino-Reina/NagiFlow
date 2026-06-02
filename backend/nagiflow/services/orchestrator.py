@@ -10,14 +10,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from ..config import get_settings
 from ..core import errors
 from ..models.character import Character
 from ..models.conversation import Message
 from ..providers.base import ChatMessage, GenRequest, GenUsage, ProviderError
 from ..providers.registry import ProviderRegistry
 from . import personality
-
-_HISTORY_LIMIT = 20
 
 
 @dataclass
@@ -49,7 +48,7 @@ class DialogueOrchestrator:
         temperature = personality.temperature_for(character.big_five)
 
         messages: list[ChatMessage] = [ChatMessage(role="system", content=system)]
-        for msg in history[-_HISTORY_LIMIT:]:
+        for msg in history[-get_settings().chat_history_window :]:
             if msg.role in ("user", "character"):
                 messages.append(ChatMessage(role=msg.role, content=msg.content))
         messages.append(ChatMessage(role="user", content=user_text))

@@ -59,7 +59,9 @@ async def test_portrait_upload_fetch_clear(client):
     assert cleared.status_code == 204
     after = await client.get(f"{API}/characters/{cid}", headers=headers)
     assert after.json()["has_portrait"] is False
-    assert (await client.get(f"{API}/characters/{cid}/portrait", headers=headers)).status_code == 404
+    assert (
+        await client.get(f"{API}/characters/{cid}/portrait", headers=headers)
+    ).status_code == 404
 
 
 async def test_portrait_rejects_unsupported_type(client):

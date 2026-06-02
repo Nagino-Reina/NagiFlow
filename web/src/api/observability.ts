@@ -1,14 +1,13 @@
 /**
  * api/observability.ts
  *
- * System resources, service health, and token-usage summary (docs/05 §4.7, docs/12).
+ * Service health for the Settings → Providers table (docs/05 §4.7). Live resources + usage are
+ * pushed over the system-status WebSocket (see `realtime/systemClient`), not polled here.
  */
 
+import type { ServiceStatus } from './types'
 import { http } from './http'
-import type { ServiceStatus, SystemResources, UsageSummary } from './types'
 
 export const observabilityApi = {
-  resources: () => http.get<SystemResources>('/system/resources'),
   services: () => http.get<{ services: ServiceStatus[] }>('/system/services'),
-  usageSummary: () => http.get<UsageSummary>('/usage:summary'),
 }

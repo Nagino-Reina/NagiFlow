@@ -64,9 +64,7 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(AppError)
     async def _app_error(request: Request, exc: AppError) -> JSONResponse:
-        return JSONResponse(
-            status_code=exc.status_code, content=exc.envelope(get_correlation_id())
-        )
+        return JSONResponse(status_code=exc.status_code, content=exc.envelope(get_correlation_id()))
 
     @app.exception_handler(RequestValidationError)
     async def _validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:

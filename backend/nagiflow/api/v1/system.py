@@ -89,7 +89,9 @@ async def _status_snapshot(registry: ProviderRegistry, user_id: str) -> dict:
     """
     settings = get_settings()
     services_out = await _service_statuses(registry)
-    resources = SystemResources.model_validate(resource_snapshot(settings.workspace_dir)).model_dump()
+    resources = SystemResources.model_validate(
+        resource_snapshot(settings.workspace_dir)
+    ).model_dump()
     async with get_sessionmaker()() as session:
         usage = await UsageService(UsageRepository(session)).summary(user_id)
     return _jsonable(

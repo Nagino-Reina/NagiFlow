@@ -5,13 +5,13 @@
  * emotion in `meta.affect` (docs/10 §9).
  */
 
-import { http } from './http'
 import type {
   Conversation,
   ConversationCreate,
   Message,
   SendMessageResponse,
 } from './types'
+import { http } from './http'
 
 export const conversationsApi = {
   list: () => http.get<Conversation[]>('/conversations'),

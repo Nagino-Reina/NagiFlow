@@ -13,14 +13,17 @@ const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(ma
 
 /** Band index 0..N for a score against ascending thresholds (`< t[i]` → band i). */
 export function bandIndexOf (score: number, thresholds: number[]): number {
-  for (let i = 0; i < thresholds.length; i++) {
-    if (score < thresholds[i]) return i
+  for (const [i, threshold] of thresholds.entries()) {
+    if (score < threshold) {
+      return i
+    }
   }
   return thresholds.length
 }
 
-const score = (big: BigFive, trait: string) =>
-  clamp(Math.round(big[trait as keyof BigFive] ?? 50), 0, 100)
+function score (big: BigFive, trait: string) {
+  return clamp(Math.round(big[trait as keyof BigFive] ?? 50), 0, 100)
+}
 
 function param (cfg: ParamFormula, big: BigFive): number {
   let value = cfg.base
@@ -40,10 +43,15 @@ export function resolvePersonality (schema: PersonalitySchema, big: BigFive): Pe
   const voiceStyle: string[] = []
   for (const [trait, rules] of Object.entries(schema.voice_style)) {
     const idx = bandIndexOf(score(big, trait), schema.thresholds)
-    if (rules.very_high && idx === 4) voiceStyle.push(rules.very_high)
-    else if (rules.high && idx >= 3) voiceStyle.push(rules.high)
-    else if (rules.very_low && idx === 0) voiceStyle.push(rules.very_low)
-    else if (rules.low && idx <= 1) voiceStyle.push(rules.low)
+    if (rules.very_high && idx === 4) {
+      voiceStyle.push(rules.very_high)
+    } else if (rules.high && idx >= 3) {
+      voiceStyle.push(rules.high)
+    } else if (rules.very_low && idx === 0) {
+      voiceStyle.push(rules.very_low)
+    } else if (rules.low && idx <= 1) {
+      voiceStyle.push(rules.low)
+    }
   }
 
   return {

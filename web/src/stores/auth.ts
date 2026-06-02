@@ -6,10 +6,10 @@
  * access — it reflects the server-resolved principal and gates UI affordances by `kind`.
  */
 
+import type { Principal } from '@/api/types'
 import { defineStore } from 'pinia'
 import { authApi, type LoginBody, type RegisterBody } from '@/api/auth'
 import { getToken, setToken } from '@/api/session'
-import type { Principal } from '@/api/types'
 
 type Status = 'idle' | 'loading' | 'ready' | 'error'
 

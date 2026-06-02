@@ -100,12 +100,43 @@ EXPRESSION_MAP: dict[str, str] = {
 
 # small affect lexicon for the deterministic fallback (docs/10 §3.2)
 _POS = {
-    "good", "great", "love", "loved", "happy", "glad", "thanks", "thank", "awesome",
-    "nice", "wonderful", "excited", "amazing", "perfect", "yay", "haha", "cool", "fun",
+    "good",
+    "great",
+    "love",
+    "loved",
+    "happy",
+    "glad",
+    "thanks",
+    "thank",
+    "awesome",
+    "nice",
+    "wonderful",
+    "excited",
+    "amazing",
+    "perfect",
+    "yay",
+    "haha",
+    "cool",
+    "fun",
 }
 _NEG = {
-    "hate", "hated", "bad", "sad", "angry", "terrible", "awful", "stupid", "annoying",
-    "worried", "afraid", "scared", "sorry", "upset", "horrible", "disgusting", "cry",
+    "hate",
+    "hated",
+    "bad",
+    "sad",
+    "angry",
+    "terrible",
+    "awful",
+    "stupid",
+    "annoying",
+    "worried",
+    "afraid",
+    "scared",
+    "sorry",
+    "upset",
+    "horrible",
+    "disgusting",
+    "cry",
 }
 _AROUSAL = {"amazing", "wow", "urgent", "now", "help", "excited", "angry", "scared", "yay"}
 _NEGATORS = {"not", "no", "never", "n't"}
@@ -332,9 +363,7 @@ class AffectService:
                     pass
         return lexicon_appraise(user_text), "fallback"
 
-    async def _llm_appraise(
-        self, llm, user_text: str, history: list[Message]
-    ) -> VAD | None:
+    async def _llm_appraise(self, llm, user_text: str, history: list[Message]) -> VAD | None:
         context: list[ChatMessage] = [ChatMessage(role="system", content=_APPRAISE_SYSTEM)]
         for msg in history[-_APPRAISE_HISTORY:]:
             if msg.role in ("user", "character"):

@@ -191,9 +191,7 @@ class ConversationService:
             meta={
                 "usage": {
                     "prompt_tokens": result.usage.prompt_tokens if result.usage else None,
-                    "completion_tokens": (
-                        result.usage.completion_tokens if result.usage else None
-                    ),
+                    "completion_tokens": (result.usage.completion_tokens if result.usage else None),
                 },
                 "affect": affect_result.affect.to_dict(),
                 "expression": affect_result.expression,

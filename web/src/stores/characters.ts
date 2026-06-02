@@ -5,9 +5,9 @@
  * create/update/duplicate/archive flow through the typed API client.
  */
 
+import type { Character, CharacterCreate, CharacterUpdate, PersonalitySchema } from '@/api/types'
 import { defineStore } from 'pinia'
 import { charactersApi } from '@/api/characters'
-import type { Character, CharacterCreate, CharacterUpdate, PersonalitySchema } from '@/api/types'
 
 type Status = 'idle' | 'loading' | 'ready' | 'error'
 
@@ -36,7 +36,9 @@ export const useCharactersStore = defineStore('characters', {
     },
     async get (id: string): Promise<Character> {
       const cached = this.items.find(c => c.id === id)
-      if (cached) return cached
+      if (cached) {
+        return cached
+      }
       return charactersApi.get(id)
     },
     async create (body: CharacterCreate): Promise<Character> {

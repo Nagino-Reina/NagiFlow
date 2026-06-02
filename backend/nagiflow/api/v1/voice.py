@@ -63,13 +63,17 @@ async def clone_voice(
     data = await reference.read()
     if len(data) > _MAX_REFERENCE_BYTES:
         raise errors.AppError(
-            "upload.too_large", "Reference clip exceeds 20 MB.", status_code=413,
+            "upload.too_large",
+            "Reference clip exceeds 20 MB.",
+            status_code=413,
         )
     model = await svc.create_zero_shot(character_id, reference=data, sample_text=sample_text)
     return VoiceModelOut.model_validate(model)
 
 
-@router.post("/{character_id}/voice-models/{voice_model_id}:setDefault", response_model=VoiceModelOut)
+@router.post(
+    "/{character_id}/voice-models/{voice_model_id}:setDefault", response_model=VoiceModelOut
+)
 async def set_default_voice(
     character_id: str, voice_model_id: str, _user: RequireUser, svc: Voices
 ) -> VoiceModelOut:

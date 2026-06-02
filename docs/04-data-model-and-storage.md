@@ -332,6 +332,14 @@ erDiagram
 | is_default | INTEGER | 0/1 |
 | fallback_order | INTEGER NULL | for fallback chains |
 
+**`app_setting`** — key-value store for runtime application settings edited in the UI (e.g. the global **roleplay prompt**, [05 §4.7](05-api-specification.md), [08 §4](08-feature-character-management.md)). One row per key; a missing row falls back to the built-in default from config.
+
+| Field | Type | Notes |
+|---|---|---|
+| key | TEXT PK | setting key (e.g. `roleplay_prompt`) |
+| value | TEXT | serialized value |
+| created_at / updated_at | DATETIME | timestamps |
+
 ### 5.8 Usage, metrics & audit
 
 **`usage_record`** — token/cost accounting ([12](12-feature-observability.md)).

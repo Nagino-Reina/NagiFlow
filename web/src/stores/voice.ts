@@ -5,9 +5,9 @@
  * provider's capability flags (cached for the session) and the current character's models.
  */
 
+import type { TTSCaps, VoiceModel } from '@/api/types'
 import { defineStore } from 'pinia'
 import { voiceApi } from '@/api/voice'
-import type { TTSCaps, VoiceModel } from '@/api/types'
 
 export const useVoiceStore = defineStore('voice', {
   state: () => ({
@@ -17,7 +17,9 @@ export const useVoiceStore = defineStore('voice', {
   }),
   actions: {
     async loadCaps () {
-      if (!this.caps) this.caps = await voiceApi.capabilities()
+      if (!this.caps) {
+        this.caps = await voiceApi.capabilities()
+      }
     },
     async load (characterId: string) {
       this.loading = true

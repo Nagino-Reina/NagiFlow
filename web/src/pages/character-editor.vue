@@ -1,14 +1,16 @@
 <template>
   <v-container class="py-6" style="max-width: 1100px;">
     <div class="d-flex align-center mb-4 ga-2">
-      <v-btn variant="text" prepend-icon="mdi-arrow-left" :to="'/characters'">
+      <v-btn prepend-icon="mdi-arrow-left" :to="'/characters'" variant="text">
         {{ t('characters.back') }}
       </v-btn>
+
       <v-spacer />
+
       <v-btn
         color="primary"
-        :loading="saving"
         :disabled="!nameValid"
+        :loading="saving"
         prepend-icon="mdi-content-save"
         @click="save"
       >
@@ -18,16 +20,16 @@
 
     <v-alert
       v-if="errorCode"
-      type="error"
-      variant="tonal"
-      density="compact"
       class="mb-4"
       closable
+      density="compact"
       :text="te(`error.${errorCode}`) ? t(`error.${errorCode}`) : t('error.generic')"
+      type="error"
+      variant="tonal"
       @click:close="errorCode = null"
     />
 
-    <v-tabs v-model="tab" color="primary" class="mb-4">
+    <v-tabs v-model="tab" class="mb-4" color="primary">
       <v-tab value="profile">{{ t('characters.tabs.profile') }}</v-tab>
       <v-tab value="personality">{{ t('characters.tabs.personality') }}</v-tab>
       <v-tab value="voice">{{ t('characters.tabs.voice') }}</v-tab>
@@ -44,76 +46,92 @@
               :label="t('characters.fields.name')"
               :rules="[v => !!(v && v.trim()) || t('common.validation.required')]"
             />
+
             <v-text-field
               v-model="aliasesText"
-              :label="t('characters.fields.aliases')"
               :hint="t('characters.fields.aliasesHint')"
+              :label="t('characters.fields.aliases')"
               persistent-hint
             />
+
             <v-text-field
               v-model="tagsText"
-              :label="t('characters.fields.tags')"
-              :hint="t('characters.fields.tagsHint')"
-              persistent-hint
               class="mt-3"
+              :hint="t('characters.fields.tagsHint')"
+              :label="t('characters.fields.tags')"
+              persistent-hint
             />
+
             <v-select
               v-model="form.default_language"
+              class="mt-3"
               :items="LANGUAGES"
               :label="t('characters.fields.language')"
-              class="mt-3"
             />
           </v-col>
+
           <v-col cols="12" md="6">
             <div class="d-flex align-center ga-4 mb-3">
-              <v-avatar size="80" color="surface-container">
-                <v-img v-if="portraitUrl" :src="portraitUrl" alt="" cover />
+              <v-avatar color="surface-container" size="80">
+                <v-img v-if="portraitUrl" alt="" cover :src="portraitUrl" />
                 <v-icon v-else icon="mdi-account" size="40" />
               </v-avatar>
+
               <div class="flex-grow-1">
                 <v-file-input
                   v-model="portraitFile"
-                  :label="t('characters.portrait.label')"
-                  :hint="isNew ? t('characters.portrait.saveFirst') : t('characters.portrait.hint')"
-                  persistent-hint
                   accept="image/png,image/jpeg,image/webp"
-                  prepend-icon="mdi-image"
                   density="compact"
                   :disabled="isNew || portraitBusy"
+                  :hint="isNew ? t('characters.portrait.saveFirst') : t('characters.portrait.hint')"
+                  :label="t('characters.portrait.label')"
                   :loading="portraitBusy"
+                  persistent-hint
+                  prepend-icon="mdi-image"
                   @update:model-value="onPortraitPick"
                 />
+
                 <v-btn
                   v-if="portraitUrl"
-                  size="x-small"
-                  variant="text"
                   color="error"
                   :loading="portraitBusy"
+                  size="x-small"
+                  variant="text"
                   @click="removePortrait"
                 >
                   {{ t('characters.portrait.remove') }}
                 </v-btn>
               </div>
             </div>
-            <v-textarea v-model="form.description" :label="t('characters.fields.description')" rows="2" auto-grow />
+
+            <v-textarea v-model="form.description" auto-grow :label="t('characters.fields.description')" rows="2" />
+
             <v-textarea
               v-model="form.persona"
-              :label="t('characters.fields.persona')"
+              auto-grow
               :hint="t('characters.fields.personaHint')"
+              :label="t('characters.fields.persona')"
               persistent-hint
               rows="6"
-              auto-grow
             />
           </v-col>
-          <v-col cols="12" class="d-flex align-center ga-4">
-            <v-switch v-model="form.guest_visible" color="primary" :label="t('characters.guestVisible')" hide-details inset />
+
+          <v-col class="d-flex align-center ga-4" cols="12">
+            <v-switch
+              v-model="form.guest_visible"
+              color="primary"
+              hide-details
+              inset
+              :label="t('characters.guestVisible')"
+            />
+
             <v-select
               v-if="!isNew"
               v-model="form.status"
+              hide-details
               :items="STATUSES"
               :label="t('characters.fields.status')"
               style="max-width: 220px;"
-              hide-details
             />
           </v-col>
         </v-row>
@@ -125,34 +143,39 @@
           <v-col cols="12" md="7">
             <div class="text-subtitle-1 mb-1">{{ t('characters.personality.title') }}</div>
             <p class="text-body-2 text-medium-emphasis mb-4">{{ t('characters.personality.hint') }}</p>
+
             <div v-for="trait in TRAITS" :key="trait" class="mb-3">
               <div class="d-flex justify-space-between align-center text-body-2">
                 <span class="font-weight-medium">{{ t(`characters.personality.traits.${trait}`) }}</span>
+
                 <span class="d-flex align-center ga-1 text-medium-emphasis">
                   <v-tooltip
+                    :disabled="!directiveFor(trait)"
                     location="top"
                     max-width="280"
                     :text="directiveFor(trait)"
-                    :disabled="!directiveFor(trait)"
                   >
                     <template #activator="{ props }">
                       <span v-bind="props" class="trait-score">{{ form.big_five[trait] }}</span>
                     </template>
                   </v-tooltip>
-                  <v-chip size="x-small" variant="tonal" color="primary">
+
+                  <v-chip color="primary" size="x-small" variant="tonal">
                     {{ t(`characters.personality.bands.${bandKey(form.big_five[trait])}`) }}
                   </v-chip>
                 </span>
               </div>
+
               <v-slider
                 v-model="form.big_five[trait]"
-                :min="0"
-                :max="100"
-                :step="1"
+                :aria-label="t(`characters.personality.traits.${trait}`)"
                 color="primary"
                 hide-details
-                :aria-label="t(`characters.personality.traits.${trait}`)"
+                :max="100"
+                :min="0"
+                :step="1"
               />
+
               <div class="text-caption text-medium-emphasis">
                 {{ t(`characters.personality.traitDesc.${trait}`) }}
               </div>
@@ -160,37 +183,45 @@
           </v-col>
 
           <v-col cols="12" md="5">
-            <v-card variant="flat" color="surface-container" class="pa-4">
+            <v-card class="pa-4" color="surface-container" variant="flat">
               <div class="text-subtitle-2 mb-2">{{ t('characters.personality.resulting') }}</div>
 
-              <BigFiveRadar :data="radarData" :aria-label="t('characters.personality.title')" />
+              <BigFiveRadar :aria-label="t('characters.personality.title')" :data="radarData" />
+
               <p class="text-caption text-medium-emphasis text-center mt-1 mb-0">
                 {{ t('characters.personality.radarHint') }}
               </p>
 
               <v-divider class="my-3" />
+
               <div class="text-caption text-medium-emphasis mb-2">
                 {{ t('characters.personality.params') }}
               </div>
+
               <div v-if="mapping" class="d-flex flex-column ga-1 text-body-2">
                 <div class="d-flex justify-space-between">
                   <span>{{ t('characters.personality.temperature') }}</span><span>{{ mapping.temperature }}</span>
                 </div>
+
                 <div class="d-flex justify-space-between">
                   <span>{{ t('characters.personality.topP') }}</span><span>{{ mapping.top_p }}</span>
                 </div>
+
                 <div class="d-flex justify-space-between">
                   <span>{{ t('characters.personality.verbosity') }}</span><span>{{ mapping.verbosity }}</span>
                 </div>
+
                 <div class="d-flex justify-space-between">
                   <span>{{ t('characters.personality.speechRate') }}</span><span>{{ mapping.speech_rate }}</span>
                 </div>
+
                 <div class="d-flex justify-space-between">
                   <span>{{ t('characters.personality.expressiveness') }}</span><span>{{ mapping.expressiveness }}</span>
                 </div>
+
                 <div class="d-flex justify-space-between">
                   <span>{{ t('characters.personality.voiceStyle') }}</span>
-                  <span>{{ mapping.voice_style.length ? mapping.voice_style.join(', ') : t('characters.personality.none') }}</span>
+                  <span>{{ mapping.voice_style.length > 0 ? mapping.voice_style.join(', ') : t('characters.personality.none') }}</span>
                 </div>
               </div>
             </v-card>
@@ -199,48 +230,59 @@
       </v-window-item>
 
       <v-window-item value="voice">
-        <v-card v-if="isNew" variant="flat" color="surface-container" class="pa-6 text-center">
-          <v-icon icon="mdi-content-save-outline" size="36" class="mb-2 text-medium-emphasis" />
+        <v-card v-if="isNew" class="pa-6 text-center" color="surface-container" variant="flat">
+          <v-icon class="mb-2 text-medium-emphasis" icon="mdi-content-save-outline" size="36" />
           <div class="text-body-2 text-medium-emphasis">{{ t('characters.voice.saveFirst') }}</div>
         </v-card>
 
         <template v-else>
-          <v-card variant="flat" color="surface-container" class="mb-4">
-            <v-list v-if="voice.models.length" bg-color="transparent">
+          <v-card class="mb-4" color="surface-container" variant="flat">
+            <v-list v-if="voice.models.length > 0" bg-color="transparent">
               <v-list-item v-for="vm in voice.models" :key="vm.id">
                 <template #prepend>
                   <v-icon :icon="vm.kind === 'zero_shot' ? 'mdi-account-voice' : 'mdi-waveform'" />
                 </template>
+
                 <v-list-item-title class="d-flex align-center ga-2">
                   {{ t(`characters.voice.kinds.${vm.kind}`) }}
-                  <v-chip v-if="vm.is_default" size="x-small" color="success" variant="tonal">
+                  <v-chip v-if="vm.is_default" color="success" size="x-small" variant="tonal">
                     {{ t('characters.voice.active') }}
                   </v-chip>
                 </v-list-item-title>
+
                 <v-list-item-subtitle>
                   {{ vm.design_description || `${t('characters.voice.provider')}: ${vm.provider}` }}
                 </v-list-item-subtitle>
+
                 <template #append>
                   <v-btn
-                    size="small" variant="text" icon="mdi-play"
-                    :loading="previewingId === vm.id"
                     :aria-label="t('characters.voice.preview')"
+                    icon="mdi-play"
+                    :loading="previewingId === vm.id"
+                    size="small"
+                    variant="text"
                     @click="playPreview(vm.id)"
                   />
+
                   <v-btn
                     v-if="!vm.is_default"
-                    size="small" variant="text"
+                    size="small"
                     :text="t('characters.voice.setDefault')"
+                    variant="text"
                     @click="makeDefault(vm.id)"
                   />
+
                   <v-btn
-                    size="small" variant="text" icon="mdi-delete-outline"
                     :aria-label="t('characters.voice.delete')"
+                    icon="mdi-delete-outline"
+                    size="small"
+                    variant="text"
                     @click="pendingDeleteVoice = vm"
                   />
                 </template>
               </v-list-item>
             </v-list>
+
             <div v-else class="pa-6 text-center text-body-2 text-medium-emphasis">
               {{ t('characters.voice.empty') }}
             </div>
@@ -248,59 +290,67 @@
 
           <v-row>
             <v-col v-if="voice.caps?.voice_design" cols="12" md="6">
-              <v-card variant="flat" color="surface-container" class="pa-4 h-100">
+              <v-card class="pa-4 h-100" color="surface-container" variant="flat">
                 <div class="text-subtitle-2 mb-1">{{ t('characters.voice.design.title') }}</div>
                 <p class="text-caption text-medium-emphasis mb-2">{{ t('characters.voice.design.hint') }}</p>
+
                 <v-textarea
                   v-model="designText"
+                  auto-grow
                   :placeholder="t('characters.voice.design.placeholder')"
-                  rows="2" auto-grow
+                  rows="2"
                 />
+
                 <v-btn
-                  color="primary" :loading="voiceBusy" :disabled="!designText.trim()"
+                  color="primary"
+                  :disabled="!designText.trim()"
+                  :loading="voiceBusy"
                   @click="addDesign"
                 >{{ t('characters.voice.design.create') }}</v-btn>
               </v-card>
             </v-col>
 
             <v-col v-if="voice.caps?.voice_clone" cols="12" md="6">
-              <v-card variant="flat" color="surface-container" class="pa-4 h-100">
+              <v-card class="pa-4 h-100" color="surface-container" variant="flat">
                 <div class="text-subtitle-2 mb-1">{{ t('characters.voice.clone.title') }}</div>
                 <p class="text-caption text-medium-emphasis mb-2">{{ t('characters.voice.clone.hint') }}</p>
+
                 <v-file-input
                   v-model="cloneFile"
-                  :label="t('characters.voice.clone.file')"
                   accept="audio/*"
+                  :label="t('characters.voice.clone.file')"
                   prepend-icon="mdi-microphone"
                 />
+
                 <v-textarea
                   v-model="cloneText"
-                  :label="t('characters.voice.clone.transcript')"
-                  :hint="t('characters.voice.clone.transcriptHint')"
-                  persistent-hint
-                  rows="2"
                   auto-grow
                   class="mb-2"
+                  :hint="t('characters.voice.clone.transcriptHint')"
+                  :label="t('characters.voice.clone.transcript')"
+                  persistent-hint
+                  rows="2"
                 />
+
                 <v-btn
                   color="primary"
-                  :loading="voiceBusy"
                   :disabled="!hasCloneFile || !cloneText.trim()"
+                  :loading="voiceBusy"
                   @click="addClone"
                 >{{ t('characters.voice.clone.create') }}</v-btn>
               </v-card>
             </v-col>
 
             <v-col v-if="voice.caps && !voice.caps.voice_design && !voice.caps.voice_clone" cols="12">
-              <v-alert type="info" variant="tonal" :text="t('characters.voice.unsupported')" />
+              <v-alert :text="t('characters.voice.unsupported')" type="info" variant="tonal" />
             </v-col>
           </v-row>
         </template>
       </v-window-item>
 
       <v-window-item value="memory">
-        <v-card variant="flat" color="surface-container" class="pa-8 text-center">
-          <v-icon icon="mdi-brain" size="40" class="mb-3 text-medium-emphasis" />
+        <v-card class="pa-8 text-center" color="surface-container" variant="flat">
+          <v-icon class="mb-3 text-medium-emphasis" icon="mdi-brain" size="40" />
           <div class="text-body-2 text-medium-emphasis">{{ t('characters.memory.comingSoon') }}</div>
         </v-card>
       </v-window-item>
@@ -311,17 +361,19 @@
     </v-snackbar>
 
     <v-dialog
-      :model-value="pendingDeleteVoice !== null"
       max-width="420"
+      :model-value="pendingDeleteVoice !== null"
       @update:model-value="pendingDeleteVoice = null"
     >
       <v-card>
         <v-card-title class="text-h6">{{ t('characters.voice.delete') }}</v-card-title>
         <v-card-text>{{ t('characters.voice.deleteConfirm') }}</v-card-text>
+
         <v-card-actions>
           <v-spacer />
           <v-btn variant="text" @click="pendingDeleteVoice = null">{{ t('common.action.cancel') }}</v-btn>
-          <v-btn color="error" variant="flat" :loading="voiceBusy" @click="confirmDeleteVoice">
+
+          <v-btn color="error" :loading="voiceBusy" variant="flat" @click="confirmDeleteVoice">
             {{ t('characters.voice.delete') }}
           </v-btn>
         </v-card-actions>
@@ -331,14 +383,14 @@
 </template>
 
 <script lang="ts" setup>
+  import type { BigFive, CharacterCreate, CharacterStatus, VoiceModel } from '@/api/types'
   import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
   import { useI18n } from 'vue-i18n'
   import { useRoute, useRouter } from 'vue-router'
-  import BigFiveRadar from '@/components/BigFiveRadar.vue'
   import { charactersApi } from '@/api/characters'
   import { ApiError } from '@/api/http'
-  import type { BigFive, CharacterCreate, CharacterStatus, VoiceModel } from '@/api/types'
   import { voiceApi } from '@/api/voice'
+  import BigFiveRadar from '@/components/BigFiveRadar.vue'
   import { bandIndexOf, resolvePersonality } from '@/personality/mapping'
   import { useCharactersStore } from '@/stores/characters'
   import { useVoiceStore } from '@/stores/voice'
@@ -358,14 +410,16 @@
   const STATUSES = computed(() =>
     ['draft', 'active', 'archived'].map(v => ({ title: t(`characters.status.${v}`), value: v })))
 
-  const bandKey = (s: number) => {
+  function bandKey (s: number) {
     const schema = store.personalitySchema
     return schema ? schema.bands[bandIndexOf(s, schema.thresholds)] : 'moderate'
   }
 
-  const defaultBigFive = (): BigFive => ({
-    openness: 50, conscientiousness: 50, extraversion: 50, agreeableness: 50, neuroticism: 50,
-  })
+  function defaultBigFive (): BigFive {
+    return {
+      openness: 50, conscientiousness: 50, extraversion: 50, agreeableness: 50, neuroticism: 50,
+    }
+  }
 
   // Reactive id so a successful create flips this editor from create- to update-mode
   // in place (the component is reused on param change, not remounted).
@@ -439,8 +493,9 @@
   const mapping = computed(() =>
     store.personalitySchema ? resolvePersonality(store.personalitySchema, form.big_five) : null)
 
-  const directiveFor = (trait: string) =>
-    mapping.value?.traits.find(e => e.trait === trait)?.directive ?? ''
+  function directiveFor (trait: string) {
+    return mapping.value?.traits.find(e => e.trait === trait)?.directive ?? ''
+  }
 
   const radarData = computed(() =>
     TRAITS.map(k => ({ label: t(`characters.personality.traits.${k}`), value: form.big_five[k] })))
@@ -455,7 +510,7 @@
   let audio: HTMLAudioElement | null = null
   let lastPreviewUrl: string | null = null
 
-  const fileOf = (): File | null => {
+  function fileOf (): File | null {
     const f = cloneFile.value
     return Array.isArray(f) ? (f[0] ?? null) : f
   }
@@ -473,27 +528,33 @@
     }
   }
 
-  const addDesign = () => voiceAction(async () => {
-    await voice.createDesign(currentId.value, designText.value.trim())
-    designText.value = ''
-  })
+  function addDesign () {
+    return voiceAction(async () => {
+      await voice.createDesign(currentId.value, designText.value.trim())
+      designText.value = ''
+    })
+  }
 
-  const addClone = () => voiceAction(async () => {
-    const file = fileOf()
-    if (!file) return
-    await voice.clone(currentId.value, file, cloneText.value.trim())
-    cloneFile.value = null
-    cloneText.value = ''
-  })
+  function addClone () {
+    return voiceAction(async () => {
+      const file = fileOf()
+      if (!file) return
+      await voice.clone(currentId.value, file, cloneText.value.trim())
+      cloneFile.value = null
+      cloneText.value = ''
+    })
+  }
 
   const makeDefault = (vid: string) => voiceAction(() => voice.setDefault(currentId.value, vid))
 
-  const confirmDeleteVoice = () => voiceAction(async () => {
-    if (pendingDeleteVoice.value) {
-      await voice.remove(currentId.value, pendingDeleteVoice.value.id)
-      pendingDeleteVoice.value = null
-    }
-  })
+  function confirmDeleteVoice () {
+    return voiceAction(async () => {
+      if (pendingDeleteVoice.value) {
+        await voice.remove(currentId.value, pendingDeleteVoice.value.id)
+        pendingDeleteVoice.value = null
+      }
+    })
+  }
 
   async function playPreview (vid: string) {
     previewingId.value = vid
