@@ -93,6 +93,12 @@
     "emptyHint": "建立第一個角色，賦予個性與聲音。",
     "guestVisible": "訪客可見",
     "untitled": "未命名角色",
+    "portrait": {
+      "label": "肖像圖片",
+      "hint": "PNG、JPEG 或 WebP · 上限 5 MB",
+      "saveFirst": "請先儲存角色再新增肖像",
+      "remove": "移除肖像"
+    },
     "status": {
       "draft": "草稿",
       "active": "啟用",
@@ -175,8 +181,10 @@
       },
       "clone": {
         "title": "由音檔克隆",
-        "hint": "上傳一段簡短的參考錄音。",
+        "hint": "上傳一段簡短的參考錄音及其逐字稿。",
         "file": "參考音檔",
+        "transcript": "參考逐字稿",
+        "transcriptHint": "音檔中實際說出的內容(zero-shot 克隆必填)。",
         "create": "克隆"
       }
     },
@@ -232,7 +240,13 @@
     "provider": "供應商",
     "model": "模型",
     "status": "狀態",
-    "modulesComingSoon": "模組安裝與管理為後續階段。"
+    "modulesComingSoon": "模組安裝與管理為後續階段。",
+    "saved": "已儲存",
+    "roleplay": {
+      "title": "角色扮演提示詞",
+      "hint": "附加在每個角色之前的基礎指令。讓回覆維持角色口吻;以括號書寫的動作會在語音合成前移除,故 TTS 不會念出。",
+      "reset": "還原預設"
+    }
   },
   "auth": {
     "title": "登入 NagiFlow",

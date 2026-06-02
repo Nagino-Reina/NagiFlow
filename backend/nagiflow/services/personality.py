@@ -202,17 +202,23 @@ def spec() -> dict:
     }
 
 
-def build_system_prompt(persona: str, big_five: dict[str, int]) -> str:
-    """Persona + a structured personality block that carries each score and its band."""
+def build_system_prompt(roleplay_prompt: str, persona: str, big_five: dict[str, int]) -> str:
+    """Roleplay framing + the character's persona + a structured personality block.
+
+    Order matters: the roleplay instruction (how to stay in character) frames everything, then
+    the persona (who the character is), then the Big Five directives (how their traits color
+    behavior). Sections are headed so the model can tell them apart (docs/03 §4, docs/08 §4)."""
     parts: list[str] = []
+    if roleplay_prompt.strip():
+        parts.append(roleplay_prompt.strip())
     if persona.strip():
-        parts.append(persona.strip())
+        parts.append("# Character\n" + persona.strip())
     lines = [
         f"- {_TRAIT_TITLES[e.trait]} {e.score}/100 ({e.band.replace('_', ' ')}): {e.directive}"
         for e in trait_effects(big_five)
     ]
     parts.append(
-        "Personality profile (Big Five, 0-100). Embody these in tone, length, and content:\n"
+        "# Personality (Big Five, 0-100) — embody these in tone, length, and content:\n"
         + "\n".join(lines)
     )
     return "\n\n".join(parts)

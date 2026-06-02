@@ -196,4 +196,6 @@ class VoiceService:
                 speech_rate=speech_rate,
             )
         except (ProviderError, OSError) as exc:
+            # Surfaced as a 502 envelope; also logged since AppError carries no traceback.
+            log.warning("voice preview failed (character=%s): %s", character_id, exc)
             raise errors.provider_error(provider.name, str(exc)) from exc

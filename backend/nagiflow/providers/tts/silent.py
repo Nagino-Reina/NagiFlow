@@ -20,6 +20,7 @@ _FREQ = 220.0
 
 class SilentTTS:
     name = "silent"
+    model: str | None = None
     capabilities = TTSCaps(
         streaming=False, voice_clone=True, voice_design=True, fine_tune=False, sample_rate=_SR,
     )

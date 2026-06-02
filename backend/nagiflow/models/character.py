@@ -39,6 +39,10 @@ class Character(Base, TimestampMixin):
     status: Mapped[str] = mapped_column(String, default="draft", nullable=False)
     tags: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
 
+    @property
+    def has_portrait(self) -> bool:
+        return self.portrait_key is not None
+
 
 class VoiceModel(Base, TimestampMixin):
     __tablename__ = "voice_model"

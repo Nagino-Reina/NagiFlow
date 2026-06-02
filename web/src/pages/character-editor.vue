@@ -65,6 +65,36 @@
             />
           </v-col>
           <v-col cols="12" md="6">
+            <div class="d-flex align-center ga-4 mb-3">
+              <v-avatar size="80" color="surface-container">
+                <v-img v-if="portraitUrl" :src="portraitUrl" alt="" cover />
+                <v-icon v-else icon="mdi-account" size="40" />
+              </v-avatar>
+              <div class="flex-grow-1">
+                <v-file-input
+                  v-model="portraitFile"
+                  :label="t('characters.portrait.label')"
+                  :hint="isNew ? t('characters.portrait.saveFirst') : t('characters.portrait.hint')"
+                  persistent-hint
+                  accept="image/png,image/jpeg,image/webp"
+                  prepend-icon="mdi-image"
+                  density="compact"
+                  :disabled="isNew || portraitBusy"
+                  :loading="portraitBusy"
+                  @update:model-value="onPortraitPick"
+                />
+                <v-btn
+                  v-if="portraitUrl"
+                  size="x-small"
+                  variant="text"
+                  color="error"
+                  :loading="portraitBusy"
+                  @click="removePortrait"
+                >
+                  {{ t('characters.portrait.remove') }}
+                </v-btn>
+              </div>
+            </div>
             <v-textarea v-model="form.description" :label="t('characters.fields.description')" rows="2" auto-grow />
             <v-textarea
               v-model="form.persona"
@@ -243,8 +273,19 @@
                   accept="audio/*"
                   prepend-icon="mdi-microphone"
                 />
+                <v-textarea
+                  v-model="cloneText"
+                  :label="t('characters.voice.clone.transcript')"
+                  :hint="t('characters.voice.clone.transcriptHint')"
+                  persistent-hint
+                  rows="2"
+                  auto-grow
+                  class="mb-2"
+                />
                 <v-btn
-                  color="primary" :loading="voiceBusy" :disabled="!hasCloneFile"
+                  color="primary"
+                  :loading="voiceBusy"
+                  :disabled="!hasCloneFile || !cloneText.trim()"
                   @click="addClone"
                 >{{ t('characters.voice.clone.create') }}</v-btn>
               </v-card>
@@ -294,6 +335,7 @@
   import { useI18n } from 'vue-i18n'
   import { useRoute, useRouter } from 'vue-router'
   import BigFiveRadar from '@/components/BigFiveRadar.vue'
+  import { charactersApi } from '@/api/characters'
   import { ApiError } from '@/api/http'
   import type { BigFive, CharacterCreate, CharacterStatus, VoiceModel } from '@/api/types'
   import { voiceApi } from '@/api/voice'
@@ -346,6 +388,50 @@
   const aliasesText = ref('')
   const tagsText = ref('')
 
+  // --- Portrait (FR-CM-2) ---
+  const portraitUrl = ref<string | null>(null)
+  const portraitFile = ref<File | File[] | null>(null)
+  const portraitBusy = ref(false)
+
+  async function loadPortrait () {
+    if (portraitUrl.value) {
+      URL.revokeObjectURL(portraitUrl.value)
+      portraitUrl.value = null
+    }
+    if (isNew.value) return
+    portraitUrl.value = await charactersApi.portraitObjectUrl(currentId.value)
+  }
+
+  async function onPortraitPick (val: File | File[] | null) {
+    const file = Array.isArray(val) ? val[0] : val
+    if (!file) return
+    portraitBusy.value = true
+    errorCode.value = null
+    try {
+      await charactersApi.uploadPortrait(currentId.value, file)
+      portraitFile.value = null
+      await loadPortrait()
+    } catch (error) {
+      errorCode.value = error instanceof ApiError ? error.code : 'generic'
+    } finally {
+      portraitBusy.value = false
+    }
+  }
+
+  async function removePortrait () {
+    portraitBusy.value = true
+    errorCode.value = null
+    try {
+      await charactersApi.deletePortrait(currentId.value)
+      portraitFile.value = null
+      await loadPortrait()
+    } catch (error) {
+      errorCode.value = error instanceof ApiError ? error.code : 'generic'
+    } finally {
+      portraitBusy.value = false
+    }
+  }
+
   const nameValid = computed(() => form.name.trim().length > 0)
   const splitCsv = (s: string) => s.split(',').map(x => x.trim()).filter(Boolean)
 
@@ -362,6 +448,7 @@
   // --- Voice tab ---
   const designText = ref('')
   const cloneFile = ref<File | File[] | null>(null)
+  const cloneText = ref('')
   const voiceBusy = ref(false)
   const previewingId = ref<string | null>(null)
   const pendingDeleteVoice = ref<VoiceModel | null>(null)
@@ -394,8 +481,9 @@
   const addClone = () => voiceAction(async () => {
     const file = fileOf()
     if (!file) return
-    await voice.clone(currentId.value, file)
+    await voice.clone(currentId.value, file, cloneText.value.trim())
     cloneFile.value = null
+    cloneText.value = ''
   })
 
   const makeDefault = (vid: string) => voiceAction(() => voice.setDefault(currentId.value, vid))
@@ -427,6 +515,7 @@
   onUnmounted(() => {
     audio?.pause()
     if (lastPreviewUrl) URL.revokeObjectURL(lastPreviewUrl)
+    if (portraitUrl.value) URL.revokeObjectURL(portraitUrl.value)
   })
 
   async function save () {
@@ -466,6 +555,7 @@
     voice.loadCaps().catch(() => { /* capability-gated UI degrades gracefully */ })
     if (!isNew.value) {
       voice.load(currentId.value).catch(() => { /* voice list is non-critical */ })
+      loadPortrait().catch(() => { /* portrait is non-critical */ })
       try {
         const c = await store.get(currentId.value)
         form.name = c.name

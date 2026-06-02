@@ -85,5 +85,6 @@ class CharacterOut(BaseModel):
     avatar_renderer: str | None
     status: str
     tags: list[str]
+    has_portrait: bool
     created_at: datetime
     updated_at: datetime

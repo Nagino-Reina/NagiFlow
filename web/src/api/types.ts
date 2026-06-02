@@ -58,6 +58,7 @@ export interface Character {
   avatar_renderer: string | null
   status: CharacterStatus
   tags: string[]
+  has_portrait: boolean
   created_at: string
   updated_at: string
 }

@@ -127,7 +127,10 @@
         <template v-else>
           <!-- Character stage (P1: portrait / audio-only fallback) -->
           <div class="d-flex flex-column align-center justify-center bg-surface-container" style="height: 38%;">
-            <v-avatar color="primary-container" icon="mdi-robot-outline" size="96" />
+            <v-avatar color="primary-container" size="96">
+              <v-img v-if="stagePortraitUrl" :src="stagePortraitUrl" alt="" cover />
+              <v-icon v-else icon="mdi-robot-outline" />
+            </v-avatar>
             <div class="text-body-2 text-medium-emphasis mt-2">{{ activeName }}</div>
           </div>
 
@@ -215,6 +218,7 @@
 <script lang="ts" setup>
   import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
   import { useI18n } from 'vue-i18n'
+  import { charactersApi } from '@/api/characters'
   import { mediaApi } from '@/api/media'
   import type { Conversation } from '@/api/types'
   import { useCharactersStore } from '@/stores/characters'
@@ -237,6 +241,17 @@
   const charName = (id: string | null) =>
     characters.items.find(c => c.id === id)?.name || t('characters.untitled')
   const activeName = computed(() => charName(store.activeCharacterId ?? null))
+
+  // Stage portrait: fetched with the session token (a native <img src> can't carry it).
+  const stagePortraitUrl = ref<string | null>(null)
+  async function loadStagePortrait (id: string | null | undefined) {
+    if (stagePortraitUrl.value) {
+      URL.revokeObjectURL(stagePortraitUrl.value)
+      stagePortraitUrl.value = null
+    }
+    if (id) stagePortraitUrl.value = await charactersApi.portraitObjectUrl(id)
+  }
+  watch(() => store.activeCharacterId, loadStagePortrait, { immediate: true })
 
   function formatDate (iso: string) {
     return new Date(iso).toLocaleDateString()
@@ -334,5 +349,6 @@
   onUnmounted(() => {
     currentAudio?.pause()
     if (currentAudioUrl) URL.revokeObjectURL(currentAudioUrl)
+    if (stagePortraitUrl.value) URL.revokeObjectURL(stagePortraitUrl.value)
   })
 </script>

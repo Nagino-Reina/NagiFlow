@@ -13,6 +13,7 @@ from ..base import GenChunk, GenRequest, GenUsage, LLMCaps
 
 class EchoLLM:
     name = "echo"
+    model: str | None = None
     capabilities = LLMCaps(streaming=True, tools=False, context_window=8192)
 
     async def generate(self, req: GenRequest) -> AsyncIterator[GenChunk]:

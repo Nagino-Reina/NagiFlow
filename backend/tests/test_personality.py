@@ -65,8 +65,9 @@ def test_voice_style_tags_emit_at_extremes_only() -> None:
     assert "warm" in energetic.voice_style
 
 
-def test_system_prompt_includes_scores_bands_and_persona() -> None:
-    prompt = p.build_system_prompt("A warm co-host.", _profile(openness=82))
+def test_system_prompt_includes_roleplay_scores_bands_and_persona() -> None:
+    prompt = p.build_system_prompt("Stay in character.", "A warm co-host.", _profile(openness=82))
+    assert prompt.startswith("Stay in character.")
     assert "A warm co-host." in prompt
     assert "Openness 82/100 (very high)" in prompt
     assert "Big Five" in prompt
