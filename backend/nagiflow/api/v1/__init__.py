@@ -10,6 +10,7 @@ from . import (
     conversations,
     health,
     media,
+    scripts,
     settings,
     system,
     usage,
@@ -25,6 +26,7 @@ api_router.include_router(media.router)
 api_router.include_router(usage.router)
 api_router.include_router(system.router)
 api_router.include_router(settings.router)
+api_router.include_router(scripts.router)
 
 # health/liveness endpoints sit at the root (no version prefix)
 root_router = APIRouter()

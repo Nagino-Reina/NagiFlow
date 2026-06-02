@@ -248,3 +248,66 @@ export interface UsageSummary {
   by_provider: UsageGroup[]
   by_day: UsageGroup[]
 }
+
+// --- scripts (docs/05 §4.2, docs/07) ---
+
+export type ScriptStatus = 'draft' | 'review' | 'ready' | 'archived'
+
+export interface Script {
+  id: string
+  title: string
+  description: string
+  language: string
+  status: ScriptStatus
+  source_kind: string
+  default_character_id: string | null
+  line_count: number
+  created_at: string
+  updated_at: string
+}
+
+export interface ScriptCreate {
+  title: string
+  description?: string
+  language?: string
+  default_character_id?: string | null
+}
+
+export type ScriptUpdate = Partial<Pick<Script, 'title' | 'description' | 'language' | 'status' | 'default_character_id'>>
+
+export interface ScriptLine {
+  id: string
+  script_id: string
+  order_index: number
+  character_id: string | null
+  character_name_raw: string | null
+  text: string
+  start_ms: number | null
+  end_ms: number | null
+  reference_audio_key: string | null
+  style: string | null
+  speech_rate: number | null
+  pause_after_ms: number | null
+  language: string | null
+  notes: string | null
+  take: number
+  confidence: number | null
+}
+
+export interface ScriptLineInput {
+  text?: string
+  character_id?: string | null
+  character_name_raw?: string | null
+  style?: string | null
+  speech_rate?: number | null
+  pause_after_ms?: number | null
+  language?: string | null
+  notes?: string | null
+}
+
+export interface ValidationIssue {
+  severity: 'error' | 'warning'
+  code: string
+  message: string
+  line_id: string | null
+}

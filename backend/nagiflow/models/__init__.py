@@ -5,6 +5,7 @@ from .base import Base
 from .character import Character, VoiceModel
 from .conversation import Conversation, ConversationParticipant, Message
 from .media import MediaAsset
+from .script import Script, ScriptLine
 from .setting import AppSetting
 from .usage import UsageRecord
 from .user import Session, User
@@ -22,4 +23,6 @@ __all__ = [
     "MediaAsset",
     "UsageRecord",
     "AppSetting",
+    "Script",
+    "ScriptLine",
 ]

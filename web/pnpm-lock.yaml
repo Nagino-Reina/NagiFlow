@@ -29,6 +29,9 @@ importers:
       vuetify:
         specifier: ^4.0.2
         version: 4.0.8(typescript@5.9.3)(vite-plugin-vuetify@2.1.3)(vue@3.5.35(typescript@5.9.3))
+      wavesurfer.js:
+        specifier: ^7.12.7
+        version: 7.12.7
     devDependencies:
       '@intellectronica/ruler':
         specifier: ^0.3.37
@@ -1918,6 +1921,9 @@ packages:
       webpack-plugin-vuetify:
         optional: true
 
+  wavesurfer.js@7.12.7:
+    resolution: {integrity: sha512-TIe7hB6OCZysNOZ2cn2NR8Qpko22POWel6rauNcqOammFoH65NYQUM35unNLLMIlUMVYvjJ6w/TTl/G/m+w0nA==}
+
   webpack-virtual-modules@0.6.2:
     resolution: {integrity: sha512-66/V2i5hQanC51vBQKPH4aI8NMAcBW59FVBs+rC7eGHupMyfn34q7rZIE+ETlJ+XTevqfUhVVBgSUNSW2flEUQ==}
 
@@ -3713,6 +3719,8 @@ snapshots:
     optionalDependencies:
       typescript: 5.9.3
       vite-plugin-vuetify: 2.1.3(vite@8.0.14(@types/node@24.12.4)(sass-embedded@1.100.0)(sass@1.100.0)(yaml@2.9.0))(vue@3.5.35(typescript@5.9.3))(vuetify@4.0.8)
+
+  wavesurfer.js@7.12.7: {}
 
   webpack-virtual-modules@0.6.2: {}
 

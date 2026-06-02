@@ -15,7 +15,8 @@
       "logout": "登出",
       "logoutAll": "登出所有裝置",
       "retry": "重試",
-      "close": "關閉"
+      "close": "關閉",
+      "back": "返回"
     },
     "state": {
       "loading": "載入中…",
@@ -192,7 +193,49 @@
   },
   "scripts": {
     "title": "腳本",
-    "description": "撰寫多人腳本、由音訊匯入、輸出媒體。"
+    "description": "撰寫多人腳本、由音訊匯入、輸出媒體。",
+    "new": "新增腳本",
+    "untitled": "未命名腳本",
+    "empty": "尚無腳本",
+    "emptyHint": "建立腳本以開始撰寫多人對話。",
+    "edit": "編輯",
+    "duplicate": "複製",
+    "archive": "封存",
+    "archiveConfirm": "要封存此腳本嗎?",
+    "lineCount": "{n} 行",
+    "status": {
+      "draft": "草稿",
+      "review": "校對中",
+      "ready": "就緒",
+      "archived": "已封存"
+    },
+    "editor": {
+      "validate": "驗證",
+      "noIssues": "未發現問題。",
+      "addLine": "新增台詞",
+      "delete": "刪除台詞",
+      "moveUp": "上移",
+      "moveDown": "下移",
+      "speaker": "說話者",
+      "narration": "— 旁白 —",
+      "direction": "語音指示",
+      "style": "風格",
+      "styleHint": "例如:愉快、略帶氣音",
+      "speechRate": "語速",
+      "pause": "停頓 (秒)",
+      "generate": "生成",
+      "play": "播放",
+      "pauseAudio": "暫停",
+      "assignSpeaker": "指定說話者後可生成語音",
+      "notes": "備註",
+      "textPlaceholder": "台詞內容…",
+      "fields": {
+        "title": "標題",
+        "description": "描述",
+        "language": "預設語言",
+        "status": "狀態"
+      }
+    }
   },
   "live": {
     "title": "直播",

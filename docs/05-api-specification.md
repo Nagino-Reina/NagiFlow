@@ -106,9 +106,12 @@ Provider failures are isolated and surfaced (with which provider failed) rather 
 |---|---|---|---|
 | GET/POST | `/scripts` | U | List / create scripts. |
 | GET/PATCH/DELETE | `/scripts/{id}` | U | Read / update / archive. |
+| POST | `/scripts/{id}:duplicate` | U | Duplicate a script with its lines. |
+| GET | `/scripts/{id}:validate` | U | Author-side validation issues (docs/07 §8); `error` blocks render/export, `warning` is advisory. |
 | GET/POST | `/scripts/{id}/lines` | U | List / add lines. |
 | PATCH/DELETE | `/scripts/{id}/lines/{lid}` | U | Edit / remove a line. |
-| POST | `/scripts/{id}/lines:reorder` | U | Reorder lines. |
+| POST | `/scripts/{id}/lines:reorder` | U | Reorder lines (body: full ordered `line_ids`). |
+| POST | `/scripts/{id}/lines/{lid}:preview` | U | Synthesize one line (`audio/wav`) using its **speaker's** voice + personality merged with the line's direction (FR-SM-8, docs/07 §3.2). |
 | POST | `/scripts:import` | U | Start an **ASR import job** from an uploaded media file. |
 | GET | `/scripts/{id}/import/{job_id}` | U | Import job status + draft for review. |
 | POST | `/scripts/{id}/import/{job_id}:commit` | U | Commit reviewed/corrected draft. |

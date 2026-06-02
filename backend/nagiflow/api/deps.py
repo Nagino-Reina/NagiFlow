@@ -16,6 +16,7 @@ from ..repositories.affect import AffectStateRepository
 from ..repositories.characters import CharacterRepository
 from ..repositories.conversations import ConversationRepository, MessageRepository
 from ..repositories.media import MediaAssetRepository
+from ..repositories.scripts import ScriptLineRepository, ScriptRepository
 from ..repositories.settings import SettingsRepository
 from ..repositories.usage import UsageRepository
 from ..repositories.users import SessionRepository, UserRepository
@@ -25,6 +26,7 @@ from ..services.auth_service import AuthService, Principal
 from ..services.character_service import CharacterService
 from ..services.conversation_service import ConversationService
 from ..services.media_service import MediaService
+from ..services.script_service import ScriptService
 from ..services.settings_service import SettingsService
 from ..services.usage_service import UsageService
 from ..services.voice_service import VoiceService
@@ -85,6 +87,13 @@ def get_settings_service(session: Session) -> SettingsService:
 
 
 SettingsSvc = Annotated[SettingsService, Depends(get_settings_service)]
+
+
+def get_script_service(session: Session) -> ScriptService:
+    return ScriptService(ScriptRepository(session), ScriptLineRepository(session))
+
+
+Scripts = Annotated[ScriptService, Depends(get_script_service)]
 
 
 def get_conversation_service(session: Session, registry: Registry) -> ConversationService:

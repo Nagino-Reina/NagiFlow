@@ -17,6 +17,7 @@ from ..providers.base import ProviderError, VoiceRef
 from ..providers.registry import ProviderRegistry
 from ..repositories.characters import CharacterRepository
 from ..repositories.voice_models import VoiceModelRepository
+from . import personality
 
 _SAMPLE_TEXT = "Hi, this is how I sound."
 
@@ -171,6 +172,37 @@ class VoiceService:
         except (ProviderError, OSError) as exc:
             log.warning("reply TTS synthesis failed (character=%s): %s", character.id, exc)
             return None
+
+    async def synthesize_line(
+        self,
+        character: Character,
+        *,
+        text: str,
+        line_style: str | None = None,
+        line_speech_rate: float | None = None,
+    ) -> bytes:
+        """Render a script line with the speaker's voice (docs/07 §3.2, FR-SM-8).
+
+        Considers the speaker: their default voice model (timbre) plus personality-derived
+        voice style and base speech rate, with the line's own `style` / `speech_rate` layered
+        on top. Errors surface as a provider envelope (unlike best-effort reply synthesis)."""
+        if not text.strip():
+            raise errors.AppError(
+                "script.empty_line", "Line has no text to synthesize.", status_code=422
+            )
+        mapping = personality.resolve(character.big_five)
+        tags = [*mapping.voice_style, line_style] if line_style else list(mapping.voice_style)
+        style = ", ".join(t for t in tags if t) or None
+        speech_rate = line_speech_rate if line_speech_rate is not None else mapping.speech_rate
+        model = await self._default_voice_model(character.id)
+        provider = self.registry.get_tts(model.provider if model else None)
+        try:
+            return await provider.synthesize(
+                text=text, voice=self._voice_ref(model), style=style, speech_rate=speech_rate
+            )
+        except (ProviderError, OSError) as exc:
+            log.warning("line TTS synthesis failed (character=%s): %s", character.id, exc)
+            raise errors.provider_error(provider.name, str(exc)) from exc
 
     async def preview(
         self,

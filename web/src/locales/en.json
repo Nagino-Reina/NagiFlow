@@ -15,7 +15,8 @@
       "logout": "Log out",
       "logoutAll": "Log out everywhere",
       "retry": "Retry",
-      "close": "Close"
+      "close": "Close",
+      "back": "Back"
     },
     "state": {
       "loading": "Loading…",
@@ -192,7 +193,49 @@
   },
   "scripts": {
     "title": "Scripts",
-    "description": "Author multi-speaker scripts, import from audio, and render media."
+    "description": "Author multi-speaker scripts, import from audio, and render media.",
+    "new": "New script",
+    "untitled": "Untitled script",
+    "empty": "No scripts yet",
+    "emptyHint": "Create a script to start writing multi-speaker dialogue.",
+    "edit": "Edit",
+    "duplicate": "Duplicate",
+    "archive": "Archive",
+    "archiveConfirm": "Archive this script?",
+    "lineCount": "{n} lines",
+    "status": {
+      "draft": "Draft",
+      "review": "Review",
+      "ready": "Ready",
+      "archived": "Archived"
+    },
+    "editor": {
+      "validate": "Validate",
+      "noIssues": "No issues found.",
+      "addLine": "Add line",
+      "delete": "Delete line",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "speaker": "Speaker",
+      "narration": "— Narration —",
+      "direction": "Voice direction",
+      "style": "Style",
+      "styleHint": "e.g. cheerful, slightly breathy",
+      "speechRate": "Rate",
+      "pause": "Pause (s)",
+      "generate": "Generate",
+      "play": "Play",
+      "pauseAudio": "Pause",
+      "assignSpeaker": "Assign a speaker to generate audio",
+      "notes": "Notes",
+      "textPlaceholder": "Line text…",
+      "fields": {
+        "title": "Title",
+        "description": "Description",
+        "language": "Default language",
+        "status": "Status"
+      }
+    }
   },
   "live": {
     "title": "Live",

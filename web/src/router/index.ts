@@ -17,6 +17,7 @@ const router = createRouter({
     { path: '/characters', name: 'characters', component: () => import('@/pages/characters.vue') },
     { path: '/characters/:id', name: 'character-editor', component: () => import('@/pages/character-editor.vue') },
     { path: '/scripts', name: 'scripts', component: () => import('@/pages/scripts.vue') },
+    { path: '/scripts/:id', name: 'script-editor', component: () => import('@/pages/script-editor.vue') },
     { path: '/settings', name: 'settings', component: () => import('@/pages/settings.vue') },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
