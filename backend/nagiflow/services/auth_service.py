@@ -34,6 +34,11 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+# Only persist last_seen_at when it is this stale, so frequent polling (e.g. the system
+# status bar) does not write to the DB on every request and contend for the SQLite writer.
+_TOUCH_INTERVAL = timedelta(seconds=60)
+
+
 class AuthService:
     def __init__(self, users: UserRepository, sessions: SessionRepository) -> None:
         self.users = users
@@ -85,7 +90,9 @@ class AuthService:
         user = await self.users.get(session.user_id)
         if user is None or user.status != "active":
             return None
-        await self.sessions.touch(session, _now())
+        now = _now()
+        if session.last_seen_at is None or _aware(session.last_seen_at) < now - _TOUCH_INTERVAL:
+            await self.sessions.touch(session, now)
         return Principal(
             user_id=user.id, kind=session.kind, is_admin=user.is_admin, session_id=session.id
         )

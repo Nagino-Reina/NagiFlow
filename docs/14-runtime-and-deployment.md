@@ -153,7 +153,7 @@ Distribution keeps the **local-first** stance: external heavyweight services (Ol
 ## 8. Cross-platform support (NFR-PORT-1/2/3)
 
 - **OS** — Windows, macOS, Linux. Platform differences are isolated in the launcher (signals/process trees) and in optional GPU probing ([12 §2.1](12-feature-observability.md)).
-- **Hardware tiers** — runs CPU-only (lighter models, possibly non-streaming TTS) or with a GPU (faster, streaming, fine-tune training). Capabilities are detected and the UI adapts ([11 §7](11-feature-realtime-and-media-generation.md)).
+- **Hardware tiers** — runs CPU-only (lighter models, possibly non-streaming TTS) or with a GPU (faster, streaming, fine-tune training). Capabilities are detected and the UI adapts ([11 §7](11-feature-realtime-and-media-generation.md)). A **CUDA-enabled NVIDIA GPU is optional but recommended**: the in-process VoxCPM TTS is impractically slow on CPU (minutes per reply), so voicing needs GPU-enabled torch — otherwise disable reply synthesis and run text-only ([08 §4.2](08-feature-character-management.md)).
 - **Paths/encoding** — workspace paths are handled portably; the DB stores **storage keys**, not absolute paths, so a workspace can move between machines ([04 §2](04-data-model-and-storage.md)).
 
 ---

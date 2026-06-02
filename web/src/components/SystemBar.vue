@@ -107,10 +107,8 @@
 <script lang="ts" setup>
   import { computed, onMounted, onUnmounted, ref } from 'vue'
   import { useI18n } from 'vue-i18n'
-  import { observabilityApi } from '@/api/observability'
+  import { SystemStatusClient } from '@/realtime/systemClient'
   import type { ServiceStatus, SystemResources, UsageSummary } from '@/api/types'
-
-  const POLL_MS = 5000
 
   const { t } = useI18n()
 
@@ -118,7 +116,7 @@
   const services = ref<ServiceStatus[]>([])
   const usage = ref<UsageSummary | null>(null)
   const expanded = ref(false)
-  let timer: number | undefined
+  const client = new SystemStatusClient()
 
   function fmtBytes (n: number): string {
     if (n >= 1024 ** 3) return `${(n / 1024 ** 3).toFixed(1)} GB`
@@ -154,28 +152,16 @@
     ]
   })
 
-  async function load () {
-    // Silent poll: keep the last good values on a transient error rather than flashing the bar.
-    try {
-      const [res, svc, use] = await Promise.all([
-        observabilityApi.resources(),
-        observabilityApi.services(),
-        observabilityApi.usageSummary(),
-      ])
-      resources.value = res
-      services.value = svc.services
-      usage.value = use
-    } catch {
-      // ignore — next tick retries
-    }
-  }
-
   onMounted(() => {
-    load()
-    timer = window.setInterval(load, POLL_MS)
+    // One pushed connection instead of polling; values persist across reconnects.
+    client.start(status => {
+      resources.value = status.resources
+      services.value = status.services
+      usage.value = status.usage
+    })
   })
   onUnmounted(() => {
-    if (timer) clearInterval(timer)
+    client.stop()
   })
 </script>
 

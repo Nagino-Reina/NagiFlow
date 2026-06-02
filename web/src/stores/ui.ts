@@ -9,6 +9,7 @@ import { defineStore } from 'pinia'
 import { persistLocale, SUPPORTED_LOCALES, type AppLocale } from '@/plugins/i18n'
 
 const THEME_KEY = 'nf.theme'
+const AUTOPLAY_KEY = 'nf.autoplayVoice'
 export type ThemeName = 'light' | 'dark'
 
 function initialTheme (): ThemeName {
@@ -22,8 +23,13 @@ export const useUiStore = defineStore('ui', {
     theme: initialTheme() as ThemeName,
     locale: 'en' as AppLocale,
     drawer: true,
+    autoplayVoice: localStorage.getItem(AUTOPLAY_KEY) !== '0',
   }),
   actions: {
+    setAutoplayVoice (on: boolean) {
+      this.autoplayVoice = on
+      localStorage.setItem(AUTOPLAY_KEY, on ? '1' : '0')
+    },
     setTheme (theme: string) {
       if (theme !== 'light' && theme !== 'dark') return
       this.theme = theme

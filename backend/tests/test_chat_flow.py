@@ -108,6 +108,28 @@ async def test_reply_audio_is_synthesized_and_downloadable(client):
     assert forbidden.status_code == 403
 
 
+async def test_delete_conversation(client):
+    headers = await _auth_headers(client)
+    character_id = await _make_character(client, headers)
+    conv = (
+        await client.post(
+            f"{API}/conversations", headers=headers, json={"character_id": character_id}
+        )
+    ).json()
+    await client.post(
+        f"{API}/conversations/{conv['id']}/messages", headers=headers, json={"text": "hi"}
+    )
+
+    res = await client.delete(f"{API}/conversations/{conv['id']}", headers=headers)
+    assert res.status_code == 204, res.text
+
+    listed = await client.get(f"{API}/conversations", headers=headers)
+    assert all(c["id"] != conv["id"] for c in listed.json())
+
+    gone = await client.get(f"{API}/conversations/{conv['id']}/messages", headers=headers)
+    assert gone.status_code == 404
+
+
 async def test_send_message_rejects_other_users_conversation(client):
     headers = await _auth_headers(client)
     character_id = await _make_character(client, headers)

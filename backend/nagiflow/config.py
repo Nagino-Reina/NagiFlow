@@ -64,10 +64,11 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://127.0.0.1:11434"
     ollama_model: str = "llama3.2"
 
-    # TTS (docs/08 §4). Default to the offline stub so the base install runs with no heavy
-    # deps. "voxcpm" = in-process generation (needs the [voxcpm] extra: torch + voxcpm);
-    # "voxcpm_server" = a remote VoxCPM/OpenAI-compatible server.
-    default_tts: str = "silent"  # "voxcpm" | "voxcpm_server" | "silent"
+    # TTS (docs/08 §4). Default is in-process VoxCPM (needs the [voxcpm] extra: torch + voxcpm;
+    # the model downloads on first synthesis). "voxcpm_server" = a remote VoxCPM/OpenAI-compatible
+    # server; "silent" = offline stub (a soft tone) for installs without a real TTS engine.
+    # If the engine is missing, reply synthesis is skipped (best-effort) — chat still works.
+    default_tts: str = "voxcpm"  # "voxcpm" | "voxcpm_server" | "silent"
     # Synthesize audio for each chat reply so it can be played back (docs/11 §4.6). Best-effort:
     # a TTS failure never blocks the text reply. Disable to skip synthesis entirely.
     synthesize_replies: bool = True
@@ -79,6 +80,11 @@ class Settings(BaseSettings):
     # Emotion & affect (docs/10). Appraisal engine: "hybrid" (LLM with deterministic
     # fallback), "deterministic" (lexicon/heuristic only — offline, reproducible), or "off".
     affect_appraisal: str = "hybrid"
+
+    # --- observability (docs/12 §2) ---
+    # Push interval (seconds) for the system-status WebSocket (docs/05 §5.1). The client
+    # holds one connection instead of polling several REST endpoints on a timer.
+    status_stream_interval: float = 5.0
 
     # --- auth / sessions (docs/05 §2, docs/16 §3) ---
     session_ttl: int = 60 * 60 * 24 * 30  # 30 days

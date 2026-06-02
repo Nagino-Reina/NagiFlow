@@ -102,6 +102,10 @@ class ConversationService:
     async def list_for_user(self, user_id: str) -> list[Conversation]:
         return await self.conversations.list_for_user(user_id)
 
+    async def delete(self, conversation_id: str, user_id: str) -> None:
+        conv = await self.get_owned(conversation_id, user_id)
+        await self.conversations.delete(conv)
+
     async def messages_for(self, conversation_id: str) -> list[Message]:
         return await self.messages.list_for_conversation(conversation_id)
 
@@ -114,6 +118,43 @@ class ConversationService:
 
         history = await self.messages.list_for_conversation(conversation.id)
 
+        # Compute phase — appraisal, LLM, and TTS are slow (network / model inference, and a
+        # first TTS run may download a model for minutes). Keep them OUT of an open write
+        # transaction: autoflush is suppressed and nothing is flushed here, so no rows are
+        # written to SQLite yet and the single writer lock is not held across these awaits
+        # (docs/04 §3 "writes are kept short"). All persistence is deferred to the short
+        # write burst at the end of the turn.
+        with self.messages.s.no_autoflush:
+            # Emotion: appraise the turn and update the per-relationship mood (docs/10 §3, §6).
+            affect_result = await self.affect.process_turn(
+                character=character,
+                user_id=conversation.user_id,
+                user_text=text,
+                history=history,
+            )
+
+            orchestrator = DialogueOrchestrator(self.registry)
+            result = await orchestrator.handle_turn(
+                character=character,
+                history=history,
+                user_text=text,
+                affect_directive=affect_result.directive,
+            )
+
+            # Synthesize reply audio for playback (docs/11 §4.6). Best-effort: a TTS failure
+            # leaves audio None and never blocks the text reply.
+            audio = (
+                await self.voice.synthesize_reply(
+                    character,
+                    text=result.text,
+                    style=_style_hint(character, affect_result.voice_style),
+                    speech_rate=_reply_rate(character, affect_result.speech_rate_delta),
+                )
+                if self.synthesize_replies and result.text
+                else None
+            )
+
+        # Persist phase — one short write burst (the only window the writer lock is held).
         user_msg = Message(
             id=new_id("msg"),
             conversation_id=conversation.id,
@@ -121,22 +162,6 @@ class ConversationService:
             content=text,
         )
         self.messages.add(user_msg)
-
-        # Emotion: appraise the turn and update the per-relationship mood (docs/10 §3, §6).
-        affect_result = await self.affect.process_turn(
-            character=character,
-            user_id=conversation.user_id,
-            user_text=text,
-            history=history,
-        )
-
-        orchestrator = DialogueOrchestrator(self.registry)
-        result = await orchestrator.handle_turn(
-            character=character,
-            history=history,
-            user_text=text,
-            affect_directive=affect_result.directive,
-        )
 
         reply_msg = Message(
             id=new_id("msg"),
@@ -158,8 +183,6 @@ class ConversationService:
             },
         )
         self.messages.add(reply_msg)
-        # Flush so both messages' created_at populate before serialization (see create()).
-        await self.messages.s.flush()
 
         correlation_id = get_correlation_id()
         # Account for the reply's LLM call (FR-OBS-3, docs/12 §3).
@@ -175,28 +198,21 @@ class ConversationService:
             correlation_id=correlation_id,
         )
 
-        # Synthesize reply audio for playback (docs/11 §4.6). Best-effort: a TTS failure
-        # leaves media_asset_id null and never blocks the text reply.
-        if self.synthesize_replies and result.text:
-            audio = await self.voice.synthesize_reply(
-                character,
-                text=reply_msg.content,
-                style=_style_hint(character, affect_result.voice_style),
-                speech_rate=_reply_rate(character, affect_result.speech_rate_delta),
+        # Store the audio synthesized in the compute phase and account for it (docs/11 §4.6).
+        if audio:
+            asset = await self.media.store_message_audio(message_id=reply_msg.id, audio=audio)
+            reply_msg.media_asset_id = asset.id
+            await self.usage.record(
+                kind="tts",
+                provider=self.registry.get_tts().name,
+                user_id=conversation.user_id,
+                character_id=character.id,
+                conversation_id=conversation.id,
+                audio_seconds=(asset.duration_ms or 0) / 1000.0,
+                correlation_id=correlation_id,
             )
-            if audio:
-                asset = await self.media.store_message_audio(
-                    message_id=reply_msg.id, audio=audio
-                )
-                reply_msg.media_asset_id = asset.id
-                await self.messages.s.flush()
-                await self.usage.record(
-                    kind="tts",
-                    provider=self.registry.get_tts().name,
-                    user_id=conversation.user_id,
-                    character_id=character.id,
-                    conversation_id=conversation.id,
-                    audio_seconds=(asset.duration_ms or 0) / 1000.0,
-                    correlation_id=correlation_id,
-                )
+
+        # Flush so both messages' created_at populate before serialization (see create());
+        # the request's commit runs at dependency teardown.
+        await self.messages.s.flush()
         return user_msg, reply_msg

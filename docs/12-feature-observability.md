@@ -112,8 +112,9 @@ Operators may set soft **budgets** (e.g. per day or per user) and get **alerts**
 
 Observability is surfaced through an always-on **system status bar** pinned to the bottom of
 every screen — not a separate page ([13 §5](13-ui-ux-design.md)). The bar shows compact
-at-a-glance status; **clicking it expands a panel upward** with the detail. Values refresh on a
-short auto-poll (manual refresh is a later optimization).
+at-a-glance status; **clicking it expands a panel upward** with the detail. Values are pushed
+live over the system-status WebSocket ([05 §5.1](05-api-specification.md)): the bar holds one
+connection (reconnecting with backoff) rather than polling several REST endpoints on a timer.
 
 **Collapsed bar (always visible):** LLM/TTS **health dots** + active provider/model · **CPU/RAM**
 mini values · **token total**. A degraded/down provider tints the bar.

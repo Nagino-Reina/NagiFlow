@@ -19,4 +19,5 @@ export const conversationsApi = {
   messages: (id: string) => http.get<Message[]>(`/conversations/${id}/messages`),
   send: (id: string, text: string) =>
     http.post<SendMessageResponse>(`/conversations/${id}/messages`, { text }),
+  remove: (id: string) => http.delete<void>(`/conversations/${id}`),
 }
