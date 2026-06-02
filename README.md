@@ -24,7 +24,9 @@ provider seam.
 - **Python 3.12** and [**uv**](https://docs.astral.sh/uv/) (backend deps + venv)
 - **Node.js 18+** and [**pnpm**](https://pnpm.io/) (frontend)
 - *Optional:* **ffmpeg** (media/ASR, P2+), **Ollama** (local LLM — an offline echo
-  provider is used if absent)
+  provider is used if absent), and a **CUDA-enabled NVIDIA GPU** for VoxCPM voice synthesis
+  (optional but recommended — on CPU it is impractically slow, so install GPU-enabled torch
+  or keep replies text-only)
 
 Run `nagiflow check` to verify your toolchain at any time.
 
