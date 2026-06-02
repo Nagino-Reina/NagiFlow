@@ -2,7 +2,7 @@
 name = "nagiflow-backend"
 version = "0.1.0"
 description = "NagiFlow backend — local-first, modular AI VTuber platform (FastAPI)."
-requires-python = ">=3.14"
+requires-python = ">=3.12,<3.13"
 dependencies = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.30",
@@ -43,7 +43,7 @@ packages = ["nagiflow"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py314"
+target-version = "py312"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

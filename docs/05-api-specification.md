@@ -170,6 +170,7 @@ Provider failures are isolated and surfaced (with which provider failed) rather 
 | GET | `/usage` | U | Token/cost usage with filters (per user/character/time) + totals. |
 | GET | `/usage:summary` | U | Aggregated dashboards data. |
 | GET | `/logs:tail` | U | Recent structured logs (redacted), optional follow. |
+| WS | `/system/stream` | U | Live system status (resources + service health + usage) pushed on an interval (see §5.1). |
 | GET | `/system/info` | any | App/version/workspace info. |
 | GET | `/healthz` / `/readyz` | none | Liveness / readiness. |
 
@@ -212,6 +213,19 @@ The protocol is **event-typed JSON** for control/text plus **binary frames** for
 - The same orchestration ([03 §4](03-system-architecture.md)) powers both this stream and the synchronous `POST /messages` endpoint.
 
 > An optional **SSE** variant (`GET /conversations/{id}/messages:stream`) provides one-way token streaming for clients that don't need audio upstream.
+
+### 5.1 System status stream
+
+**Endpoint:** `WS /api/v1/system/stream`. **Auth:** as above (HttpOnly cookie or a `Sec-WebSocket-Protocol` bearer sub-protocol — never a query string); a **user** session is required.
+
+The server pushes one JSON message per interval (`NAGIFLOW_STATUS_STREAM_INTERVAL`, default 5s) and expects nothing from the client. This replaces timer-based REST polling of `/system/resources`, `/system/services`, and `/usage:summary` for the always-on status bar ([12 §2](12-feature-observability.md)): the UI holds **one** connection, authenticated once at connect, so there are no per-poll session writes. The client reconnects with backoff; a `1008` close (auth refused) stops retries.
+
+```json
+{ "type": "system.status",
+  "resources": { /* same shape as GET /system/resources */ },
+  "services": [ { "capability": "llm", "name": "ollama", "model": "llama3.2", "status": "up" } ],
+  "usage": { /* same shape as GET /usage:summary */ } }
+```
 
 ## 6. Representative request/response examples
 

@@ -302,7 +302,9 @@ class AffectService:
         state.emotion_label = label
         state.emotion_intensity = intensity
         state.updated_at = now
-        await self.affect.flush()
+        # State is added/mutated but not flushed here: the caller persists it in its own
+        # unit-of-work, keeping slow per-turn compute (LLM/TTS) out of an open write txn
+        # so the single SQLite writer lock is not held across those awaits (docs/04 §3).
 
         affect = Affect(vad=emotion, label=label, intensity=intensity, source=source)
         tags, rate_delta = voice_style_for(label, emotion)

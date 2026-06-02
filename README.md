@@ -21,7 +21,7 @@ provider seam.
 ## Quick start
 
 ### Prerequisites
-- **Python 3.14+** and [**uv**](https://docs.astral.sh/uv/) (backend deps + venv)
+- **Python 3.12** and [**uv**](https://docs.astral.sh/uv/) (backend deps + venv)
 - **Node.js 18+** and [**pnpm**](https://pnpm.io/) (frontend)
 - *Optional:* **ffmpeg** (media/ASR, P2+), **Ollama** (local LLM — an offline echo
   provider is used if absent)

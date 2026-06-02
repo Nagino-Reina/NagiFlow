@@ -59,3 +59,10 @@ async def send_message(
         user_message=MessageOut.model_validate(user_msg),
         reply=MessageOut.model_validate(reply),
     )
+
+
+@router.delete("/{conversation_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_conversation(
+    conversation_id: str, principal: CurrentPrincipal, svc: Conversations
+) -> None:
+    await svc.delete(conversation_id, principal.user_id)

@@ -39,6 +39,10 @@ def configure_logging(level: str = "INFO") -> None:
     root.addHandler(handler)
     root.setLevel(level.upper())
 
+    # httpx logs every outbound request at INFO; the periodic provider health probes
+    # (e.g. the system-status stream pinging Ollama) would otherwise flood the log.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+
 
 def get_logger(name: str) -> logging.Logger:
     return logging.getLogger(name)

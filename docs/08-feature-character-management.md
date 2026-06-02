@@ -162,6 +162,8 @@ flowchart LR
 
 The active voice plus per-line/per-turn **style** and **speech rate** (from scripts §[07], or from personality mapping in live chat) are passed to the provider. If the active model is a `fine_tuned` artifact unavailable to the current provider, the orchestrator falls back to zero-shot from a stored reference (if any) and warns.
 
+The in-process **VoxCPM** provider runs on the GPU when CUDA-enabled PyTorch is installed; on CPU, generation is impractically slow (minutes per reply), so a GPU is strongly recommended for live voicing. Reply synthesis is best-effort and runs outside the turn's database transaction, so a slow or failed synthesis never blocks the text reply or holds the SQLite writer ([04 §3](04-data-model-and-storage.md), [11 §4.6](11-feature-realtime-and-media-generation.md)).
+
 ---
 
 ## 5. Memory bank

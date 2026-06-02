@@ -44,23 +44,26 @@ def resource_snapshot(workspace_dir: Path) -> dict:
     vm = psutil.virtual_memory()
     disk = psutil.disk_usage(str(workspace_dir if workspace_dir.exists() else Path.cwd()))
     proc = psutil.Process()
+    cpu_count = psutil.cpu_count()
+    # Coerce to plain Python scalars: some psutil/pynvml builds return numpy types, which are
+    # not JSON-serializable and would break the status stream's send_json (docs/05 §5.1).
     return {
-        "cpu_percent": psutil.cpu_percent(interval=None),
-        "cpu_count": psutil.cpu_count(),
+        "cpu_percent": float(psutil.cpu_percent(interval=None)),
+        "cpu_count": int(cpu_count) if cpu_count is not None else None,
         "memory": {
-            "used": vm.used,
-            "total": vm.total,
-            "percent": vm.percent,
+            "used": int(vm.used),
+            "total": int(vm.total),
+            "percent": float(vm.percent),
         },
         "disk": {
-            "used": disk.used,
-            "total": disk.total,
-            "free": disk.free,
-            "percent": disk.percent,
+            "used": int(disk.used),
+            "total": int(disk.total),
+            "free": int(disk.free),
+            "percent": float(disk.percent),
         },
         "process": {
-            "pid": proc.pid,
-            "rss": proc.memory_info().rss,
+            "pid": int(proc.pid),
+            "rss": int(proc.memory_info().rss),
         },
         "gpus": _gpus(),
     }
