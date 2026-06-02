@@ -4,6 +4,9 @@
     "tagline": "Local-first AI VTuber studio"
   },
   "common": {
+    "validation": {
+      "required": "Required"
+    },
     "action": {
       "save": "Save",
       "cancel": "Cancel",
@@ -35,7 +38,9 @@
     "language": "Language",
     "account": "Account",
     "guest": "Guest",
-    "loginRequired": "Log in to use this"
+    "loginRequired": "Log in to use this",
+    "registerOrLogin": "Register / Log in",
+    "accountHint": "An account unlocks creating characters, voices, and history."
   },
   "landing": {
     "title": "Welcome to NagiFlow",
@@ -43,9 +48,147 @@
     "empty": "No guest-visible characters yet. Log in to create one.",
     "chatPlaceholder": "Chat experience arrives in the P1 milestone."
   },
+  "chat": {
+    "title": "Chat",
+    "description": "Talk with a character — its tone shifts with how it feels.",
+    "switch": "Switch character",
+    "noCharacters": "No characters available to chat with yet.",
+    "empty": "Say hello to start the conversation.",
+    "placeholder": "Type a message…",
+    "send": "Send",
+    "play": "Play",
+    "newConversation": "New conversation",
+    "pickCharacter": "Pick a character to chat with",
+    "history": "History",
+    "noHistory": "No conversations yet",
+    "autoplay": "Autoplay voice",
+    "liveMode": "Live mode",
+    "liveSoon": "Live mode arrives in a later phase",
+    "deleteConversation": "Delete conversation",
+    "deleteConfirm": "This conversation and its messages will be permanently deleted.",
+    "emotion": {
+      "neutral": "Neutral",
+      "joy": "Joyful",
+      "affection": "Affectionate",
+      "curiosity": "Curious",
+      "surprise": "Surprised",
+      "sadness": "Sad",
+      "anger": "Angry",
+      "fear": "Afraid",
+      "disgust": "Disgusted"
+    }
+  },
   "characters": {
     "title": "Characters",
-    "description": "Create and voice characters, set personality, and manage voice models."
+    "description": "Create and voice characters, set personality, and manage voice models.",
+    "new": "New character",
+    "create": "Create",
+    "edit": "Edit",
+    "duplicate": "Duplicate",
+    "archive": "Archive",
+    "archiveConfirm": "Archive this character? It will be hidden from lists.",
+    "saved": "Saved",
+    "back": "Back to characters",
+    "empty": "No characters yet",
+    "emptyHint": "Create your first character to give it a personality and voice.",
+    "guestVisible": "Guest-visible",
+    "untitled": "Untitled character",
+    "portrait": {
+      "label": "Portrait image",
+      "hint": "PNG, JPEG, or WebP · up to 5 MB",
+      "saveFirst": "Save the character first to add a portrait",
+      "remove": "Remove portrait"
+    },
+    "status": {
+      "draft": "Draft",
+      "active": "Active",
+      "archived": "Archived"
+    },
+    "fields": {
+      "name": "Name",
+      "aliases": "Aliases",
+      "aliasesHint": "Comma-separated names the character also goes by",
+      "description": "Description",
+      "persona": "Persona prompt",
+      "personaHint": "Tone, speech quirks, do/don't, world rules",
+      "language": "Default language",
+      "tags": "Tags",
+      "tagsHint": "Comma-separated",
+      "status": "Status"
+    },
+    "tabs": {
+      "profile": "Profile",
+      "personality": "Personality",
+      "voice": "Voice",
+      "memory": "Memory"
+    },
+    "personality": {
+      "title": "Big Five (OCEAN)",
+      "hint": "Scores translate into concrete behavior. The panel on the right shows what this profile produces.",
+      "traits": {
+        "openness": "Openness",
+        "conscientiousness": "Conscientiousness",
+        "extraversion": "Extraversion",
+        "agreeableness": "Agreeableness",
+        "neuroticism": "Neuroticism"
+      },
+      "traitDesc": {
+        "openness": "Low: concrete & conventional · High: curious, imaginative, abstract",
+        "conscientiousness": "Low: spontaneous & loose · High: precise, organized, careful",
+        "extraversion": "Low: reserved & brief · High: talkative, energetic, expressive",
+        "agreeableness": "Low: blunt & challenging · High: warm, cooperative, supportive",
+        "neuroticism": "Low: calm & even · High: reactive, emotionally intense"
+      },
+      "bands": {
+        "very_low": "Very low",
+        "low": "Low",
+        "moderate": "Moderate",
+        "high": "High",
+        "very_high": "Very high"
+      },
+      "resulting": "Resulting behavior",
+      "radarHint": "Grey = default (50). Red above, blue below.",
+      "params": "Generation & voice",
+      "temperature": "Temperature",
+      "topP": "Top-p",
+      "verbosity": "Verbosity",
+      "voiceStyle": "Voice style",
+      "speechRate": "Speech rate",
+      "expressiveness": "Expressiveness",
+      "none": "none"
+    },
+    "voice": {
+      "saveFirst": "Save the character first, then add voices here.",
+      "empty": "No voice models yet.",
+      "provider": "Provider",
+      "active": "Active",
+      "setDefault": "Set active",
+      "preview": "Preview",
+      "delete": "Delete",
+      "deleteConfirm": "Delete this voice model? This cannot be undone.",
+      "add": "Add a voice",
+      "unsupported": "The active TTS provider supports no voice creation.",
+      "kinds": {
+        "zero_shot": "Cloned",
+        "voice_design": "Designed",
+        "fine_tuned": "Fine-tuned"
+      },
+      "design": {
+        "title": "Design a voice",
+        "hint": "Describe the voice in natural language.",
+        "placeholder": "e.g. a bright young female voice, slightly husky",
+        "create": "Design"
+      },
+      "clone": {
+        "title": "Clone from a clip",
+        "hint": "Upload a short reference recording and its transcript.",
+        "file": "Reference clip",
+        "transcript": "Reference transcript",
+        "transcriptHint": "Exact words spoken in the clip (required for zero-shot cloning).",
+        "create": "Clone"
+      }
+    },
+    "memory": { "comingSoon": "Memory inspection arrives in P3." }
   },
   "scripts": {
     "title": "Scripts",
@@ -57,7 +200,24 @@
   },
   "dashboard": {
     "title": "Dashboard",
-    "description": "System health, service status, token usage, and jobs."
+    "description": "System health, service status, token usage, and jobs.",
+    "refresh": "Refresh",
+    "empty": "No data yet.",
+    "system": "System",
+    "services": "Services",
+    "usage": "Token usage",
+    "cpu": "CPU",
+    "memory": "Memory",
+    "gpu": "GPU",
+    "disk": "Disk",
+    "free": "free",
+    "tokens": "Tokens",
+    "calls": "Calls",
+    "audio": "Audio (s)",
+    "byProvider": "By provider"
+  },
+  "systemBar": {
+    "toggle": "System status — click to expand"
   },
   "modules": {
     "title": "Modules",
@@ -65,11 +225,28 @@
   },
   "settings": {
     "title": "Settings",
-    "description": "Providers, locale, theme, sensitive mode, and workspace info.",
+    "description": "General preferences, providers & models, and modules.",
     "theme": "Theme",
     "themeLight": "Light",
     "themeDark": "Dark",
-    "language": "Language"
+    "language": "Language",
+    "tabs": {
+      "general": "General",
+      "providers": "Providers & Models",
+      "modules": "Modules"
+    },
+    "providersNote": "Active providers and models are selected via config/env (system-wide). Runtime switching arrives in a later phase.",
+    "capability": "Capability",
+    "provider": "Provider",
+    "model": "Model",
+    "status": "Status",
+    "modulesComingSoon": "Install and manage modules here in a later phase.",
+    "saved": "Saved",
+    "roleplay": {
+      "title": "Roleplay prompt",
+      "hint": "Base instruction prepended to every character. Keeps replies in-character; actions written in parentheses are stripped from speech so TTS skips them.",
+      "reset": "Reset to default"
+    }
   },
   "auth": {
     "title": "Sign in to NagiFlow",

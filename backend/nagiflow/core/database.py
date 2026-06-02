@@ -3,7 +3,7 @@
 SQLite in WAL mode (concurrent readers, resilience); `busy_timeout` to avoid
 SQLITE_BUSY under live turns + jobs (docs/04 §3 write-concurrency note). Foreign keys on.
 
-Schema is owned by Alembic migrations (docs/13 §6); the app upgrades to `head` on boot
+Schema is owned by Alembic migrations (docs/14 §6); the app upgrades to `head` on boot
 (`core.migrations`). `init_db` (`create_all`) remains for tests/fixtures only. The
 repository + unit-of-work pattern lives in `repositories/`.
 """
@@ -31,7 +31,7 @@ def _configure_sqlite(dbapi_conn, _record) -> None:  # noqa: ANN001
     cur = dbapi_conn.cursor()
     cur.execute("PRAGMA journal_mode=WAL")
     cur.execute("PRAGMA foreign_keys=ON")
-    cur.execute("PRAGMA busy_timeout=5000")
+    cur.execute("PRAGMA busy_timeout=15000")
     cur.close()
 
 

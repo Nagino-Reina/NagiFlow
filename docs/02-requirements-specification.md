@@ -6,7 +6,7 @@
 | **Doc ID** | NF-02 |
 | **Version** | 0.1 (Draft) |
 | **Last updated** | 2026-05-30 |
-| **Related** | [01 Vision](01-vision-and-scope.md), [03 Architecture](03-system-architecture.md), feature docs [07](07-feature-script-management.md)–[13](13-runtime-and-deployment.md) |
+| **Related** | [01 Vision](01-vision-and-scope.md), [03 Architecture](03-system-architecture.md), feature docs [07](07-feature-script-management.md)–[14](14-runtime-and-deployment.md) |
 
 ---
 
@@ -17,7 +17,7 @@ This document specifies **what** NagiFlow must do and the qualities it must exhi
 **Conventions**
 
 - IDs: `FR-<AREA>-<n>` functional, `NFR-<AREA>-<n>` non-functional.
-- Areas: `SM` Script Mgmt · `CM` Character Mgmt · `MM` Multi-user & Memory · `MOD` Modules · `RT` Realtime & Media · `OBS` Observability · `SYS` Platform/Runtime · `API` API.
+- Areas: `SM` Script Mgmt · `CM` Character Mgmt · `MM` Multi-user & Memory · `MOD` Modules · `RT` Realtime & Media · `EMO` Emotion & Affect · `OBS` Observability · `SYS` Platform/Runtime · `API` API.
 - Priority: **M** Must, **S** Should, **C** Could, **W** Won't-for-now (MoSCoW).
 - Each requirement states intent and, where useful, acceptance criteria (AC).
 
@@ -124,7 +124,7 @@ See [01 §9](01-vision-and-scope.md). NagiFlow depends on the availability and l
 | FR-MOD-10 | S | Module **permissions/capabilities** are declared and gated; the system can constrain what a module may access. |
 | FR-MOD-11 | C | Modules can be distributed as folders/archives now, with a registry as a future option. |
 
-### 3.5 Realtime & media generation (`RT`) — see [10](10-feature-realtime-and-media-generation.md)
+### 3.5 Realtime & media generation (`RT`) — see [11](11-feature-realtime-and-media-generation.md)
 
 | ID | Pri | Requirement |
 |---|---|---|
@@ -139,8 +139,9 @@ See [01 §9](01-vision-and-scope.md). NagiFlow depends on the availability and l
 | FR-RT-9 | M | The platform provides a **built-in avatar renderer** behind a pluggable `AvatarRenderProvider` capability. The **default renderer is PNGTuber** (drives a character's layered-PNG sprite set from emitted amplitude/viseme/expression events to produce video and a live avatar); the capability is **extensible to Live2D, 3D-model renderers, and external engines** (OBS, VTube Studio). |
 | FR-RT-10 | S | A **live session may include multiple characters** (a *cast*); each character can respond to the user/viewers **and** to other characters' utterances. |
 | FR-RT-11 | M | When multiple characters are active, a **turn-arbitration director** serializes turns (one speaker at a time), selects responders, and **bounds character-to-character chains** (max chain depth, no immediate ping-pong, per-input turn budget) to prevent overlapping speech and infinite loops. |
+| FR-RT-12 | C | Live mode can take **on-screen content** (screen/window capture) as an input source: frames are turned into text context via a vision-capable model or an OCR/caption step and routed as a turn input, sampled/throttled to bound load. Multimodal — later phase. |
 
-### 3.6 Observability (`OBS`) — see [11](11-feature-observability.md)
+### 3.6 Observability (`OBS`) — see [12](12-feature-observability.md)
 
 | ID | Pri | Requirement |
 |---|---|---|
@@ -151,7 +152,7 @@ See [01 §9](01-vision-and-scope.md). NagiFlow depends on the availability and l
 | FR-OBS-5 | C | Optional **budgets/alerts** on token spend. |
 | FR-OBS-6 | M | All observability data stays **local** by default (no external telemetry without explicit opt-in). |
 
-### 3.7 Platform & runtime (`SYS`) — see [13](13-runtime-and-deployment.md)
+### 3.7 Platform & runtime (`SYS`) — see [14](14-runtime-and-deployment.md)
 
 | ID | Pri | Requirement |
 |---|---|---|
@@ -175,6 +176,20 @@ See [01 §9](01-vision-and-scope.md). NagiFlow depends on the availability and l
 | FR-API-2 | M | The API enforces **authentication/authorization** (guest vs user) server-side. |
 | FR-API-3 | M | The API auto-publishes a **machine-readable schema** (OpenAPI) and interactive docs. |
 | FR-API-4 | S | Errors use a **consistent envelope** with stable codes; list endpoints support pagination. |
+
+### 3.9 Emotion & affect (`EMO`) — see [10](10-feature-emotion-and-affect.md)
+
+| ID | Pri | Requirement |
+|---|---|---|
+| FR-EMO-1 | M | A character forms a **short-term emotional state** from the conversation partner, conversation content, and (when available) retrieved memory. |
+| FR-EMO-2 | M | Affect uses a **three-layer** model — stable personality trait, medium-term mood, short-term emotion — represented as a **VAD vector** with a derived **discrete label**. |
+| FR-EMO-3 | M | **Personality (Big Five) governs emotion dynamics** (reactivity, drift, decay, baseline) so emotion stays in character. |
+| FR-EMO-4 | M | The current emotion **influences the generated reply**. |
+| FR-EMO-5 | S | The current emotion **influences voice** style and delivery (rate/energy). |
+| FR-EMO-6 | S | The current emotion **drives avatar expression** events. |
+| FR-EMO-7 | M | **Mood persists** per character↔partner relationship and **decays** toward the personality baseline over turns and idle time. |
+| FR-EMO-8 | M | Emotion appraisal is **hybrid** (LLM-based with a deterministic offline fallback) so chat works with no model. |
+| FR-EMO-9 | S | The current/recorded emotion is **inspectable** (per-message snapshot + relationship state). |
 
 ---
 
@@ -259,12 +274,12 @@ See [01 §9](01-vision-and-scope.md). NagiFlow depends on the availability and l
 ### 6.4 Usability
 - **NFR-UX-1 (M):** A non-developer can set up and reach a first conversation following the docs/launcher without editing code.
 - **NFR-UX-2 (M):** UI uses Vuetify/Material patterns consistently; long jobs show progress; errors are actionable.
-- **NFR-UX-3 (S):** UI supports **Traditional Chinese and English** (i18n-ready), reflecting the maintainer's locale and the global audience.
+- **NFR-UX-3 (S):** UI supports **Traditional Chinese and English** (i18n-ready), with the architecture ready for additional locales.
 
 ### 6.5 Security
 - **NFR-SEC-1 (M):** Authorization is enforced server-side for every protected operation (never trust the client).
 - **NFR-SEC-2 (M):** Secrets (API keys for external providers/connectors) are never logged, never embedded in URLs, and stored with appropriate care; the user supplies them.
-- **NFR-SEC-3 (M):** Module permissions are declared and gated; untrusted module code is treated with caution ([06 §11](06-module-and-extension-system.md), [15 Security](15-security-and-threat-model.md)).
+- **NFR-SEC-3 (M):** Module permissions are declared and gated; untrusted module code is treated with caution ([06 §11](06-module-and-extension-system.md), [16 Security](16-security-and-threat-model.md)).
 - **NFR-SEC-4 (S):** Sensitive data is redacted from logs.
 
 ### 6.6 Privacy
@@ -276,7 +291,7 @@ See [01 §9](01-vision-and-scope.md). NagiFlow depends on the availability and l
 ### 6.7 Portability & footprint
 - **NFR-PORT-1 (M):** Runs on Windows, macOS, and Linux.
 - **NFR-PORT-2 (M):** Defaults are lightweight; the base install runs on a typical creator machine.
-- **NFR-PORT-3 (S):** The launcher behaves consistently across OSes (a cross-platform launcher approach is recommended in [13](13-runtime-and-deployment.md)).
+- **NFR-PORT-3 (S):** The launcher behaves consistently across OSes (a cross-platform launcher approach is recommended in [14](14-runtime-and-deployment.md)).
 
 ### 6.8 Maintainability & extensibility
 - **NFR-MAINT-1 (M):** Clear separation between API, services, providers, and persistence; new providers/modules slot into defined interfaces.

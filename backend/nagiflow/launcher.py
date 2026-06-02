@@ -1,11 +1,11 @@
-"""One-click local launcher (docs/13 §3, FR-SYS-1...5).
+"""One-click local launcher (docs/14 §3, FR-SYS-1...5).
 
 Starts the backend (uvicorn) and, in dev, the frontend (Vite), multiplexes both logs into
 a single terminal with colored prefixes, health-waits until ready, and on Ctrl-C / terminal
 close tears down **only NagiFlow's own children** -- never external services like Ollama.
 
 Cross-platform: POSIX uses sessions + signals; Windows uses a new process group +
-CTRL_BREAK_EVENT with a taskkill escalation (docs/13 §3.3).
+CTRL_BREAK_EVENT with a taskkill escalation (docs/14 §3.3).
 """
 
 from __future__ import annotations
@@ -87,15 +87,27 @@ def check_prerequisites(*, need_frontend: bool) -> list[Prereq]:
     ollama = shutil.which("ollama")
     return [
         Prereq("Python", True, sys.version.split()[0], required=True),
-        Prereq("Node.js", node is not None, node or "install Node 18+ - https://nodejs.org",
-               required=need_frontend),
-        Prereq("pnpm", pnpm is not None, pnpm or "install pnpm - `npm i -g pnpm`",
-               required=need_frontend),
-        Prereq("ffmpeg", ffmpeg is not None, ffmpeg or "optional - media/ASR (P2+)",
-               required=False),
-        Prereq("Ollama", ollama is not None,
-               ollama or "optional - local LLM; offline echo provider used otherwise",
-               required=False),
+        Prereq(
+            "Node.js",
+            node is not None,
+            node or "install Node 18+ - https://nodejs.org",
+            required=need_frontend,
+        ),
+        Prereq(
+            "pnpm",
+            pnpm is not None,
+            pnpm or "install pnpm - `npm i -g pnpm`",
+            required=need_frontend,
+        ),
+        Prereq(
+            "ffmpeg", ffmpeg is not None, ffmpeg or "optional - media/ASR (P2+)", required=False
+        ),
+        Prereq(
+            "Ollama",
+            ollama is not None,
+            ollama or "optional - local LLM; offline echo provider used otherwise",
+            required=False,
+        ),
     ]
 
 
@@ -148,6 +160,9 @@ class Child:
     name: str
     proc: subprocess.Popen[str]
     color: str
+    # On Windows, batch-wrapped children (pnpm.CMD) prompt "Terminate batch job (Y/N)?" on
+    # CTRL_BREAK and hang waiting for input — kill their process tree directly instead.
+    force_kill: bool = False
 
 
 def _popen(cmd: list[str], cwd: Path) -> subprocess.Popen[str]:
@@ -181,28 +196,43 @@ def _pump(child: Child) -> threading.Thread:
     return thread
 
 
+def _taskkill_tree(pid: int) -> None:
+    with suppress(OSError):
+        subprocess.run(["taskkill", "/F", "/T", "/PID", str(pid)], capture_output=True, check=False)
+
+
 def _terminate(child: Child) -> None:
     proc = child.proc
     if proc.poll() is not None:
         return
     print(f"{child.color}[{child.name}]{_C.RESET} {_C.DIM}stopping...{_C.RESET}")
-    with suppress(ProcessLookupError, OSError):
-        if IS_WIN:
-            proc.send_signal(signal.CTRL_BREAK_EVENT)
+
+    if IS_WIN:
+        if child.force_kill:
+            # Batch-wrapped (pnpm): kill the tree outright — no CTRL_BREAK, no Y/N prompt.
+            _taskkill_tree(proc.pid)
         else:
-            os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+            with suppress(OSError):
+                proc.send_signal(signal.CTRL_BREAK_EVENT)
+            try:
+                proc.wait(timeout=_SHUTDOWN_GRACE)
+                return
+            except subprocess.TimeoutExpired:
+                _taskkill_tree(proc.pid)
+        with suppress(subprocess.TimeoutExpired):
+            proc.wait(timeout=_SHUTDOWN_GRACE)
+        return
+
+    # POSIX: signal the process group, escalate to SIGKILL on deadline.
+    with suppress(ProcessLookupError, OSError):
+        os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
     try:
         proc.wait(timeout=_SHUTDOWN_GRACE)
         return
     except subprocess.TimeoutExpired:
         pass
-    # Escalate.
     with suppress(ProcessLookupError, OSError):
-        if IS_WIN:
-            subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)],
-                           capture_output=True, check=False)
-        else:
-            os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+        os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
 
 
 # --- health wait ---
@@ -263,11 +293,23 @@ def up(*, prod: bool = False, open_browser: bool = True) -> int:
 
     children: list[Child] = []
 
-    backend = Child("backend", _popen(
-        [sys.executable, "-m", "uvicorn", "nagiflow.main:app",
-         "--host", settings.host, "--port", str(settings.port)],
-        cwd=_BACKEND_ROOT,
-    ), _C.BACKEND)
+    backend = Child(
+        "backend",
+        _popen(
+            [
+                sys.executable,
+                "-m",
+                "uvicorn",
+                "nagiflow.main:app",
+                "--host",
+                settings.host,
+                "--port",
+                str(settings.port),
+            ],
+            cwd=_BACKEND_ROOT,
+        ),
+        _C.BACKEND,
+    )
     children.append(backend)
     _pump(backend)
 
@@ -275,7 +317,9 @@ def up(*, prod: bool = False, open_browser: bool = True) -> int:
     if not prod:
         pnpm = shutil.which("pnpm")
         assert pnpm is not None  # guaranteed by the prerequisite check above
-        frontend = Child("frontend", _popen([pnpm, "dev"], cwd=_WEB_DIR), _C.FRONTEND)
+        frontend = Child(
+            "frontend", _popen([pnpm, "dev"], cwd=_WEB_DIR), _C.FRONTEND, force_kill=True
+        )
         children.append(frontend)
         _pump(frontend)
         app_url = f"http://localhost:{_VITE_PORT}"
@@ -305,8 +349,10 @@ def _run_until_exit(children: list[Child]) -> int:
     while not stop.is_set():
         for child in children:
             if child.proc.poll() is not None:
-                print(f"{child.color}[{child.name}]{_C.RESET} "
-                      f"{_C.WARN}exited (code {child.proc.returncode}); shutting down.{_C.RESET}")
+                print(
+                    f"{child.color}[{child.name}]{_C.RESET} "
+                    f"{_C.WARN}exited (code {child.proc.returncode}); shutting down.{_C.RESET}"
+                )
                 exit_code = child.proc.returncode or 0
                 stop.set()
                 break

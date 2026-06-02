@@ -4,17 +4,46 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from typing import Annotated
+
 from pydantic import BaseModel, ConfigDict, Field
 
-Trait = Field(ge=0, le=100)
+# Each trait defaults to the neutral midpoint so `big_five` is optional on create.
+Trait = Annotated[int, Field(ge=0, le=100)]
 
 
 class BigFive(BaseModel):
-    openness: int = Trait
-    conscientiousness: int = Trait
-    extraversion: int = Trait
-    agreeableness: int = Trait
-    neuroticism: int = Trait
+    openness: Trait = 50
+    conscientiousness: Trait = 50
+    extraversion: Trait = 50
+    agreeableness: Trait = 50
+    neuroticism: Trait = 50
+
+
+class ParamFormulaOut(BaseModel):
+    """A continuous parameter as `base + Σ coefficients[trait] * norm(score)`, clamped."""
+
+    base: float
+    coefficients: dict[str, float]
+    min: float
+    max: float
+
+
+class PersonalitySchemaOut(BaseModel):
+    """The complete Big Five → behavior mapping spec (docs/08 §3.2).
+
+    Served once; the client computes the per-profile view locally from this, so adjusting
+    sliders triggers no further requests (FR-CM-4, NFR-MAINT-2).
+    """
+
+    bands: list[str]
+    thresholds: list[int]
+    traits: list[str]
+    directives: dict[str, list[str]]
+    verbosity: list[str]
+    expressiveness: list[str]
+    voice_style: dict[str, dict[str, str]]
+    params: dict[str, ParamFormulaOut]
 
 
 class CharacterCreate(BaseModel):
@@ -56,5 +85,6 @@ class CharacterOut(BaseModel):
     avatar_renderer: str | None
     status: str
     tags: list[str]
+    has_portrait: bool
     created_at: datetime
     updated_at: datetime

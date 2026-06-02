@@ -30,3 +30,7 @@ class CharacterRepository:
     def add(self, character: Character) -> Character:
         self.s.add(character)
         return character
+
+    async def flush(self) -> None:
+        """Flush pending INSERTs so server/Python defaults (ids, timestamps) populate."""
+        await self.s.flush()

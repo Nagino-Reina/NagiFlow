@@ -1,6 +1,6 @@
 <template>
   <v-app>
-    <v-app-bar :elevation="2" color="surface-container-low">
+    <v-app-bar color="surface-container-low" :elevation="2">
       <v-app-bar-nav-icon :aria-label="t('shell.toggleNav')" @click="ui.toggleDrawer()" />
 
       <v-app-bar-title class="font-weight-bold text-primary">
@@ -12,8 +12,9 @@
       <!-- Locale switch (zh-Hant / en) -->
       <v-menu>
         <template #activator="{ props }">
-          <v-btn icon="mdi-translate" :aria-label="t('shell.language')" v-bind="props" />
+          <v-btn :aria-label="t('shell.language')" icon="mdi-translate" v-bind="props" />
         </template>
+
         <v-list density="compact">
           <v-list-item
             v-for="loc in SUPPORTED_LOCALES"
@@ -27,22 +28,25 @@
 
       <!-- Theme toggle -->
       <v-btn
-        :icon="ui.theme === 'dark' ? 'mdi-weather-night' : 'mdi-weather-sunny'"
         :aria-label="t('shell.toggleTheme')"
+        :icon="ui.theme === 'dark' ? 'mdi-weather-night' : 'mdi-weather-sunny'"
         @click="ui.toggleTheme()"
       />
 
       <!-- Principal menu -->
       <v-menu>
         <template #activator="{ props }">
-          <v-btn icon="mdi-account-circle-outline" :aria-label="t('shell.account')" v-bind="props" />
+          <v-btn :aria-label="t('shell.account')" icon="mdi-account-circle-outline" v-bind="props" />
         </template>
+
         <v-list density="compact" min-width="200">
           <v-list-item
             :subtitle="auth.isUser ? auth.principal?.username ?? '' : t('shell.guest')"
             :title="auth.principal?.display_name ?? t('shell.account')"
           />
+
           <v-divider />
+
           <template v-if="auth.isUser">
             <v-list-item
               prepend-icon="mdi-logout"
@@ -50,10 +54,12 @@
               @click="auth.logout()"
             />
           </template>
+
           <template v-else>
             <v-list-item
               prepend-icon="mdi-login"
-              :title="t('common.action.login')"
+              :subtitle="t('shell.accountHint')"
+              :title="t('shell.registerOrLogin')"
               to="/login"
             />
           </template>
@@ -62,17 +68,17 @@
     </v-app-bar>
 
     <v-navigation-drawer v-model="ui.drawer" color="surface-container-low">
-      <v-list nav density="comfortable">
+      <v-list density="comfortable" nav>
         <v-list-item
           v-for="dest in NAV_DESTINATIONS"
           :key="dest.to"
+          :active="route.path === dest.to"
           :prepend-icon="dest.icon"
           :title="t(dest.i18nKey)"
-          :active="route.path === dest.to"
           @click="navigate(dest)"
         >
           <template v-if="isGated(dest)" #append>
-            <v-icon icon="mdi-lock-outline" size="x-small" :aria-label="t('shell.loginRequired')" />
+            <v-icon :aria-label="t('shell.loginRequired')" icon="mdi-lock-outline" size="x-small" />
           </template>
         </v-list-item>
       </v-list>
@@ -81,6 +87,8 @@
     <v-main>
       <router-view />
     </v-main>
+
+    <SystemBar v-if="auth.isUser" />
   </v-app>
 </template>
 
@@ -89,7 +97,8 @@
   import { useI18n } from 'vue-i18n'
   import { useRoute, useRouter } from 'vue-router'
   import { useTheme } from 'vuetify'
-  import { SUPPORTED_LOCALES, type AppLocale } from '@/plugins/i18n'
+  import SystemBar from '@/components/SystemBar.vue'
+  import { type AppLocale, SUPPORTED_LOCALES } from '@/plugins/i18n'
   import { NAV_DESTINATIONS, type NavDestination } from '@/shell/navigation'
   import { useAuthStore } from '@/stores/auth'
   import { useUiStore } from '@/stores/ui'
@@ -103,10 +112,14 @@
 
   // Reflect the i18n-resolved initial locale into the store, then keep them in sync.
   ui.locale = locale.value as AppLocale
-  watch(() => ui.locale, value => { locale.value = value }, { immediate: true })
+  watch(() => ui.locale, value => {
+    locale.value = value
+  }, { immediate: true })
 
   // Drive the Vuetify theme from the store.
-  watch(() => ui.theme, value => { theme.global.name.value = value }, { immediate: true })
+  watch(() => ui.theme, value => {
+    theme.global.name.value = value
+  }, { immediate: true })
 
   const localeLabel = (loc: AppLocale) => (loc === 'zh-Hant' ? '繁體中文' : 'English')
 

@@ -1,8 +1,12 @@
 """Model registry — importing this module registers all tables on `Base.metadata`."""
 
+from .affect import AffectState
 from .base import Base
 from .character import Character, VoiceModel
 from .conversation import Conversation, ConversationParticipant, Message
+from .media import MediaAsset
+from .setting import AppSetting
+from .usage import UsageRecord
 from .user import Session, User
 
 __all__ = [
@@ -14,4 +18,8 @@ __all__ = [
     "Conversation",
     "ConversationParticipant",
     "Message",
+    "AffectState",
+    "MediaAsset",
+    "UsageRecord",
+    "AppSetting",
 ]

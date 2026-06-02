@@ -1,4 +1,4 @@
-"""Layered configuration (docs/03 §5, docs/13 §4).
+"""Layered configuration (docs/03 §5, docs/14 §4).
 
 Precedence (lowest → highest): built-in defaults → workspace config (`workspace/config/app.toml`)
 → environment (`.env` / `NAGIFLOW_*`). Runtime overrides (settings UI) layer on top later.
@@ -19,6 +19,21 @@ from pydantic_settings import (
 )
 
 _WORKSPACE_CONFIG = Path("workspace") / "config" / "app.toml"
+
+# System default roleplay framing prepended to every character's persona (docs/03 §4, docs/08
+# §4). Editable at runtime via the settings API (stored in `app_setting`); this is the fallback
+# when no override is set. Actions are wrapped in parentheses so TTS can skip them.
+DEFAULT_ROLEPLAY_PROMPT = (
+    "You are this character in a live roleplay. Stay fully in character at all times and "
+    "speak in the first person as them, never as an assistant. Reply in the user's language, "
+    "naturally and conversationally, letting personality show through word choice and rhythm.\n\n"
+    "Put physical actions, gestures, and expressions in parentheses, e.g. (smiles softly) or "
+    "(glances away) — keep them short and only when they add to the moment. Everything outside "
+    "parentheses is spoken aloud, so write it as natural speech.\n\n"
+    "Never break character: do not mention being an AI, a model, or a prompt; add no "
+    "disclaimers, no meta-commentary, no out-of-character notes. Keep replies focused and "
+    "human-length — a few sentences unless the moment genuinely calls for more."
+)
 
 
 class Settings(BaseSettings):
@@ -64,7 +79,36 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://127.0.0.1:11434"
     ollama_model: str = "llama3.2"
 
-    # --- auth / sessions (docs/05 §2, docs/15 §3) ---
+    # TTS (docs/08 §4). Default is in-process VoxCPM (needs the [voxcpm] extra: torch + voxcpm;
+    # the model downloads on first synthesis). "voxcpm_server" = a remote VoxCPM/OpenAI-compatible
+    # server; "silent" = offline stub (a soft tone) for installs without a real TTS engine.
+    # If the engine is missing, reply synthesis is skipped (best-effort) — chat still works.
+    default_tts: str = "voxcpm"  # "voxcpm" | "voxcpm_server" | "silent"
+    # Synthesize audio for each chat reply so it can be played back (docs/11 §4.6). Best-effort:
+    # a TTS failure never blocks the text reply. Disable to skip synthesis entirely.
+    synthesize_replies: bool = True
+    voxcpm_model: str = "openbmb/VoxCPM2"  # HF id (in-process) or server model name
+    voxcpm_load_denoiser: bool = False
+    voxcpm_base_url: str = "http://127.0.0.1:9880"  # voxcpm_server only
+    tts_sample_rate: int = 48000
+
+    # Emotion & affect (docs/10). Appraisal engine: "hybrid" (LLM with deterministic
+    # fallback), "deterministic" (lexicon/heuristic only — offline, reproducible), or "off".
+    affect_appraisal: str = "hybrid"
+
+    # --- roleplay / dialogue (docs/03 §4, docs/08 §4) ---
+    # System default; the runtime override lives in `app_setting` and is edited in Settings.
+    roleplay_prompt: str = DEFAULT_ROLEPLAY_PROMPT
+    # Recent-turn window sent to the LLM as context (docs/03 §4). P1 keeps the last N turns
+    # verbatim; a rolling summary for older history lands later.
+    chat_history_window: int = 20
+
+    # --- observability (docs/12 §2) ---
+    # Push interval (seconds) for the system-status WebSocket (docs/05 §5.1). The client
+    # holds one connection instead of polling several REST endpoints on a timer.
+    status_stream_interval: float = 5.0
+
+    # --- auth / sessions (docs/05 §2, docs/16 §3) ---
     session_ttl: int = 60 * 60 * 24 * 30  # 30 days
     guest_ttl: int = 60 * 60 * 24  # 1 day
 

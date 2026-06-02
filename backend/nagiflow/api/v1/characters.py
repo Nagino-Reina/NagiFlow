@@ -5,13 +5,30 @@ Guests may list/read only guest-visible characters; create/edit/delete are user-
 
 from __future__ import annotations
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, File, UploadFile, status
+from fastapi.responses import FileResponse
 
-from ...schemas.character import CharacterCreate, CharacterOut, CharacterUpdate
+from ...core import errors
+from ...schemas.character import (
+    CharacterCreate,
+    CharacterOut,
+    CharacterUpdate,
+    PersonalitySchemaOut,
+)
 from ...schemas.common import Page
+from ...services import personality
 from ..deps import Characters, CurrentPrincipal, RequireUser
 
 router = APIRouter(prefix="/characters", tags=["characters"])
+
+_MAX_PORTRAIT_BYTES = 5 * 1024 * 1024  # 5 MB
+
+
+@router.get("/personality/schema", response_model=PersonalitySchemaOut)
+async def personality_schema(_user: RequireUser) -> PersonalitySchemaOut:
+    """The Big Five → behavior mapping spec. Fetched once; the client computes the
+    per-profile explainability view locally (no per-edit round-trips)."""
+    return PersonalitySchemaOut.model_validate(personality.spec())
 
 
 @router.get("", response_model=Page[CharacterOut])
@@ -59,3 +76,32 @@ async def duplicate_character(
 ) -> CharacterOut:
     character = await svc.duplicate(character_id)
     return CharacterOut.model_validate(character)
+
+
+@router.put("/{character_id}/portrait", response_model=CharacterOut)
+async def upload_portrait(
+    character_id: str,
+    _user: RequireUser,
+    svc: Characters,
+    file: UploadFile = File(...),
+) -> CharacterOut:
+    data = await file.read()
+    if len(data) > _MAX_PORTRAIT_BYTES:
+        raise errors.AppError("media.too_large", "Portrait exceeds 5 MB.", status_code=413)
+    character = await svc.set_portrait(
+        character_id, data=data, content_type=file.content_type or ""
+    )
+    return CharacterOut.model_validate(character)
+
+
+@router.get("/{character_id}/portrait")
+async def get_portrait(
+    character_id: str, principal: CurrentPrincipal, svc: Characters
+) -> FileResponse:
+    path, media_type = await svc.portrait_file(character_id, guest=principal.kind != "user")
+    return FileResponse(path, media_type=media_type)
+
+
+@router.delete("/{character_id}/portrait", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_portrait(character_id: str, _user: RequireUser, svc: Characters) -> None:
+    await svc.clear_portrait(character_id)

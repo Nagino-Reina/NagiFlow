@@ -1,12 +1,12 @@
-# 11 · Feature — Observability (Monitoring & Logging)
+# 12 · Feature — Observability (Monitoring & Logging)
 
 | | |
 |---|---|
 | **Document** | Feature Spec — Observability |
-| **Doc ID** | NF-11 |
+| **Doc ID** | NF-12 |
 | **Version** | 0.1 (Draft) |
 | **Last updated** | 2026-05-30 |
-| **Related** | [03 Architecture](03-system-architecture.md), [04 Data](04-data-model-and-storage.md), [05 API](05-api-specification.md), [06 Modules](06-module-and-extension-system.md), [10 Realtime](10-feature-realtime-and-media-generation.md) |
+| **Related** | [03 Architecture](03-system-architecture.md), [04 Data](04-data-model-and-storage.md), [05 API](05-api-specification.md), [06 Modules](06-module-and-extension-system.md), [11 Realtime](11-feature-realtime-and-media-generation.md) |
 | **Traces** | FR-OBS-1 … FR-OBS-6, NFR-OBS-1, NFR-PRIV-4, NFR-SEC-2 |
 
 ---
@@ -102,25 +102,38 @@ Operators may set soft **budgets** (e.g. per day or per user) and get **alerts**
 
 - **Format** — structured (JSON-capable) log records with level, timestamp, component, message, and a **`correlation_id`** linking a request → its WS turn → its jobs → its usage records ([05 §1](05-api-specification.md)).
 - **Levels** — standard `DEBUG`…`ERROR`; configurable per component.
-- **Location** — `<workspace>/logs/` with rotation; the **one-click launcher multiplexes backend + frontend logs into a single terminal** ([13 §3](13-runtime-and-deployment.md)).
+- **Location** — `<workspace>/logs/` with rotation; the **one-click launcher multiplexes backend + frontend logs into a single terminal** ([14 §3](14-runtime-and-deployment.md)).
 - **Tailing** — recent logs are viewable via API/UI (filter by level/component/correlation id) without opening files (FR-OBS-4).
 - **Redaction (NFR-SEC-2, NFR-PRIV-4)** — secrets and sensitive payloads are redacted; module loggers are namespaced and pass through the same redaction ([06 §11](06-module-and-extension-system.md)). User message content is not logged at info level by default.
 
 ---
 
-## 5. The dashboard
+## 5. The system status bar
 
-A Vuetify view with cards/panels:
+Observability is surfaced through an always-on **system status bar** pinned to the bottom of
+every screen — not a separate page ([13 §5](13-ui-ux-design.md)). The bar shows compact
+at-a-glance status; **clicking it expands a panel upward** with the detail. Values are pushed
+live over the system-status WebSocket ([05 §5.1](05-api-specification.md)): the bar holds one
+connection (reconnecting with backoff) rather than polling several REST endpoints on a timer.
+
+**Collapsed bar (always visible):** LLM/TTS **health dots** + active provider/model · **CPU/RAM**
+mini values · **token total**. A degraded/down provider tints the bar.
+
+**Expanded panel:**
 
 | Panel | Shows |
 |---|---|
-| **System** | CPU/RAM/GPU/disk gauges + short trend (§2.1). |
+| **System** | CPU/RAM/GPU/disk values (§2.1); short trend later. GPU only when detected. |
 | **Services** | Provider/connector health + latency (§2.2). |
-| **Usage** | Token totals + breakdowns + trend; budget status if enabled (§3). |
-| **Logs** | Filterable recent log stream (§4). |
-| **Jobs** | Active/recent jobs (renders, imports, fine-tunes) with progress ([04 §6](04-data-model-and-storage.md)). |
+| **Usage** | Token totals + breakdowns (per character / provider / day); budget status if enabled (§3). |
+| **Logs** | Filterable recent log stream (§4) — later phase. |
+| **Jobs** | Active/recent jobs (renders, imports, fine-tunes) with progress — later phase ([04 §6](04-data-model-and-storage.md)). |
 
-UI extensions can contribute additional `dashboard.widget`s ([06 §8](06-module-and-extension-system.md)).
+UI extensions can contribute additional `dashboard.widget`s to the panel ([06 §8](06-module-and-extension-system.md)).
+
+**Phasing:** P1 ships the bar with **System / Services / Usage** (the data already exists —
+`/system/resources`, `/system/services`, `/usage:summary`). **Logs** and **Jobs** panels arrive
+with their subsystems.
 
 ---
 

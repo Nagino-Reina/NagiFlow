@@ -1,4 +1,4 @@
-"""Authentication & session service (docs/05 §2, docs/09 §2, docs/15 §3).
+"""Authentication & session service (docs/05 §2, docs/09 §2, docs/16 §3).
 
 Opaque hashed session tokens, Argon2id passwords, no silent account creation.
 Returns the clear token only at issue time; only the hash is persisted.
@@ -34,6 +34,11 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+# Only persist last_seen_at when it is this stale, so frequent polling (e.g. the system
+# status bar) does not write to the DB on every request and contend for the SQLite writer.
+_TOUCH_INTERVAL = timedelta(seconds=60)
+
+
 class AuthService:
     def __init__(self, users: UserRepository, sessions: SessionRepository) -> None:
         self.users = users
@@ -45,9 +50,7 @@ class AuthService:
         self.users.add(user)
         return self._issue(user, kind="guest", ttl=settings.guest_ttl)
 
-    async def register(
-        self, username: str, password: str, display_name: str | None
-    ) -> User:
+    async def register(self, username: str, password: str, display_name: str | None) -> User:
         existing = await self.users.get_by_username(username)
         if existing is not None:
             raise errors.conflict("auth.username_taken", "Username already taken.")
@@ -85,7 +88,9 @@ class AuthService:
         user = await self.users.get(session.user_id)
         if user is None or user.status != "active":
             return None
-        await self.sessions.touch(session, _now())
+        now = _now()
+        if session.last_seen_at is None or _aware(session.last_seen_at) < now - _TOUCH_INTERVAL:
+            await self.sessions.touch(session, now)
         return Principal(
             user_id=user.id, kind=session.kind, is_admin=user.is_admin, session_id=session.id
         )

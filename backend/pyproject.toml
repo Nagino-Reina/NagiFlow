@@ -1,8 +1,8 @@
 [project]
 name = "nagiflow-backend"
-version = "0.1.0"
+version = "0.2.0"
 description = "NagiFlow backend — local-first, modular AI VTuber platform (FastAPI)."
-requires-python = ">=3.14"
+requires-python = ">=3.12,<3.13"
 dependencies = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.30",
@@ -15,12 +15,19 @@ dependencies = [
     "httpx>=0.27",
     "python-multipart>=0.0.9",
     "typer>=0.12",
+    "psutil>=5.9",
+    "nvidia-ml-py>=12",
 ]
 
 [project.scripts]
 nagiflow = "nagiflow.cli:main"
 
 [project.optional-dependencies]
+# In-process VoxCPM TTS (heavy: pulls PyTorch). Base install runs on the silent stub.
+voxcpm = [
+    "voxcpm>=0.1",
+    "soundfile>=0.12",
+]
 dev = [
     "pytest>=8",
     "pytest-asyncio>=0.23",
@@ -36,7 +43,7 @@ packages = ["nagiflow"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py314"
+target-version = "py312"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

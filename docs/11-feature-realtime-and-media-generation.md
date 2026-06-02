@@ -1,9 +1,9 @@
-# 10 · Feature — Realtime Interaction & Media Generation
+# 11 · Feature — Realtime Interaction & Media Generation
 
 | | |
 |---|---|
 | **Document** | Feature Spec — Realtime Interaction & Media Generation |
-| **Doc ID** | NF-10 |
+| **Doc ID** | NF-11 |
 | **Version** | 0.1 (Draft) |
 | **Last updated** | 2026-05-30 |
 | **Related** | [03 Architecture](03-system-architecture.md), [05 API](05-api-specification.md), [06 Modules](06-module-and-extension-system.md), [07 Scripts](07-feature-script-management.md), [08 Characters](08-feature-character-management.md), [09 Privacy](09-feature-multiuser-memory-and-privacy.md) |
@@ -113,7 +113,7 @@ sequenceDiagram
 5. **LLM streaming** — tokens stream out as `text.delta`; tool/skill calls are executed mid-stream and results fed back (FR-RT-2, FR-MOD-2).
 6. **TTS streaming** — finalized text spans are streamed to TTS; **audio chunks** stream to the client as they're produced, with **amplitude/viseme/timing** events for lip-sync (FR-RT-2/3). Low-latency streaming keeps perceived latency down (NFR-PERF-1).
 7. **Memory write** — candidate memories extracted and stored with scope/importance ([09 §4.3](09-feature-multiuser-memory-and-privacy.md)).
-8. **Persist & account** — append messages; write a `usage_record` (tokens, audio seconds, est. cost — [11 §3](11-feature-observability.md)).
+8. **Persist & account** — append messages; write a `usage_record` (tokens, audio seconds, est. cost — [12 §3](12-feature-observability.md)).
 
 ### 4.2 Barge-in & interruption (FR-RT-8)
 
@@ -128,7 +128,7 @@ A `control.interrupt` from the client (or a higher-priority input) **cancels** i
 | First token → first audio chunk | low hundreds of ms (streaming TTS) |
 | Steady-state | audio keeps pace with speech in real time (RTF < 1 on adequate hardware) |
 
-Targets degrade gracefully on weaker hardware; NagiFlow surfaces latency in observability ([11 §2](11-feature-observability.md)).
+Targets degrade gracefully on weaker hardware; NagiFlow surfaces latency in observability ([12 §2](12-feature-observability.md)).
 
 ### 4.4 Reconnection & resilience (FR-RT-8)
 
@@ -173,7 +173,18 @@ score(c) = w_addr · addressed(c)        # 1 if @-mention / name match, else 0
 # defaults: w_addr 1.0 (hard win), w_rel 0.5, w_fair 0.2, w_cool 0.3; engage threshold 0.35
 ```
 
-Default `director_config`: `max_chain_depth = 2`, `max_character_turns_per_input = 3`, `cooldown_turns = 1`, `selection = "addressed→relevance→round_robin"`. Weights/thresholds are **tunable defaults**, surfaced in the live console ([12 §7.6](12-ui-ux-design.md)); the relevance term reuses the same embedding provider as memory ([04 §6](04-data-model-and-storage.md)). The cheap **engage/pass** gate (rule 5) is a final yes/no so a high-scoring-but-nothing-to-add character still declines.
+Default `director_config`: `max_chain_depth = 2`, `max_character_turns_per_input = 3`, `cooldown_turns = 1`, `selection = "addressed→relevance→round_robin"`. Weights/thresholds are **tunable defaults**, surfaced in the live console ([13 §7.6](13-ui-ux-design.md)); the relevance term reuses the same embedding provider as memory ([04 §6](04-data-model-and-storage.md)). The cheap **engage/pass** gate (rule 5) is a final yes/no so a high-scoring-but-nothing-to-add character still declines.
+
+### 4.6 Synchronous (non-streaming) turn — the P1 slice
+
+Before the streaming pipeline (§4.1) lands in P5, P1 ships a **synchronous** form of the same turn over plain REST, so a character can be *heard* without the WebSocket machinery. `POST /conversations/{id}/messages` ([05 §4.3](05-api-specification.md)) runs the shared orchestration ([03 §4](03-system-architecture.md)) — persona + Big Five + the turn's affect directive ([10 §7.1](10-feature-emotion-and-affect.md)) → LLM reply text — and then, in the same request:
+
+1. **Resolve voice.** The character's **default voice model** ([08 §4](08-feature-character-management.md)) is resolved to a `VoiceRef`; if none exists the provider's design default is used. The synthesis **style/rate** merges the character's `default_style` with the turn's affect voice-style tag + speech-rate nudge ([10 §7.2](10-feature-emotion-and-affect.md)), clamped to the personality rate band.
+2. **Synthesize.** The full reply text is rendered to a complete WAV by the active `TTSProvider` ([06 §5.1](06-module-and-extension-system.md)) — no streaming, no visemes. The offline `silent` default emits a short tone so the path is demonstrable without VoxCPM.
+3. **Persist.** The audio is stored under `media/<id>/` and recorded as an audio **`MediaAsset`** (`source_type = message`, [04 §5.6](04-data-model-and-storage.md)); `message.media_asset_id` links it.
+4. **Return.** The reply carries `media_asset_id`; the client fetches the bytes from `GET /media/{id}:download` ([05 §4.6](05-api-specification.md)) and plays them.
+
+Synthesis is **best-effort and non-blocking-of-text**: a TTS failure (provider down, no voice) is logged and the turn still returns its text reply with `media_asset_id = null`. It can be disabled wholesale via `synthesize_replies = false` (config). **Streaming audio, amplitude/viseme/timing events, and barge-in (§4.1–4.2, §5) remain P5** — this slice produces one finished audio asset per turn, not a live stream.
 
 ---
 
@@ -260,25 +271,41 @@ A PNGTuber avatar bundle is a directory (the `avatar_bundle_key` target — [04 
 }
 ```
 
-Rules: every `layers[].group` has exactly one active member at a time; `default: true` marks the resting member. The renderer **validates** the descriptor on load (missing images, unknown groups) and reports a clear error; a malformed bundle falls back to the static portrait (§5.2). `idle.sway`/`talk_bounce` honor `prefers-reduced-motion` ([12 §10](12-ui-ux-design.md)). Fields a future renderer doesn't understand are ignored — **forward-compatible extension space**.
+Rules: every `layers[].group` has exactly one active member at a time; `default: true` marks the resting member. The renderer **validates** the descriptor on load (missing images, unknown groups) and reports a clear error; a malformed bundle falls back to the static portrait (§5.2). `idle.sway`/`talk_bounce` honor `prefers-reduced-motion` ([13 §10](13-ui-ux-design.md)). Fields a future renderer doesn't understand are ignored — **forward-compatible extension space**.
 
 ---
 
-## 6. Live-chat ingestion (streaming sources)
+### 5.4 Live output — OBS browser source (initial target)
 
-To VTube against a real audience, NagiFlow ingests platform chat through **Connectors** (FR-RT-4, FR-MOD-3):
+The first delivery target for live mode is an **OBS browser source**: NagiFlow serves a
+self-contained web view that renders the live **avatar** (default PNGTuber) driven by the turn's
+amplitude/viseme/expression stream, on a **transparent background** so OBS composites it over a
+scene. **Live subtitles** (from streaming `text.delta` / finalized spans) can render **combined**
+with the avatar or as a **separate** browser source (a standalone caption overlay), so the
+operator positions and styles them independently in OBS.
+
+This browser-source path needs **no external engine** — it is the simplest way to get a NagiFlow
+character on stream. The external-engine adapter that forwards events to OBS/VTube Studio (§5.2)
+remains an alternative for operators who prefer their own scene tooling. Live mode overall is **P5**.
+
+## 6. Live input sources (streaming)
+
+In live mode the character reacts to three kinds of input, all routed into the same orchestrator turn (§4): **(a) direct user dialogue** (text or push-to-talk → ASR), **(b) live-chat** from platforms, and **(c) on-screen content** the character can "see". All arrive through **Connectors** (FR-RT-4, FR-MOD-3):
 
 ```mermaid
 flowchart LR
-    TW[Twitch/YouTube/Discord<br/>via Connector] --> MOD[Moderation/filter<br/>optional hook]
-    MOD --> RT[Route as user input<br/>each viewer = a user]
+    U[User dialogue<br/>text / mic→ASR] --> RT
+    TW[Twitch/YouTube/Discord chat<br/>via Connector] --> MOD[Moderation/filter<br/>optional hook]
+    SC[Screen / window capture<br/>via Connector] --> VIS[Vision/OCR describe<br/>→ text context]
+    MOD --> RT[Route as turn input]
+    VIS --> RT
     RT --> O[Orchestrator turn]
     O --> OUT[Response + optional<br/>post-back to chat sink]
 ```
 
-- Incoming messages become **turn inputs**; an optional moderation hook can filter/transform first.
+- **Live-chat** messages become **turn inputs**; an optional moderation hook can filter/transform first. Sinks let the character (or a skill) post back to chat or trigger scene changes via Connector actions.
+- **Screen / window capture** lets the character comment on what's on screen (e.g. co-streaming a game or a page). Frames are turned into text context for the LLM either by a **vision-capable model** or an **OCR/caption** step, then routed like any other input. This is a **multimodal source — later phase** (needs a vision/OCR provider) and is **sampled/throttled** so it never floods the turn loop.
 - **Each viewer is a distinct (usually guest) user.** Therefore **sensitive mode defaults ON** for public streaming so the character never reveals one viewer's info to another ([09 §5.4](09-feature-multiuser-memory-and-privacy.md)) — a hard privacy requirement for this mode.
-- Sinks let the character (or a skill) post back to chat or trigger scene changes via Connector actions.
 
 ---
 
@@ -299,7 +326,7 @@ Graceful degradation across hardware tiers supports the local-first, broad-porta
 ## 8. Permissions
 
 - **Live chat** with a **guest-visible** character is available to guests ([09 §3](09-feature-multiuser-memory-and-privacy.md)); chatting with non-visible characters and all of Mode A (media generation) require an authenticated user.
-- Renders and live turns are attributed to the requesting user in usage accounting ([11 §3](11-feature-observability.md)).
+- Renders and live turns are attributed to the requesting user in usage accounting ([12 §3](12-feature-observability.md)).
 - Configuring live-chat Connectors (credentials) is a user/admin action; NagiFlow never supplies third-party credentials itself ([09 §6](09-feature-multiuser-memory-and-privacy.md)).
 
 ---
@@ -312,6 +339,7 @@ Graceful degradation across hardware tiers supports the local-first, broad-porta
 | FR-RT-2 (real-time WebSocket streaming) | §4, §4.1 |
 | FR-RT-3 (avatar-driving events: amplitude/viseme/timing/expression) | §4.1, §5 |
 | FR-RT-4 (live-chat ingestion via connectors) | §6 |
+| FR-RT-12 (on-screen/visual input — later) | §6 |
 | FR-RT-5 (offline/batch media from scripts) | §3 |
 | FR-RT-6 (media stored as assets, downloadable, tracked) | §3.1, §3.2 |
 | FR-RT-7 (voice input via ASR) | §4.1 |

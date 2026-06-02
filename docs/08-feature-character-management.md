@@ -6,7 +6,7 @@
 | **Doc ID** | NF-08 |
 | **Version** | 0.1 (Draft) |
 | **Last updated** | 2026-05-30 |
-| **Related** | [04 Data](04-data-model-and-storage.md), [06 Modules](06-module-and-extension-system.md), [07 Scripts](07-feature-script-management.md), [09 Privacy](09-feature-multiuser-memory-and-privacy.md), [10 Realtime/Media](10-feature-realtime-and-media-generation.md) |
+| **Related** | [04 Data](04-data-model-and-storage.md), [06 Modules](06-module-and-extension-system.md), [07 Scripts](07-feature-script-management.md), [09 Privacy](09-feature-multiuser-memory-and-privacy.md), [11 Realtime/Media](11-feature-realtime-and-media-generation.md) |
 | **Traces** | FR-CM-1 … FR-CM-12, FR-MOD-5, NFR-PRIV-2/3, NFR-MAINT-2 |
 
 ---
@@ -48,13 +48,13 @@ The profile is the descriptive core (FR-CM-1/2/3):
 |---|---|
 | `display_name`, `aliases` | Names the character goes by. |
 | `avatar_key`, `portrait_key` | Images stored under `characters/<id>/` (storage keys in DB). |
-| `avatar_bundle_key`, `avatar_renderer` | The character's **avatar bundle** for video/live rendering — a **PNGTuber sprite set by default**, or a **Live2D / 3D model** where used — plus the preferred renderer (`pngtuber` default, `live2d`, `3d`, or `external`). Consumed by the `AvatarRenderProvider` ([10 §5](10-feature-realtime-and-media-generation.md)). Optional; without it, rendering falls back to a static portrait. |
+| `avatar_bundle_key`, `avatar_renderer` | The character's **avatar bundle** for video/live rendering — a **PNGTuber sprite set by default**, or a **Live2D / 3D model** where used — plus the preferred renderer (`pngtuber` default, `live2d`, `3d`, or `external`). Consumed by the `AvatarRenderProvider` ([11 §5](11-feature-realtime-and-media-generation.md)). Optional; without it, rendering falls back to a static portrait. |
 | `bio` / `backstory` | Lore and context the character "knows" about itself. |
 | `persona_prompt` | The authored **system persona** — tone, speech quirks, do/don't, world rules. |
 | `language_default` | Preferred language; affects prompt and voice selection. |
 | `tags`, `status` | Organization; lifecycle (`active`/`draft`/`archived`). |
 
-The **persona prompt** is combined at runtime with the personality mapping (§3) and retrieved memories (§5) by the Dialogue Orchestrator ([10 §4](10-feature-realtime-and-media-generation.md)) to produce the system context for each turn. Authors get a live **preview chat** to iterate on persona without leaving the editor.
+The **persona prompt** is combined at runtime with the personality mapping (§3) and retrieved memories (§5) by the Dialogue Orchestrator ([11 §4](11-feature-realtime-and-media-generation.md)) to produce the system context for each turn. Authors get a live **preview chat** to iterate on persona without leaving the editor.
 
 ---
 
@@ -74,19 +74,53 @@ Each character has a **Big Five** profile: five traits scored **0–100** (FR-CM
 
 ### 3.2 Trait → behavior mapping
 
-The mapping has two channels: **prompt directives** (steer the LLM) and **generation/voice parameters** (steer style and delivery). The transform is transparent and editable — authors can view the directives a given profile produces and override them.
+The mapping has two channels: **prompt directives** (steer the LLM) and **generation/voice parameters** (steer style and delivery). The transform is transparent and editable — authors can view exactly what a given profile produces.
 
-| Trait (high) | Prompt directives (illustrative) | Param nudges |
+**Graded by score, not binary.** Each trait's 0–100 score is bucketed into **five bands** so the magnitude matters — a 95 reads differently from a 65, and the mid-range is an *active* "balanced" instruction, not silence:
+
+| Band | Score | Meaning |
 |---|---|---|
-| **Openness↑** | "Offer imaginative tangents and novel framings; reference varied topics." | slightly ↑ LLM temperature / top-p |
-| **Conscientiousness↑** | "Be precise and structured; follow through; avoid careless claims." | ↓ temperature; prefer complete sentences |
-| **Extraversion↑** | "Be talkative and upbeat; initiate, react with enthusiasm." | ↑ verbosity target; voice style → energetic; mild ↑ speech rate |
-| **Agreeableness↑** | "Be warm, validating, and cooperative; soften disagreement." | voice style → friendly/soft |
-| **Neuroticism↑** | "Show emotional reactivity; express worry/excitement vividly." | ↑ expressiveness/variance in voice style |
+| **very low** | 0–19 | the low pole, strongly expressed |
+| **low** | 20–39 | leans low |
+| **moderate** | 40–59 | balanced / situational |
+| **high** | 60–79 | leans high |
+| **very high** | 80–100 | the high pole, strongly expressed |
 
-Lows invert the directive (e.g. Extraversion↓ → "Keep replies short and measured; don't volunteer extra."). Mid-range (≈40–60) contributes little, keeping a neutral baseline.
+Each (trait, band) pair yields one **directive** written at that intensity. Illustrative for Extraversion:
 
-**Resolution model.** Each trait maps through a small, documented function to (a) text directives appended to the persona and (b) bounded parameter offsets clamped to safe ranges. Conflicting nudges are combined and clamped (e.g. Conscientiousness↑ vs Openness↑ on temperature net out). The exact tables live in code and are surfaced read-only in the UI so behavior is explainable (NFR-MAINT-2). Voice-style mapping only applies to providers that accept style guidance ([06 §5.1](06-module-and-extension-system.md)).
+| Band | Directive |
+|---|---|
+| very high | "Be highly energetic and talkative; initiate topics, react vividly, keep momentum high." |
+| high | "Be upbeat and sociable; engage warmly and volunteer a little extra." |
+| moderate | "Be moderately engaged; match the user's energy." |
+| low | "Be fairly reserved and concise; answer without volunteering much." |
+| very low | "Be very reserved and brief; minimal words, no small talk." |
+
+The other four traits follow the same five-band shape (tables live in code, surfaced read-only in the UI — NFR-MAINT-2).
+
+**Scores travel into the prompt.** The assembled system context includes a structured personality block that states **both the number and its band**, so the LLM can calibrate, not just toggle:
+
+```
+Personality profile (Big Five, 0–100). Embody these in tone, length, and content:
+- Openness 82/100 (very high): Be highly imaginative and exploratory; offer novel framings…
+- Conscientiousness 35/100 (low): Be casual and flexible; don't over-organize or over-qualify.
+- Extraversion 70/100 (high): Be upbeat and sociable; engage warmly and volunteer a little extra.
+- Agreeableness 75/100 (high): Be friendly and cooperative; soften disagreement.
+- Neuroticism 28/100 (low): Stay calm and even; keep emotions understated.
+```
+
+**Parameter channel (continuous).** Alongside the prompt, scores drive bounded, clamped generation/voice parameters that vary *smoothly* with the score:
+
+| Parameter | Driven by | Behavior |
+|---|---|---|
+| `temperature` | Openness↑, Conscientiousness↓ | linear offset from a 0.7 base, clamped `[0.2, 1.2]` |
+| `top_p` | Openness | linear, clamped `[0.7, 1.0]` |
+| `verbosity` | Extraversion | banded label `minimal → brief → balanced → talkative → expansive` |
+| `speech_rate` | Extraversion | linear `~0.85–1.15` |
+| `expressiveness` | Neuroticism | banded `low → medium → high → very high` |
+| `voice_style` | Extraversion / Agreeableness / Neuroticism | style tags (e.g. `energetic`, `warm`, `expressive`) emitted at the band extremes |
+
+**Resolution model.** Each trait maps through a small, documented function to (a) a banded text directive appended to the persona (with the score) and (b) bounded parameter offsets clamped to safe ranges. Conflicting nudges combine and clamp (e.g. Conscientiousness↑ vs Openness↑ on temperature net out). Voice-style mapping only applies to providers that accept style guidance ([06 §5.1](06-module-and-extension-system.md)); the persona prompt always wins where it explicitly contradicts a trait directive (§9).
 
 > **Design note.** Big Five is used as a *control surface*, not a psychological claim. The point is reproducible, tunable personality expression — two characters with different OCEAN profiles should feel reliably different in tone, length, and delivery.
 
@@ -98,7 +132,7 @@ A character has one or more **voice models**; one is marked **active**. NagiFlow
 
 | Kind (`voice_model.kind`) | How it's created | When to use |
 |---|---|---|
-| **`zero_shot`** | Provide a short **reference audio** clip; the provider clones the timbre on the fly (controllable voice cloning). | Fast setup; "sounds like this sample". |
+| **`zero_shot`** | Provide a short **reference audio** clip **plus its transcript** (the words spoken); the provider clones the timbre on the fly (controllable voice cloning). The transcript is required — VoxCPM pairs the reference waveform with its text. | Fast setup; "sounds like this sample". |
 | **`voice_design`** | Describe the voice in **natural language** (e.g. "a bright young female voice, slightly husky"); the provider designs it. | No reference available; craft a voice from scratch. |
 | **`fine_tuned`** | Train a model from a **dataset** (text+audio pairs) for a durable, higher-fidelity custom voice. | A recurring character you'll reuse heavily. |
 
@@ -127,6 +161,10 @@ flowchart LR
 ### 4.2 Voice behavior at runtime
 
 The active voice plus per-line/per-turn **style** and **speech rate** (from scripts §[07], or from personality mapping in live chat) are passed to the provider. If the active model is a `fine_tuned` artifact unavailable to the current provider, the orchestrator falls back to zero-shot from a stored reference (if any) and warns.
+
+**Roleplay framing & spoken text.** Every live reply is generated under a global **roleplay prompt** — an editable base instruction (Settings → General; `GET/PUT/DELETE /settings/roleplay-prompt`, [05 §4.7](05-api-specification.md)) prepended to the character's persona and Big Five directives ([03 §4](03-system-architecture.md)). It keeps replies in-character and instructs the model to write physical actions in parentheses, e.g. `(smiles)`. Those action/stage directions are **stripped before synthesis**, so TTS speaks only the dialogue while the chat transcript still shows them.
+
+The in-process **VoxCPM** provider runs on the GPU when CUDA-enabled PyTorch is installed; on CPU, generation is impractically slow (minutes per reply). A CUDA-enabled NVIDIA GPU is therefore **optional but strongly recommended** for voicing — without one, keep reply synthesis disabled (`NAGIFLOW_SYNTHESIZE_REPLIES=false`) and run text-only. Reply synthesis is best-effort and runs outside the turn's database transaction, so a slow or failed synthesis never blocks the text reply or holds the SQLite writer ([04 §3](04-data-model-and-storage.md), [11 §4.6](11-feature-realtime-and-media-generation.md)).
 
 ---
 
@@ -227,7 +265,7 @@ Large fine-tuned voice artifacts are optional in the package (toggle) to keep sh
 
 ## 8. Permissions
 
-Creating and editing characters (profile, personality, voice training, memory editing, export/import) are **advanced** operations requiring an authenticated user ([09 §3](09-feature-multiuser-memory-and-privacy.md)). Guests may only *converse* with characters explicitly marked **guest-visible**, and never see or edit memory or character internals. Voice fine-tune and import jobs are attributed to the requesting user in usage accounting ([11 §3](11-feature-observability.md)).
+Creating and editing characters (profile, personality, voice training, memory editing, export/import) are **advanced** operations requiring an authenticated user ([09 §3](09-feature-multiuser-memory-and-privacy.md)). Guests may only *converse* with characters explicitly marked **guest-visible**, and never see or edit memory or character internals. Voice fine-tune and import jobs are attributed to the requesting user in usage accounting ([12 §3](12-feature-observability.md)).
 
 ---
 

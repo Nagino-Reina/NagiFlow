@@ -6,8 +6,8 @@
  * the stable `code` + `correlation_id`. In dev, `/api` is proxied to the backend (vite).
  */
 
-import { getToken } from './session'
 import type { ErrorEnvelope } from './types'
+import { getToken } from './session'
 
 const BASE = '/api/v1'
 
@@ -34,7 +34,9 @@ interface RequestOptions {
 async function request<T> (method: string, path: string, opts: RequestOptions = {}): Promise<T> {
   const headers: Record<string, string> = { Accept: 'application/json', ...opts.headers }
   const token = getToken()
-  if (token) headers.Authorization = `Bearer ${token}`
+  if (token) {
+    headers.Authorization = `Bearer ${token}`
+  }
 
   let body: BodyInit | undefined
   if (opts.body !== undefined) {
@@ -45,11 +47,13 @@ async function request<T> (method: string, path: string, opts: RequestOptions = 
   let res: Response
   try {
     res = await fetch(`${BASE}${path}`, { method, headers, body, signal: opts.signal })
-  } catch (cause) {
+  } catch {
     throw new ApiError('network.error', 'Network request failed.', 0, undefined, undefined)
   }
 
-  if (res.status === 204) return undefined as T
+  if (res.status === 204) {
+    return undefined as T
+  }
 
   const payload = await res.json().catch(() => null)
 
@@ -72,6 +76,8 @@ export const http = {
   get: <T>(path: string, opts?: RequestOptions) => request<T>('GET', path, opts),
   post: <T>(path: string, body?: unknown, opts?: RequestOptions) =>
     request<T>('POST', path, { ...opts, body }),
+  put: <T>(path: string, body?: unknown, opts?: RequestOptions) =>
+    request<T>('PUT', path, { ...opts, body }),
   patch: <T>(path: string, body?: unknown, opts?: RequestOptions) =>
     request<T>('PATCH', path, { ...opts, body }),
   delete: <T>(path: string, opts?: RequestOptions) => request<T>('DELETE', path, opts),

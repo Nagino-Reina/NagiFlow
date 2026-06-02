@@ -4,6 +4,9 @@
     "tagline": "本地優先的 AI VTuber 工作室"
   },
   "common": {
+    "validation": {
+      "required": "必填"
+    },
     "action": {
       "save": "儲存",
       "cancel": "取消",
@@ -35,7 +38,9 @@
     "language": "語言",
     "account": "帳號",
     "guest": "訪客",
-    "loginRequired": "請登入後使用"
+    "loginRequired": "請登入後使用",
+    "registerOrLogin": "註冊 / 登入",
+    "accountHint": "註冊帳號即可建立角色、語音與保存對話紀錄。"
   },
   "landing": {
     "title": "歡迎使用 NagiFlow",
@@ -43,9 +48,147 @@
     "empty": "尚無訪客可見的角色，登入後即可建立。",
     "chatPlaceholder": "對話體驗將於 P1 里程碑推出。"
   },
+  "chat": {
+    "title": "對話",
+    "description": "與角色對話——它的語氣會隨情緒而變化。",
+    "switch": "切換角色",
+    "noCharacters": "目前沒有可對話的角色。",
+    "empty": "打聲招呼開始對話吧。",
+    "placeholder": "輸入訊息…",
+    "send": "送出",
+    "play": "播放",
+    "newConversation": "新對話",
+    "pickCharacter": "選擇要對話的角色",
+    "history": "歷史紀錄",
+    "noHistory": "尚無對話",
+    "autoplay": "自動播放語音",
+    "liveMode": "直播模式",
+    "liveSoon": "直播模式為後續階段功能",
+    "deleteConversation": "刪除對話",
+    "deleteConfirm": "此對話及其訊息將被永久刪除。",
+    "emotion": {
+      "neutral": "平靜",
+      "joy": "喜悅",
+      "affection": "親切",
+      "curiosity": "好奇",
+      "surprise": "驚訝",
+      "sadness": "難過",
+      "anger": "生氣",
+      "fear": "害怕",
+      "disgust": "厭惡"
+    }
+  },
   "characters": {
     "title": "角色",
-    "description": "建立與配音角色、設定個性、管理語音模型。"
+    "description": "建立與配音角色、設定個性、管理語音模型。",
+    "new": "新增角色",
+    "create": "建立",
+    "edit": "編輯",
+    "duplicate": "複製",
+    "archive": "封存",
+    "archiveConfirm": "封存此角色？將從清單中隱藏。",
+    "saved": "已儲存",
+    "back": "返回角色清單",
+    "empty": "尚無角色",
+    "emptyHint": "建立第一個角色，賦予個性與聲音。",
+    "guestVisible": "訪客可見",
+    "untitled": "未命名角色",
+    "portrait": {
+      "label": "肖像圖片",
+      "hint": "PNG、JPEG 或 WebP · 上限 5 MB",
+      "saveFirst": "請先儲存角色再新增肖像",
+      "remove": "移除肖像"
+    },
+    "status": {
+      "draft": "草稿",
+      "active": "啟用",
+      "archived": "已封存"
+    },
+    "fields": {
+      "name": "名稱",
+      "aliases": "別名",
+      "aliasesHint": "以逗號分隔的其他稱呼",
+      "description": "描述",
+      "persona": "角色設定提示",
+      "personaHint": "語氣、口頭禪、可／不可、世界觀規則",
+      "language": "預設語言",
+      "tags": "標籤",
+      "tagsHint": "以逗號分隔",
+      "status": "狀態"
+    },
+    "tabs": {
+      "profile": "基本資料",
+      "personality": "個性",
+      "voice": "語音",
+      "memory": "記憶"
+    },
+    "personality": {
+      "title": "五大人格（OCEAN）",
+      "hint": "分數會轉換成具體行為。右側面板顯示此設定的實際產出。",
+      "traits": {
+        "openness": "開放性",
+        "conscientiousness": "盡責性",
+        "extraversion": "外向性",
+        "agreeableness": "親和性",
+        "neuroticism": "神經質"
+      },
+      "traitDesc": {
+        "openness": "低：具體、傳統 · 高：好奇、富想像、抽象",
+        "conscientiousness": "低：隨性、鬆散 · 高：精確、有條理、謹慎",
+        "extraversion": "低：內斂、簡短 · 高：健談、有活力、外放",
+        "agreeableness": "低：直率、好辯 · 高：溫暖、合作、支持",
+        "neuroticism": "低：冷靜、平穩 · 高：易反應、情緒強烈"
+      },
+      "bands": {
+        "very_low": "極低",
+        "low": "偏低",
+        "moderate": "中等",
+        "high": "偏高",
+        "very_high": "極高"
+      },
+      "resulting": "產生的行為",
+      "radarHint": "灰色＝預設值（50）。高於為紅、低於為藍。",
+      "params": "生成與語音",
+      "temperature": "溫度",
+      "topP": "Top-p",
+      "verbosity": "話量",
+      "voiceStyle": "語音風格",
+      "speechRate": "語速",
+      "expressiveness": "表現力",
+      "none": "無"
+    },
+    "voice": {
+      "saveFirst": "請先儲存角色，再於此新增語音。",
+      "empty": "尚無語音模型。",
+      "provider": "供應者",
+      "active": "使用中",
+      "setDefault": "設為使用中",
+      "preview": "試聽",
+      "delete": "刪除",
+      "deleteConfirm": "刪除此語音模型？此操作無法復原。",
+      "add": "新增語音",
+      "unsupported": "目前的 TTS 供應者不支援語音建立。",
+      "kinds": {
+        "zero_shot": "克隆",
+        "voice_design": "設計",
+        "fine_tuned": "微調"
+      },
+      "design": {
+        "title": "設計語音",
+        "hint": "以自然語言描述聲音。",
+        "placeholder": "例：明亮的年輕女聲，略帶沙啞",
+        "create": "設計"
+      },
+      "clone": {
+        "title": "由音檔克隆",
+        "hint": "上傳一段簡短的參考錄音及其逐字稿。",
+        "file": "參考音檔",
+        "transcript": "參考逐字稿",
+        "transcriptHint": "音檔中實際說出的內容(zero-shot 克隆必填)。",
+        "create": "克隆"
+      }
+    },
+    "memory": { "comingSoon": "記憶檢視將於 P3 推出。" }
   },
   "scripts": {
     "title": "腳本",
@@ -57,7 +200,24 @@
   },
   "dashboard": {
     "title": "儀表板",
-    "description": "系統健康、服務狀態、Token 用量與工作。"
+    "description": "系統健康、服務狀態、Token 用量與工作。",
+    "refresh": "重新整理",
+    "empty": "尚無資料。",
+    "system": "系統",
+    "services": "服務",
+    "usage": "Token 用量",
+    "cpu": "CPU",
+    "memory": "記憶體",
+    "gpu": "GPU",
+    "disk": "磁碟",
+    "free": "可用",
+    "tokens": "Token",
+    "calls": "呼叫次數",
+    "audio": "音訊 (秒)",
+    "byProvider": "依供應商"
+  },
+  "systemBar": {
+    "toggle": "系統狀態 — 點擊展開"
   },
   "modules": {
     "title": "模組",
@@ -65,11 +225,28 @@
   },
   "settings": {
     "title": "設定",
-    "description": "供應者、語言、主題、敏感模式與工作區資訊。",
+    "description": "一般偏好、供應商與模型、模組。",
     "theme": "主題",
     "themeLight": "淺色",
     "themeDark": "深色",
-    "language": "語言"
+    "language": "語言",
+    "tabs": {
+      "general": "一般",
+      "providers": "供應商與模型",
+      "modules": "模組"
+    },
+    "providersNote": "目前的供應商與模型透過 config/env 設定（系統層級）。執行期切換為後續階段。",
+    "capability": "能力",
+    "provider": "供應商",
+    "model": "模型",
+    "status": "狀態",
+    "modulesComingSoon": "模組安裝與管理為後續階段。",
+    "saved": "已儲存",
+    "roleplay": {
+      "title": "角色扮演提示詞",
+      "hint": "附加在每個角色之前的基礎指令。讓回覆維持角色口吻;以括號書寫的動作會在語音合成前移除,故 TTS 不會念出。",
+      "reset": "還原預設"
+    }
   },
   "auth": {
     "title": "登入 NagiFlow",

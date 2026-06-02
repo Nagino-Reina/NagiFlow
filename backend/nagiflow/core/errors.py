@@ -1,4 +1,4 @@
-"""Consistent error envelope with stable machine codes (docs/05 §3, docs/15 §6).
+"""Consistent error envelope with stable machine codes (docs/05 §3, docs/16 §6).
 
 Domain/service code raises `AppError(code=...)`; the API layer renders it as:
     {"error": {"code", "message", "details", "correlation_id"}}
@@ -72,3 +72,30 @@ def guest_upgrade_required() -> AppError:
 
 def conflict(code: str, message: str) -> AppError:
     return AppError(code, message, status_code=409)
+
+
+def provider_unavailable(provider: str) -> AppError:
+    return AppError(
+        "provider.unavailable",
+        f"Provider '{provider}' is unavailable.",
+        status_code=503,
+        details={"provider": provider},
+    )
+
+
+def provider_error(provider: str, message: str) -> AppError:
+    return AppError(
+        "provider.error",
+        f"Provider '{provider}' failed: {message}",
+        status_code=502,
+        details={"provider": provider},
+    )
+
+
+def capability_unsupported(feature: str) -> AppError:
+    return AppError(
+        "provider.capability_unsupported",
+        f"The active provider does not support '{feature}'.",
+        status_code=422,
+        details={"feature": feature},
+    )

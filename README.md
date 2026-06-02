@@ -1,24 +1,32 @@
 # NagiFlow
 
-**Local-first, modular AI VTuber studio.** Give a character a voice, talk to it, author
-multi-speaker scripts, and (later) drive a live, lip-synced cast — all running on your own
-machine, with every external service (LLM, TTS, ASR, storage) behind a swappable provider
-seam.
+**Local-first, modular AI VTuber studio.** Two core flows, both on your own machine:
 
-> Status: **P0 — Foundations** complete. The skeleton runs end to end (FastAPI backend +
-> Vuetify SPA shell + brand theme, SQLite/ORM/Alembic, provider interfaces with a stub
-> provider, and a one-click launcher). Feature work (character voicing, chat, scripts,
-> live) lands in P1+ — see [docs/14 Roadmap](docs/14-roadmap-and-milestones.md).
+1. **Script production** — author (or import + ASR-segment) a multi-speaker script, then render
+   it to voiced multimedia (audio, optional video + subtitles) saved locally.
+2. **Live streaming** — a character responds in real time to user dialogue or external input
+   (live chat, screen content), driving voice + animation as it speaks.
+
+Everything else — characters, voice, personality, emotion, memory, observability — supports
+these two flows, and every external service (LLM, TTS, ASR, storage) sits behind a swappable
+provider seam.
+
+> Status: **P1 — MVP** complete. You can create a character (profile, Big Five personality,
+> portrait, zero-shot voice via VoxCPM), then hold a voiced text-chat with it through Ollama —
+> with token/usage accounting and a live system-status bar. Next up is **P2** (scripts, ASR
+> import, batch media) — see [docs/15 Roadmap](docs/15-roadmap-and-milestones.md).
 
 ---
 
 ## Quick start
 
 ### Prerequisites
-- **Python 3.14+** and [**uv**](https://docs.astral.sh/uv/) (backend deps + venv)
+- **Python 3.12** and [**uv**](https://docs.astral.sh/uv/) (backend deps + venv)
 - **Node.js 18+** and [**pnpm**](https://pnpm.io/) (frontend)
 - *Optional:* **ffmpeg** (media/ASR, P2+), **Ollama** (local LLM — an offline echo
-  provider is used if absent)
+  provider is used if absent), and a **CUDA-enabled NVIDIA GPU** for VoxCPM voice synthesis
+  (optional but recommended — on CPU it is impractically slow, so install GPU-enabled torch
+  or keep replies text-only)
 
 Run `nagiflow check` to verify your toolchain at any time.
 
@@ -69,13 +77,28 @@ workspace/  Local data — SQLite DB, media, logs, backups (created on first run
 Layered, highest precedence last: **built-in defaults → `workspace/config/app.toml` →
 environment (`NAGIFLOW_*` / `.env`)**. Secrets come from the environment only and are never
 read from the committed workspace config. See `backend/.env.example` and
-[docs/13 §4](docs/13-runtime-and-deployment.md).
+[docs/14 §4](docs/14-runtime-and-deployment.md).
 
 ## Documentation
 
 Start with [docs/01 Vision](docs/01-vision-and-scope.md) and
 [docs/03 Architecture](docs/03-system-architecture.md); the
-[Roadmap](docs/14-roadmap-and-milestones.md) tracks phase scope and exit criteria.
+[Roadmap](docs/15-roadmap-and-milestones.md) tracks phase scope and exit criteria.
+
+## Development
+
+Code style is enforced by the formatters/linters — run them before committing:
+
+```bash
+# Backend (from backend/)
+uv run ruff format . && uv run ruff check . && uv run pytest
+
+# Frontend (from web/)
+pnpm lint:fix && pnpm build
+```
+
+`ruff format` (Python) and `eslint` via `eslint-config-vuetify` (TS/Vue) are the single source
+of truth for formatting and import order — let them resolve style rather than hand-formatting.
 
 ## License
 

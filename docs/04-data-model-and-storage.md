@@ -58,7 +58,7 @@
 
 - **Engine:** SQLite in **WAL** mode (better read/write concurrency, resilience).
 - **Access:** SQLAlchemy ORM with the **repository + unit-of-work** pattern; no raw paths/SQL in services.
-- **Migrations:** Alembic; applied on startup after a safety backup of `nagiflow.db` into `backups/` ([13 §migrations](13-runtime-and-deployment.md)).
+- **Migrations:** Alembic; applied on startup after a safety backup of `nagiflow.db` into `backups/` ([14 §migrations](14-runtime-and-deployment.md)).
 - **Integrity:** foreign keys enforced; timestamps (`created_at`/`updated_at`) on all rows; soft-delete where reversibility matters (e.g. characters, scripts) and hard-delete where privacy requires it (e.g. user data deletion).
 - **Write concurrency:** WAL allows concurrent readers but **only one writer** at a time. To avoid `SQLITE_BUSY` under live turns + background jobs, connections set a `busy_timeout`, writes are kept short (large bytes go to the FS, not the DB), and write-heavy job steps batch/serialize their commits. Heavy concurrent write load is a signal to migrate the DB seam to an external engine ([§1](#1-storage-philosophy), NFR-SCALE-3).
 
@@ -115,7 +115,7 @@ erDiagram
 | status | TEXT | `active` \| `disabled` |
 | prefs | JSON | UI/locale prefs |
 
-> Guests may be represented as ephemeral `user` rows or as session-only principals; see [09](09-feature-multiuser-memory-and-privacy.md). Secrets handling per [15 §3](15-security-and-threat-model.md).
+> Guests may be represented as ephemeral `user` rows or as session-only principals; see [09](09-feature-multiuser-memory-and-privacy.md). Secrets handling per [16 §3](16-security-and-threat-model.md).
 
 **`session`**
 
@@ -141,8 +141,7 @@ erDiagram
 | persona | TEXT | system-prompt / behavioral description |
 | big_five | JSON | `{openness, conscientiousness, extraversion, agreeableness, neuroticism}` 0–100 |
 | default_language | TEXT | |
-| default_voice_model_id | TEXT FK→voice_model NULL | |
-| default_style | JSON | default pacing/emotion/style hints |
+| default_style | JSON | reserved for author style overrides; unused in P1 (reply style is derived at runtime from the Big Five mapping) |
 | portrait_key | TEXT NULL | storage key |
 | avatar_bundle_key | TEXT NULL | storage key for the avatar **bundle directory** (descriptor + assets): a PNGTuber sprite set by default; a Live2D or 3D model if used |
 | avatar_renderer | TEXT NULL | preferred renderer, e.g. `pngtuber` (default) \| `live2d` \| `3d` \| `external`; null = system default |
@@ -164,7 +163,7 @@ erDiagram
 | artifact_key | TEXT NULL | trained model artifact (fine-tune) |
 | params | JSON | cfg/timesteps/etc. defaults |
 | status | TEXT | `ready` \| `training` \| `failed` |
-| is_default | INTEGER | 0/1 |
+| is_default | INTEGER | 0/1 — **single source of truth** for the character's default voice |
 
 **`character_asset`**
 
@@ -247,7 +246,7 @@ erDiagram
 | user_id | TEXT FK→user | (guest user row or local) |
 | mode | TEXT | `chat` \| `live` |
 | sensitive_mode | INTEGER | 0/1 effective for this conversation |
-| director_config | JSON NULL | multi-character turn rules: `max_chain_depth`, `max_character_turns_per_input`, cooldown, selection policy ([10 §4.5](10-feature-realtime-and-media-generation.md)) |
+| director_config | JSON NULL | multi-character turn rules: `max_chain_depth`, `max_character_turns_per_input`, cooldown, selection policy ([11 §4.5](11-feature-realtime-and-media-generation.md)) |
 | title | TEXT NULL | |
 | status | TEXT | `active` \| `ended` |
 | meta | JSON | live-session info, connector source, etc. |
@@ -333,15 +332,23 @@ erDiagram
 | is_default | INTEGER | 0/1 |
 | fallback_order | INTEGER NULL | for fallback chains |
 
+**`app_setting`** — key-value store for runtime application settings edited in the UI (e.g. the global **roleplay prompt**, [05 §4.7](05-api-specification.md), [08 §4](08-feature-character-management.md)). One row per key; a missing row falls back to the built-in default from config.
+
+| Field | Type | Notes |
+|---|---|---|
+| key | TEXT PK | setting key (e.g. `roleplay_prompt`) |
+| value | TEXT | serialized value |
+| created_at / updated_at | DATETIME | timestamps |
+
 ### 5.8 Usage, metrics & audit
 
-**`usage_record`** — token/cost accounting ([11](11-feature-observability.md)).
+**`usage_record`** — token/cost accounting ([12](12-feature-observability.md)).
 
 | Field | Type | Notes |
 |---|---|---|
 | id | TEXT PK | |
 | kind | TEXT | `llm` \| `embedding` \| `tts` \| `asr` (units differ) |
-| provider_config_id | TEXT FK | |
+| provider | TEXT | provider name (e.g. `ollama`, `voxcpm`). Becomes a `provider_config_id` FK once provider configs land (P4). |
 | model | TEXT | |
 | user_id | TEXT FK→user NULL | |
 | character_id | TEXT FK→character NULL | |
@@ -352,7 +359,7 @@ erDiagram
 | audio_seconds | REAL NULL | for TTS |
 | est_cost | REAL NULL | for remote providers |
 | occurred_at | DATETIME | event time |
-| correlation_id | TEXT NULL | links request → WS turn → jobs → this record ([05 §1](05-api-specification.md), [11 §4](11-feature-observability.md)) |
+| correlation_id | TEXT NULL | links request → WS turn → jobs → this record ([05 §1](05-api-specification.md), [12 §4](12-feature-observability.md)) |
 
 **`metric_sample`** *(optional / may be ephemeral)* — periodic system/service samples (cpu/mem/gpu/disk, service health), retained briefly for charts.
 

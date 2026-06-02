@@ -6,20 +6,22 @@
 | **Doc ID** | NF-06 |
 | **Version** | 0.1 (Draft) |
 | **Last updated** | 2026-05-30 |
-| **Related** | [03 Architecture](03-system-architecture.md), [05 API](05-api-specification.md), [08 Characters](08-feature-character-management.md), [10 Realtime](10-feature-realtime-and-media-generation.md) |
+| **Related** | [03 Architecture](03-system-architecture.md), [05 API](05-api-specification.md), [08 Characters](08-feature-character-management.md), [11 Realtime](11-feature-realtime-and-media-generation.md) |
 | **Traces** | FR-MOD-1 … FR-MOD-11, NFR-MAINT-1/2/3, NFR-SEC-1/2/4 |
 
 ---
 
 ## 1. Purpose & philosophy
 
-Modularity is a first-class requirement, not an afterthought. NagiFlow ships a small, opinionated **core** and pushes everything that touches the outside world — LLMs, speech engines, storage, live-chat platforms — behind extension points. The same mechanism the core team uses to ship the default Ollama and VoxCPM integrations is the mechanism third-party developers use to add their own. There is no privileged "internal" API that modules cannot reach (FR-MOD-1/6).
+Modularity is a first-class requirement, not an afterthought. NagiFlow ships a small, opinionated **core** and pushes everything that touches the outside world — LLMs, speech engines, storage, live-chat platforms — behind extension points. The same mechanism that ships the default Ollama and VoxCPM integrations is the one third-party developers use to add their own. There is no privileged "internal" API that modules cannot reach (FR-MOD-1/6).
 
 Three goals drive the design:
 
 1. **Parity** — official integrations are ordinary modules. If the extension system can express the defaults, it can express almost anything (FR-MOD-6).
 2. **Safety** — a module declares what it needs; the host grants only that. A misbehaving or malicious module should be containable and, at minimum, auditable (NFR-SEC-1/2/4).
 3. **Low ceremony** — a developer should be able to produce a working "Hello Skill" in minutes, in Python, without learning a bespoke build system (NFR-MAINT-1).
+
+This substrate is also the platform's **growth path beyond VTubing**: **Agent Skills** give a character actions/tools, **Connectors** give it senses and reach (live chat, on-screen content, external services), and **providers** keep every model swappable. Together they let NagiFlow extend toward broader **agentic** uses over time — a local AI agent that perceives and acts, or a character that autonomously plays a game (perceive → reason → act). These are **architecture-enabled future directions**, not committed near-term scope ([01 §2.1](01-vision-and-scope.md)).
 
 ---
 
@@ -217,19 +219,19 @@ class RollDice(AgentSkill):
         return {"rolls": rolls, "total": sum(rolls)}
 ```
 
-- **Invocation** — the orchestrator advertises enabled skills to the LLM provider as tools; on a tool call it validates arguments against the schema, runs `run()`, and feeds the result back into the generation loop (see [10 §4](10-feature-realtime-and-media-generation.md)). This realizes FR-MOD-2.
+- **Invocation** — the orchestrator advertises enabled skills to the LLM provider as tools; on a tool call it validates arguments against the schema, runs `run()`, and feeds the result back into the generation loop (see [11 §4](11-feature-realtime-and-media-generation.md)). This realizes FR-MOD-2.
 - **Context** — `ctx` carries the current character, the acting user, the conversation id, and a scoped logger, so a skill can be user- and character-aware without reaching into globals.
 - **Permissioning** — a skill that needs the network or filesystem inherits its package's manifest permissions; the host injects only the guarded clients.
 
 ### 6.1 Compatibility with the Agent-Skill Markdown convention
 
-Some NagiFlow content (and the maintainer's other projects) describe skills as **Markdown "SKILL" documents** with front-matter. NagiFlow supports loading such files from a module's `skills/` directory: the front-matter supplies `name`, `description`, and a parameter schema, and the body is treated as the skill's instruction/prompt fragment. These "declarative skills" need no Python and are ideal for prompt-only behaviors; "code skills" (above) subclass `AgentSkill` when logic or I/O is required. Both register through the same path (FR-MOD-2).
+Skills can also be authored as **Markdown "SKILL" documents** with front-matter. NagiFlow supports loading such files from a module's `skills/` directory: the front-matter supplies `name`, `description`, and a parameter schema, and the body is treated as the skill's instruction/prompt fragment. These "declarative skills" need no Python and are ideal for prompt-only behaviors; "code skills" (above) subclass `AgentSkill` when logic or I/O is required. Both register through the same path (FR-MOD-2).
 
 ---
 
 ## 7. Connectors
 
-A **Connector** bridges NagiFlow to an external system as a **source** (events flow in), a **sink** (actions flow out), or both. Live-chat ingestion is the headline use case and is consumed by the realtime pipeline ([10 §6](10-feature-realtime-and-media-generation.md)).
+A **Connector** bridges NagiFlow to an external system as a **source** (events flow in), a **sink** (actions flow out), or both. Live-chat ingestion is the headline use case and is consumed by the realtime pipeline ([11 §6](11-feature-realtime-and-media-generation.md)).
 
 ```python
 from nagiflow.sdk import Connector, ConnectorAction, ConnectorTrigger
@@ -259,11 +261,11 @@ class TwitchChat(Connector):
 
 ## 8. UI extensions
 
-The Vuetify frontend exposes **contribution points**; a UI extension supplies a component that mounts into one of them. The host screens these mount into are specified in [12 §9 (UI extension surface)](12-ui-ux-design.md).
+The Vuetify frontend exposes **contribution points**; a UI extension supplies a component that mounts into one of them. The host screens these mount into are specified in [13 §9 (UI extension surface)](13-ui-ux-design.md).
 
 | Contribution point | Where it appears |
 |---|---|
-| `dashboard.widget` | A card on the observability dashboard |
+| `dashboard.widget` | A panel in the system status bar's expanded view ([13 §7.6](13-ui-ux-design.md)) |
 | `character.panel` | A tab/section in the character editor (e.g. a custom tuning panel) |
 | `script.tool` | A tool button in the script editor |
 | `nav.item` | A new left-nav destination + route |
@@ -312,7 +314,7 @@ Handlers are async, run within the emitting request's correlation context, and m
 
 ## 11. Security & the permission model
 
-Modules are powerful, so the host applies **least privilege** driven entirely by the manifest (NFR-SEC-1/2/4; consolidated in [15 Security & Threat Model](15-security-and-threat-model.md)):
+Modules are powerful, so the host applies **least privilege** driven entirely by the manifest (NFR-SEC-1/2/4; consolidated in [16 Security & Threat Model](16-security-and-threat-model.md)):
 
 | Resource | Declared as | Enforcement |
 |---|---|---|
@@ -327,8 +329,8 @@ Additional safeguards:
 - **Trust signaling** — the UI distinguishes **official** modules from third-party ones and surfaces the requested permission set at install/enable time so the operator consents knowingly.
 - **Quarantine** — a module that throws during load/registration is disabled and reported rather than crashing the host (NFR-REL-2).
 - **Auditing** — enable/disable/config changes and permission grants are written to the audit log ([04 §3](04-data-model-and-storage.md)).
-- **No ambient authority** — there is no global singleton a module can import to bypass `host`; reviews and docs steer authors to the SDK only. (Python cannot perfectly sandbox in-process code; the model is *least-privilege-by-contract plus auditing*, with process isolation noted as a future hardening option — see [14 risks](14-roadmap-and-milestones.md).)
-- **Trust boundary for shared instances (important).** Because the allowlists are advisory against *malicious* in-process code, a NagiFlow instance exposed to **guests/the public** must run **only official/trusted modules**; installing third-party modules is an **admin** action ([09 §3](09-feature-multiuser-memory-and-privacy.md)) and is intended for the operator's own machine. True isolation of untrusted modules (subprocess/WASM/container) is the planned hardening before any "run untrusted modules on a shared instance" use case ([14 risks](14-roadmap-and-milestones.md)).
+- **No ambient authority** — there is no global singleton a module can import to bypass `host`; reviews and docs steer authors to the SDK only. (Python cannot perfectly sandbox in-process code; the model is *least-privilege-by-contract plus auditing*, with process isolation noted as a future hardening option — see [15 risks](15-roadmap-and-milestones.md).)
+- **Trust boundary for shared instances (important).** Because the allowlists are advisory against *malicious* in-process code, a NagiFlow instance exposed to **guests/the public** must run **only official/trusted modules**; installing third-party modules is an **admin** action ([09 §3](09-feature-multiuser-memory-and-privacy.md)) and is intended for the operator's own machine. True isolation of untrusted modules (subprocess/WASM/container) is the planned hardening before any "run untrusted modules on a shared instance" use case ([15 risks](15-roadmap-and-milestones.md)).
 
 ---
 

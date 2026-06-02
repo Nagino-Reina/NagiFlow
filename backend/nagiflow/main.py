@@ -2,7 +2,7 @@
 
 Wires middleware (correlation, CORS), routers, the error envelope, providers, and the
 DB lifespan. In prod the built SPA is served by this same process (docs/03 ADR-006) — that
-static mount lands with the runtime/launcher work (docs/13).
+static mount lands with the runtime/launcher work (docs/14).
 """
 
 from __future__ import annotations
@@ -64,9 +64,7 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(AppError)
     async def _app_error(request: Request, exc: AppError) -> JSONResponse:
-        return JSONResponse(
-            status_code=exc.status_code, content=exc.envelope(get_correlation_id())
-        )
+        return JSONResponse(status_code=exc.status_code, content=exc.envelope(get_correlation_id()))
 
     @app.exception_handler(RequestValidationError)
     async def _validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:

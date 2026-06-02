@@ -37,7 +37,9 @@ class MessageOut(BaseModel):
     role: str
     speaker_character_id: str | None
     content: str
+    media_asset_id: str | None = None
     created_at: datetime
+    meta: dict = Field(default_factory=dict)
 
 
 class SendMessageResponse(BaseModel):

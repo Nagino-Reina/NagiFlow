@@ -84,17 +84,20 @@ Provider failures are isolated and surfaced (with which provider failed) rather 
 ### 4.1 Characters
 | Method | Path | Auth | Description |
 |---|---|---|---|
+| GET | `/characters/personality/schema` | any | The Big Five → behavior mapping spec, served once so the UI renders the explainability view client-side ([08 §3.2](08-feature-character-management.md)). |
 | GET | `/characters` | G* | List characters (guests see only `guest_visible`). |
 | POST | `/characters` | U | Create a character. |
 | GET | `/characters/{id}` | G* | Get a character (guests: guest-visible only). |
 | PATCH | `/characters/{id}` | U | Update profile/persona/Big Five/style/status. |
 | DELETE | `/characters/{id}` | U | Soft-delete/archive. |
 | POST | `/characters/{id}:duplicate` | U | Duplicate. |
+| GET | `/characters/voice/capabilities` | U | Active TTS provider capability flags (clone/design/fine-tune/sample-rate) so the UI hides unsupported flows ([06 §5.1](06-module-and-extension-system.md)). |
 | POST | `/characters/{id}/voice:preview` | U | Synthesize sample text with a voice config. |
-| GET/POST | `/characters/{id}/voice-models` | U | List / create voice models (zero-shot, voice design). |
-| POST | `/characters/{id}/voice-models:finetune` | U | Start a fine-tune **job**. |
-| POST | `/characters/{id}/voice-models/{vid}:setDefault` | U | Set default voice. |
-| GET/POST/DELETE | `/characters/{id}/assets` | U | Manage assets (portrait/images/audio). |
+| GET/POST | `/characters/{id}/voice-models` | U | List / create voice models. POST creates a **voice-design** model from a description. |
+| POST | `/characters/{id}/voice-models:clone` | U | Create a **zero-shot** model from an uploaded reference clip (`multipart/form-data`). |
+| POST | `/characters/{id}/voice-models:finetune` | U | Start a fine-tune **job** (P6). |
+| POST | `/characters/{id}/voice-models/{vid}:setDefault` | U | Set default voice (toggles `voice_model.is_default`). |
+| PUT/GET/DELETE | `/characters/{id}/portrait` | U / owner | Upload (multipart `file`; PNG/JPEG/WebP, ≤5 MB), fetch, or clear the character **portrait** image; stored under `characters/<id>/` and tracked by `character.portrait_key`. General asset management (extra images/audio) lands later. |
 | POST | `/characters/{id}:export` | U | Export a character **package** (privacy options). |
 | POST | `/characters:import` | U | Import a character package. |
 
@@ -118,8 +121,9 @@ Provider failures are isolated and surfaced (with which provider failed) rather 
 |---|---|---|---|
 | POST | `/conversations` | G* | Start a conversation. Body takes `character_id` (single) or `character_ids[]` + optional `director_config` for a multi-character **live** cast (guests: guest-visible only). |
 | GET | `/conversations` | any | List own conversations. |
-| GET | `/conversations/{id}` | owner | Get conversation + messages. |
-| POST | `/conversations/{id}/messages` | owner | Send a message (synchronous reply: text + audio ref). |
+| GET | `/conversations/{id}` | owner | Get a conversation. |
+| GET | `/conversations/{id}/messages` | owner | List messages in a conversation. |
+| POST | `/conversations/{id}/messages` | owner | Send a message; synchronous reply with text + `media_asset_id` for the synthesized audio when available ([11 §4.6](11-feature-realtime-and-media-generation.md)). |
 | WS | `/conversations/{id}/stream` | owner | **Streaming turn** (see §5). |
 | PATCH | `/conversations/{id}` | owner | Update (e.g. end, toggle sensitive mode if permitted). |
 | DELETE | `/conversations/{id}` | owner | Delete conversation. |
@@ -152,7 +156,7 @@ Provider failures are isolated and surfaced (with which provider failed) rather 
 |---|---|---|---|
 | GET | `/media` | U | List media assets (filters). |
 | GET | `/media/{id}` | owner | Metadata. |
-| GET | `/media/{id}:download` | owner | Stream/download bytes. |
+| GET | `/media/{id}:download` | owner | Stream/download bytes (P1: reply audio playback; ownership via the linked message's conversation). |
 | GET | `/jobs` | U | List jobs (type/status filters). |
 | GET | `/jobs/{id}` | owner | Job status + progress + result/error. |
 | GET | `/jobs/{id}/events` | owner | Job progress/log stream (SSE) or paged events. |
@@ -166,6 +170,8 @@ Provider failures are isolated and surfaced (with which provider failed) rather 
 | GET | `/usage` | U | Token/cost usage with filters (per user/character/time) + totals. |
 | GET | `/usage:summary` | U | Aggregated dashboards data. |
 | GET | `/logs:tail` | U | Recent structured logs (redacted), optional follow. |
+| WS | `/system/stream` | U | Live system status (resources + service health + usage) pushed on an interval (see §5.1). |
+| GET/PUT/DELETE | `/settings/roleplay-prompt` | U | Read / update / reset the global **roleplay prompt** — the per-install base instruction prepended to every character ([08 §4](08-feature-character-management.md)); a blank `PUT` or `DELETE` resets to the system default. |
 | GET | `/system/info` | any | App/version/workspace info. |
 | GET | `/healthz` / `/readyz` | none | Liveness / readiness. |
 
@@ -202,12 +208,25 @@ The protocol is **event-typed JSON** for control/text plus **binary frames** for
 
 **Semantics**
 - Text and audio stream **concurrently**; the client may render captions from `text.delta` while playing audio frames.
-- **Multi-character:** in a live session with a *cast*, every server event carries the speaker's `character_id`, and the **director** emits `turn.assigned` before each `turn.start`. Turns are serialized (one speaker at a time); a character may answer another within the director's bounded chain ([10 §4.5](10-feature-realtime-and-media-generation.md)).
+- **Multi-character:** in a live session with a *cast*, every server event carries the speaker's `character_id`, and the **director** emits `turn.assigned` before each `turn.start`. Turns are serialized (one speaker at a time); a character may answer another within the director's bounded chain ([11 §4.5](11-feature-realtime-and-media-generation.md)).
 - `control.interrupt` cancels in-flight LLM/TTS for the current turn (barge-in) and emits `turn.end` with a `cancelled` status.
 - Reconnection: the client may resume the conversation; in-flight turn state is best-effort per provider capability.
 - The same orchestration ([03 §4](03-system-architecture.md)) powers both this stream and the synchronous `POST /messages` endpoint.
 
 > An optional **SSE** variant (`GET /conversations/{id}/messages:stream`) provides one-way token streaming for clients that don't need audio upstream.
+
+### 5.1 System status stream
+
+**Endpoint:** `WS /api/v1/system/stream`. **Auth:** as above (HttpOnly cookie or a `Sec-WebSocket-Protocol` bearer sub-protocol — never a query string); a **user** session is required.
+
+The server pushes one JSON message per interval (`NAGIFLOW_STATUS_STREAM_INTERVAL`, default 5s) and expects nothing from the client. This replaces timer-based REST polling of `/system/resources`, `/system/services`, and `/usage:summary` for the always-on status bar ([12 §2](12-feature-observability.md)): the UI holds **one** connection, authenticated once at connect, so there are no per-poll session writes. The client reconnects with backoff; a `1008` close (auth refused) stops retries.
+
+```json
+{ "type": "system.status",
+  "resources": { /* same shape as GET /system/resources */ },
+  "services": [ { "capability": "llm", "name": "ollama", "model": "llama3.2", "status": "up" } ],
+  "usage": { /* same shape as GET /usage:summary */ } }
+```
 
 ## 6. Representative request/response examples
 

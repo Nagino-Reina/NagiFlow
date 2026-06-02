@@ -1,4 +1,4 @@
-"""`nagiflow` CLI -- the one-click launcher entry point (docs/13 §3).
+"""`nagiflow` CLI -- the one-click launcher entry point (docs/14 §3).
 
   nagiflow up            start backend + frontend (dev), single-terminal logs
   nagiflow up --prod     build the SPA and serve it from FastAPI (one process)

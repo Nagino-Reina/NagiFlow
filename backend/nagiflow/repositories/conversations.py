@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..models.conversation import Conversation, Message
+from ..models.conversation import Conversation, ConversationParticipant, Message
 
 
 class ConversationRepository:
@@ -29,10 +29,21 @@ class ConversationRepository:
         self.s.add(conversation)
         return conversation
 
+    async def delete(self, conversation: Conversation) -> None:
+        cid = conversation.id
+        await self.s.execute(delete(Message).where(Message.conversation_id == cid))
+        await self.s.execute(
+            delete(ConversationParticipant).where(ConversationParticipant.conversation_id == cid)
+        )
+        await self.s.delete(conversation)
+
 
 class MessageRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.s = session
+
+    async def get(self, message_id: str) -> Message | None:
+        return await self.s.get(Message, message_id)
 
     async def list_for_conversation(
         self, conversation_id: str, *, limit: int = 100
